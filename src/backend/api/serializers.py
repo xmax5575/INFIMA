@@ -1,14 +1,22 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
+
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'email', 'role']
+        fields = ['id', 'first_name', 'last_name', 'password', 'email', 'role']
         extra_kwargs = {
             'password': {'write_only': True}
         }
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
+        # Ensure compatibility with Django's default UserManager.create_user
+        # which expects a username parameter. We don't require a separate
+        # username field, so use the email as the username value.
+        email = validated_data.get('email') 
+
+        # Use email as username so create_user doesn't raise missing username
+        user = User.objects.create_user(username=email, **validated_data)
         return user

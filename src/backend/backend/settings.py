@@ -127,6 +127,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+AUTH_USER_MODEL = 'api.User' # Zamijenili smo običnog usera s našim prilagođenim modelom koji ima još i role i nema username
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
