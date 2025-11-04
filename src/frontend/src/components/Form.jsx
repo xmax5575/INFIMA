@@ -1,6 +1,6 @@
 import React, { useState, useEffect, use } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api"
+import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
 function Form({ route, method }) {
   const [email, setEmail] = useState("");
@@ -8,7 +8,7 @@ function Form({ route, method }) {
   const [passwordAgain, setPasswordAgain] = useState("");
   const [name, setName] = useState("");
   const [lastname, setLastname] = useState("");
-  
+
   const navigate = useNavigate();
 
   const methodName = method === "login" ? "PRIJAVA" : "REGISTRACIJA";
@@ -16,41 +16,36 @@ function Form({ route, method }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (method === "register" && password !== passwordAgain){
+    if (method === "register" && password !== passwordAgain) {
       alert("Unijeli ste dvije različite lozinke");
       return;
-      
     }
-    try{
-      if(method === "login"){
+    try {
+      if (method === "login") {
         const res = await api.post("/api/token/", {
           email,
           password,
         });
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
-      localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-      alert("Prijava uspješna!");
-      navigate("/home"); 
-
-      }else{
+        localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
+        alert("Prijava uspješna!");
+        navigate("/home");
+      } else {
         const res = await api.post("/api/user/register/", {
-        first_name: name,
-        last_name: lastname,
-        email,
-        password,
-      });
-       if (res.status === 201) {
-        alert("Registracija uspješna! Možete se prijaviti.");
-        navigate("/login");
+          first_name: name,
+          last_name: lastname,
+          email,
+          password,
+        });
+        if (res.status === 201) {
+          alert("Registracija uspješna! Možete se prijaviti.");
+          navigate("/login");
+        }
       }
-      }
-
-    }catch(err){
+    } catch (err) {
       console.error(err);
       alert("Greška prilikom prijave ili registracije.");
     }
-    console.log("Email:", email);
-    console.log("Password:", password);
   };
 
   return (
@@ -133,22 +128,21 @@ function Form({ route, method }) {
       )}
 
       <button
-        className="h-[55px] bg-[#578FCA] text-[#D1F8EF] font-extrabold text-lg rounded-lg hover:scale-105 transition-transform duration-200 block"
+        className="h-[55px] bg-[#578FCA] text-[#D1F8EF] font-extrabold text-lg rounded-lg hover:scale-105 transition-transform duration-200 block w-full"
         type="submit"
       >
         {method === "login" ? "PRIJAVI SE" : "REGISTRIRAJ SE"}
       </button>
 
       <p className="text-center text-[#578FCA] font-semibold">
-          { method === "login" ? "Niste registrirani? " : "Već imate račun? "}
-          <a
-            href= { method === "login" ?"/register": "/login"}
-            className="text-[#3674B5] hover:underline transition-colors"
-          >
-            { method === "login" ? "Registrirajte se"  : "Prijavite se"}
-          </a>
-        </p>
-      
+        {method === "login" ? "Niste registrirani? " : "Već imate račun? "}
+        <a
+          href={method === "login" ? "/register" : "/login"}
+          className="text-[#3674B5] hover:underline transition-colors"
+        >
+          {method === "login" ? "Registrirajte se" : "Prijavite se"}
+        </a>
+      </p>
     </form>
   );
 }
