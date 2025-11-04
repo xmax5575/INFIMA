@@ -18,7 +18,8 @@ from django.contrib import admin
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import CreateUserView
+from api.views import CreateUserView, user_profile
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,4 +30,5 @@ urlpatterns = [
 
     path("api/user/", include("allauth.urls")),
     path("", include("api.urls"))
+    path("api/user/profile/", user_profile, name="user_profile"),
 ] + debug_toolbar_urls()
