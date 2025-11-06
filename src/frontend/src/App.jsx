@@ -7,15 +7,31 @@ import Role from "./pages/Role";
 import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { googleLogout } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
+import { ACCESS_TOKEN } from "./constants";
+import Instructor from "./pages/Instructor";
 
 function Logout() {
   localStorage.clear();
-  googleLogout()
+  googleLogout();
   return <Navigate to="/login" />;
 }
 function RegisterAndLogout() {
   localStorage.clear();
   return <Register />;
+}
+function isAuthenticated() {
+  const token = localStorage.getItem(ACCESS_TOKEN);
+  if (!token) return false;
+  try {
+    const { exp } = jwtDecode(token); // exp je u sekundama
+    return exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+function GuestRoute({ children }) {
+  return isAuthenticated() ? <Navigate to="/home" replace /> : children;
 }
 
 function App() {
@@ -24,7 +40,14 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <Login />
+              </GuestRoute>
+            }
+          />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
           <Route
@@ -35,6 +58,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/role" 
+                element={<Role />} />
+          <Route path="/instructor" element={<Instructor />} />
         </Routes>
       </BrowserRouter>
     </>

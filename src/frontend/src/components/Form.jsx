@@ -14,35 +14,16 @@ function Form({ route, method }) {
 
   const navigate = useNavigate();
 
-  const googleAuthCodeLogin = useGoogleLogin({
-    flow: "auth-code", // Essential for the backend flow
-    onSuccess: async (codeResponse) => {
-      try {
-        // codeResponse.code contains the authorization code
-        const res = await api.post("/api/auth/google/code/", {
-          code: codeResponse.code,
-        });
-
-        // 2. Handle Django's successful response (your JWT tokens)
-        localStorage.setItem(ACCESS_TOKEN, res.data.access);
-        localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        alert("Google prijava uspješna!");
-        navigate("/home");
-      } catch (err) {
-        console.error(err);
-        alert("Greška prilikom Google prijave/registracije: ", err);
-      }
-    },
-    onError: () => console.log("LOGIN FAILED"),
-  });
-
   const methodName = method === "login" ? "PRIJAVA" : "REGISTRACIJA";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (method === "register" && password !== passwordAgain) {
-      alert("Unijeli ste dvije različite lozinke");
+      const password2 = e.currentTarget.querySelector('input[name="passwordAgain"]'); 
+      password2.setCustomValidity("Lozinke se ne podudaraju.");
+      password2.reportValidity(); // prikaže tooltip i označi polje kao invalid
+      password2.focus();
       return;
     }
     try {
@@ -76,7 +57,7 @@ function Form({ route, method }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-5 bg-[rgba(209,248,239,0.2)] backdrop-blur-md p-10 rounded-xl shadow-xl w-[420px]"
+      className="flex flex-col gap-5 bg-[rgba(209,248,239,0.2)] backdrop-blur-md p-10 rounded-xl shadow-xl w-[420px] mt-8"
     >
       <h1 className="text-[24px] font-bold text-[#D1F8EF] mb-8 tracking-wide text-center">
         {methodName}
@@ -102,8 +83,15 @@ function Form({ route, method }) {
         <input
           className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40"
           type="password"
+          pattern="(?=.*[A-Z])(?=.*\d).{8,}"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          onInvalid={(e) =>
+            e.currentTarget.setCustomValidity(
+              "Lozinka mora imati minimalno 8 znakova, uključujući broj i veliko slovo."
+            )
+          }
+          onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku čim korisnik tipka
           placeholder="Unesite lozinku"
           required
         />
@@ -115,10 +103,12 @@ function Form({ route, method }) {
               Potvrdi lozinku
             </label>
             <input
+              name="passwordAgain"
               className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40 "
               type="password"
               value={passwordAgain}
               onChange={(e) => setPasswordAgain(e.target.value)}
+              onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku kad tipka
               placeholder="Ponovno unesite lozinku"
               required
             />
@@ -157,13 +147,6 @@ function Form({ route, method }) {
         type="submit"
       >
         {method === "login" ? "PRIJAVI SE" : "REGISTRIRAJ SE"}
-      </button>
-
-      <button
-        onClick={() => googleAuthCodeLogin()} // <-- The hook function call
-        className="h-[55px] bg-[#3674B5] text-[#D1F8EF] font-extrabold text-lg rounded-lg hover:scale-105 transition-transform duration-200 block w-full mt-4"
-      >
-        PRIJAVI SE S GOOGLEOM
       </button>
 
       <p className="text-center text-[#578FCA] font-semibold">

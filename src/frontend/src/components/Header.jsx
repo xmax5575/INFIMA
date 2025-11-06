@@ -18,7 +18,7 @@ function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 flex flex-wrap justify-between items-center px-6 sm:px-16 py-6 text-[#D1F8EF]">
+    <header className="fixed top-0 left-0 w-full z-50 bg-blue/10 backdrop-blur-md flex flex-wrap justify-between items-center px-6 sm:px-16 py-6 text-[#D1F8EF]">
       <a
         href="/"
         className="text-2xl sm:text-3xl font-bold tracking-widest hover:scale-105 transition-transform"
