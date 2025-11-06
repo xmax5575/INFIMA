@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { googleLogout } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { ACCESS_TOKEN } from "./constants";
+import Instructor from "./pages/Instructor";
 
 function Logout() {
   localStorage.clear();
@@ -59,6 +60,7 @@ function App() {
           />
           <Route path="/role" 
                 element={<Role />} />
+          <Route path="/instructor" element={<Instructor />} />
         </Routes>
       </BrowserRouter>
     </>

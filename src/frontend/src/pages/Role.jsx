@@ -32,9 +32,9 @@ function Role() {
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] text-[#D1F8EF] flex flex-col items-center justify-center font-[Outfit]">
       <Header />
       <h1 className="text-3xl mb-6 font-bold">Odaberite svoju ulogu</h1>
-      <div className="flex gap-6 mb-6">
+      <div className="flex gap-6 mb-5">
         <button
-          className={`px-6 py-3 rounded-lg ${
+          className={`w-44 h-12 rounded-full font-semibold ${
             role === "student" ? "bg-[#578FCA]" : "bg-[#A1E3F9] text-[#3674B5]"
           }`}
           onClick={() => setRole("student")}
@@ -42,8 +42,10 @@ function Role() {
           Učenik
         </button>
         <button
-          className={`px-6 py-3 rounded-lg ${
-            role === "instructor" ? "bg-[#578FCA]" : "bg-[#A1E3F9] text-[#3674B5]"
+          className={`w-44 h-12 rounded-full font-semibold  ${
+            role === "instructor"
+              ? "bg-[#578FCA]"
+              : "bg-[#A1E3F9] text-[#3674B5]"
           }`}
           onClick={() => setRole("instructor")}
         >
@@ -52,7 +54,7 @@ function Role() {
       </div>
       <button
         onClick={handleSubmit}
-        className="bg-[#3674B5] px-8 py-3 rounded-xl text-[#D1F8EF] font-semibold hover:scale-105 transition-transform"
+        className="bg-[#3674B5] px-8 py-3 rounded-full text-[#D1F8EF] font-semibold hover:scale-105 transition-transform"
       >
         Potvrdi
       </button>
