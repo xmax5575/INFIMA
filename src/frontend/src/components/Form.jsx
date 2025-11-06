@@ -30,7 +30,7 @@ function Form({ route, method }) {
         navigate("/home");
       } catch (err) {
         console.error(err);
-        alert("Greška prilikom Google prijave/registracije.");
+        alert("Greška prilikom Google prijave/registracije: ", err);
       }
     },
     onError: () => console.log("LOGIN FAILED"),
@@ -59,8 +59,8 @@ function Form({ route, method }) {
         const res = await api.post("/api/user/register/", {
           first_name: name,
           last_name: lastname,
-          email,
-          password,
+          email: email,
+          password: password,
         });
         if (res.status === 201) {
           alert("Registracija uspješna! Možete se prijaviti.");

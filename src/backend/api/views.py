@@ -9,6 +9,8 @@ from django.conf import settings
 import requests
 import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
+from django.contrib.auth.hashers import make_password
 
 User = get_user_model()
 
@@ -65,14 +67,16 @@ class GoogleAuthCodeExchangeView(views.APIView):
             email = user_info.get('email')
             first_name = user_info.get('given_name', '')
             last_name = user_info.get('family_name', '')
-            
+            unique_username = f"google_{email.split('@')[0]}_{str(uuid.uuid4())[:8]}"
+
             # 3. Authenticate or Register User
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
+                    'username': unique_username,
                     'first_name': first_name,
                     'last_name': last_name,
-                    'is_active': True,
+                    'password': make_password(str(uuid.uuid4()))
                 }
             )
 
