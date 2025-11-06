@@ -18,4 +18,4 @@ class User(AbstractUser):
 
     @property
     def has_role(self):
-        return bool(self.role)
+        return self.role is not None
