@@ -6,8 +6,11 @@ import Register from "./pages/Register";
 import Role from "./pages/Role";
 import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { googleLogout } from "@react-oauth/google";
+
 function Logout() {
   localStorage.clear();
+  googleLogout()
   return <Navigate to="/login" />;
 }
 function RegisterAndLogout() {
