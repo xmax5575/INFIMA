@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import CreateUserView, UserRoleView
+from api.views import CreateUserView, UserRoleView, CreateRoleView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -27,4 +27,5 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="get_token"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("api-auth/", include("rest_framework.urls")),
+    path("api/select-role/", CreateRoleView.as_view(), name="select-role")
 ] + debug_toolbar_urls()
