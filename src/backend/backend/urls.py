@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from debug_toolbar.toolbar import debug_toolbar_urls
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from api.views import CreateUserView, user_profile
+from api.views import CreateUserView, user_profile, GoogleAuthCodeExchangeView
 
 
 urlpatterns = [
@@ -27,6 +27,6 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="get_token"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("api-auth/", include("rest_framework.urls")),
-    path("api/user/", include("allauth.urls")),
+    path("api/auth/google/code/", GoogleAuthCodeExchangeView.as_view(), name="google_auth_code_exchange"),
     path("api/user/profile/", user_profile, name="user_profile"),
 ] + debug_toolbar_urls()

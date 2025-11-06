@@ -2,6 +2,9 @@ import React, { useState, useEffect, use } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
+import { useGoogleLogin } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
+
 function Form({ route, method }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -10,6 +13,28 @@ function Form({ route, method }) {
   const [lastname, setLastname] = useState("");
 
   const navigate = useNavigate();
+
+  const googleAuthCodeLogin = useGoogleLogin({
+    flow: "auth-code", // Essential for the backend flow
+    onSuccess: async (codeResponse) => {
+      try {
+        // codeResponse.code contains the authorization code
+        const res = await api.post("/api/auth/google/code/", {
+          code: codeResponse.code,
+        });
+
+        // 2. Handle Django's successful response (your JWT tokens)
+        localStorage.setItem(ACCESS_TOKEN, res.data.access);
+        localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
+        alert("Google prijava uspješna!");
+        navigate("/home");
+      } catch (err) {
+        console.error(err);
+        alert("Greška prilikom Google prijave/registracije: ", err);
+      }
+    },
+    onError: () => console.log("LOGIN FAILED"),
+  });
 
   const methodName = method === "login" ? "PRIJAVA" : "REGISTRACIJA";
 
@@ -34,8 +59,8 @@ function Form({ route, method }) {
         const res = await api.post("/api/user/register/", {
           first_name: name,
           last_name: lastname,
-          email,
-          password,
+          email: email,
+          password: password,
         });
         if (res.status === 201) {
           alert("Registracija uspješna! Možete se prijaviti.");
@@ -132,6 +157,13 @@ function Form({ route, method }) {
         type="submit"
       >
         {method === "login" ? "PRIJAVI SE" : "REGISTRIRAJ SE"}
+      </button>
+
+      <button
+        onClick={() => googleAuthCodeLogin()} // <-- The hook function call
+        className="h-[55px] bg-[#3674B5] text-[#D1F8EF] font-extrabold text-lg rounded-lg hover:scale-105 transition-transform duration-200 block w-full mt-4"
+      >
+        PRIJAVI SE S GOOGLEOM
       </button>
 
       <p className="text-center text-[#578FCA] font-semibold">
