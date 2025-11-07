@@ -20,7 +20,9 @@ function Form({ route, method }) {
     e.preventDefault();
 
     if (method === "register" && password !== passwordAgain) {
-      const password2 = e.currentTarget.querySelector('input[name="passwordAgain"]'); 
+      const password2 = e.currentTarget.querySelector(
+        'input[name="passwordAgain"]'
+      );
       password2.setCustomValidity("Lozinke se ne podudaraju.");
       password2.reportValidity(); // prikaže tooltip i označi polje kao invalid
       password2.focus();
@@ -35,7 +37,16 @@ function Form({ route, method }) {
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
         alert("Prijava uspješna!");
-        navigate("/home");
+        const res_role = await api.get("/api/user/role/", {
+          headers: { Authorization: `Bearer ${res.data.access}` },
+          withCredentials: true,
+        });
+        if (!res_role.data.role) {
+          navigate("/role"); //mora birati role
+        } else {
+          navigate(`/home/${res_role.data.role.toLowerCase()}`); //ima role- ide na home
+        }
+      
       } else {
         const res = await api.post("/api/user/register/", {
           first_name: name,
