@@ -190,13 +190,22 @@ class CheckUserRoleMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        response = self.get_response(request)
-        
+        # prvo provjeri korisnika
         if request.user.is_authenticated:
-            # Exclude the role selection page and API endpoints from the redirect
-            if not request.path.startswith('/api/') and \
-               not request.path.startswith('/select-role/') and \
-               not request.user.has_role:
-                return redirect('/api/select-role/')
-        
+            allowed_paths = (
+                '/api/select-role/',
+                '/select-role/',
+                '/api/token/',
+                '/api/token/refresh/',
+                '/api/auth/',
+                '/admin/',
+                '/static/',
+            )
+            #ako ne počinje kao neki od allowe_paths onda redirectaj na select-role
+            if not any(request.path.startswith(p) for p in allowed_paths):
+                if not request.user.has_role:
+                    return redirect('/api/select-role/')
+
+        # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
+        response = self.get_response(request)
         return response

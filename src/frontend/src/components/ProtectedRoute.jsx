@@ -1,60 +1,46 @@
-import {Navigate} from "react-router-dom"
-import {jwtDecode} from "jwt-decode"
-import api from "../api"
-import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import api from "../api";
+import { ACCESS_TOKEN } from "../constants";
 
-function ProtectedRoute({children}){
-    const [isAuthorized, setIsAuthorized] = useState(null);
+function ProtectedRoute({ children, allowedRoles = [] }) {
+  const token = localStorage.getItem(ACCESS_TOKEN);
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
-    useEffect(() => {
-        auth().catch(() => setIsAuthorized(false))
+  useEffect(() => {
+    if (!token) { setLoading(false); return; }
+
+    api.get("/api/user/role/", {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true,
     })
+    .then(res => setUserRole(res.data.role || null))
+    .catch(() => setUserRole(null))
+    .finally(() => setLoading(false));
+  }, [token]);
 
-    const refreshToken = async() => {
-        const refreshToken = localStorage.getItem(REFRESH_TOKEN);
-        try{
-            const res = await api.post("/api/token/refresh/", {
-                refresh: refreshToken,
-            });
-            if(res.status === 200){
-                localStorage.setItem(ACCESS_TOKEN, res.data.access)
-                setIsAuthorized(true)
-            }else{
-                setIsAuthorized(false)
-            }
+  if (!token) return <Navigate to="/login" replace />;
+  if (loading) return null;
 
+  // ⬇️ Ako je na /role:
+  if (location.pathname === "/role") {
+    // ako NEMA role -> prikaži <Role />
+    if (!userRole) return children;
+    // ako IMA role -> pošalji ga na svoj home
+    return <Navigate to={`/home/${userRole.toLowerCase()}`} replace />;
+  }
 
-        }catch(error){
-            console.log(error);
-            setIsAuthorized(false);
+  // ⬇️ Za sve druge rute: ako NEMA role -> prisilno na /role
+  if (!userRole) return <Navigate to="/role" replace />;
 
-        }
+  // ⬇️ Role-based zaštita
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    return <Navigate to={`/home/${userRole.toLowerCase()}`} replace />;
+  }
 
-
-    }
-    const auth = async() => {
-        const token = localStorage.getItem(ACCESS_TOKEN);
-        if(!token){
-            setIsAuthorized(false);
-            return
-        }
-        const decoded = jwtDecode(token);
-        const tokenExpiration = decoded.exp;
-        const now = Date.now()/1000;
-
-        if(tokenExpiration < now){
-            await refreshToken();
-
-        }else{
-            setIsAuthorized(true);
-        }
-
-    }
-    if(isAuthorized == null){
-        return <div>Loading...</div>
-    }
-
-    return isAuthorized? children: <Navigate to = "/login" />
+  return children;
 }
-export default ProtectedRoute
+
+export default ProtectedRoute;

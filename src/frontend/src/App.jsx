@@ -10,7 +10,7 @@ import { googleLogout } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { ACCESS_TOKEN } from "./constants";
 import Instructor from "./pages/Instructor";
-
+import Student from "./pages/Student";
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -50,17 +50,31 @@ function App() {
           />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
+          
           <Route
-            path="/home"
+            path="/role"
             element={
-              <ProtectedRoute>
-                <Home />
+              
+                <Role />
+              
+            }
+          />
+          <Route
+            path="/home/instructor"
+            element={
+              <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
+                <Instructor />
               </ProtectedRoute>
             }
           />
-          <Route path="/role" 
-                element={<Role />} />
-          <Route path="/instructor" element={<Instructor />} />
+          <Route
+            path="/home/student"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <Student />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>

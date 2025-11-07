@@ -34,3 +34,9 @@ class User(AbstractUser):
     email = models.EmailField(unique=True, blank=False)
 
     objects = UserManager()
+    
+    #ako je role postavljena nek bude true, nije none/empty
+    @property
+    def has_role(self):
+        """True ako je role postavljena (nije None/empty)."""
+        return bool(self.role)
