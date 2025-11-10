@@ -4,6 +4,7 @@ import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
 import { useGoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 function Form({ route, method }) {
   const [email, setEmail] = useState("");
@@ -11,6 +12,8 @@ function Form({ route, method }) {
   const [passwordAgain, setPasswordAgain] = useState("");
   const [name, setName] = useState("");
   const [lastname, setLastname] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordAgain, setShowPasswordAgain] = useState(false);
 
   const navigate = useNavigate();
 
@@ -24,7 +27,7 @@ function Form({ route, method }) {
         'input[name="passwordAgain"]'
       );
       password2.setCustomValidity("Lozinke se ne podudaraju.");
-      password2.reportValidity(); // prikaže tooltip i označi polje kao invalid
+      password2.reportValidity();
       password2.focus();
       return;
     }
@@ -46,7 +49,6 @@ function Form({ route, method }) {
         } else {
           navigate(`/home/${res_role.data.role.toLowerCase()}`); //ima role- ide na home
         }
-      
       } else {
         const res = await api.post("/api/user/register/", {
           first_name: name,
@@ -91,21 +93,34 @@ function Form({ route, method }) {
         <label className="block text-[#D1F8EF] font-semibold mb-1">
           Lozinka
         </label>
-        <input
-          className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40"
-          type="password"
-          pattern="(?=.*[A-Z])(?=.*\d).{8,}"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onInvalid={(e) =>
-            e.currentTarget.setCustomValidity(
-              "Lozinka mora imati minimalno 8 znakova, uključujući broj i veliko slovo."
-            )
-          }
-          onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku čim korisnik tipka
-          placeholder="Unesite lozinku"
-          required
-        />
+        <div className="relative">
+          <input
+            className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40"
+            type={showPassword ? "text" : "password"}
+            pattern="(?=.*[A-Z])(?=.*\d).{8,}"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onInvalid={(e) =>
+              e.currentTarget.setCustomValidity(
+                "Lozinka mora imati minimalno 8 znakova, uključujući broj i veliko slovo."
+              )
+            }
+            onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku čim korisnik tipka
+            placeholder="Unesite lozinku"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#D1F8EF] hover:text-[#A1E3F9] focus:outline-none"
+          >
+            {showPassword ? (
+              <AiOutlineEye size={22} />
+            ) : (
+              <AiOutlineEyeInvisible size={22} />
+            )}
+          </button>
+        </div>
       </div>
       {method === "register" && (
         <>
@@ -113,16 +128,29 @@ function Form({ route, method }) {
             <label className="block text-[#D1F8EF] font-semibold mb-1">
               Potvrdi lozinku
             </label>
-            <input
-              name="passwordAgain"
-              className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40 "
-              type="password"
-              value={passwordAgain}
-              onChange={(e) => setPasswordAgain(e.target.value)}
-              onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku kad tipka
-              placeholder="Ponovno unesite lozinku"
-              required
-            />
+            <div className="relative">
+              <input
+                name="passwordAgain"
+                className="w-full h-[50px] bg-[rgba(87,143,202,0.3)] rounded-md px-3 text-[#D1F8EF] placeholder-[#D1F8EF] outline-none focus:ring-2 focus:ring-[#D1F8EF]/40 "
+                type={showPasswordAgain ? "text" : "password"}
+                value={passwordAgain}
+                onChange={(e) => setPasswordAgain(e.target.value)}
+                onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku kad tipka
+                placeholder="Ponovno unesite lozinku"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordAgain(!showPasswordAgain)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#D1F8EF] hover:text-[#A1E3F9] focus:outline-none"
+              >
+                {showPasswordAgain ? (
+                  <AiOutlineEye size={22} />
+                ) : (
+                  <AiOutlineEyeInvisible size={22} />
+                )}
+              </button>
+            </div>
           </div>
           <div>
             <label className="block text-[#D1F8EF] font-semibold mb-1">
