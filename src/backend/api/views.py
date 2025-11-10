@@ -179,6 +179,13 @@ class CreateRoleView(APIView):
         user.role = valid_roles[role]
         user.save()
 
+        from .models import Student, Instructor
+
+        if user.role == User.Role.STUDENT:
+            Student.objects.get_or_create(student_id=user, defaults={'grade': 1})
+        elif user.role == User.Role.INSTRUCTOR:
+            Instructor.objects.get_or_create(instructor_id=user, defaults={'price': 0, 'bio': '', 'location': ''})
+
         # Redirect depending on request type
         if request.content_type == 'application/json':
             return Response({'role': user.role}, status=status.HTTP_200_OK)
