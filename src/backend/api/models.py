@@ -113,7 +113,7 @@ class Lesson(models.Model):
         HIGH = 'SREDNJA', 'Srednja škola'
 
     lesson_id = models.AutoField(primary_key=True)
-    instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE)
+    instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE, db_column='instructor_id' )
     is_available = models.BooleanField(default=True)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
     location = models.TextField(null=True, blank=True)
@@ -132,9 +132,15 @@ class Lesson(models.Model):
     )
 
     def __str__(self):
-        return f"Lesson with {self.instructor.user.first_name} ({'Free' if self.is_available else 'Booked'})"
-
-
+        try:
+            first = self.instructor_id.instructor_id.first_name
+            last = self.instructor_id.instructor_id.last_name
+        except Exception:
+            first = last = "?"
+        status = "Free" if self.is_available else "Booked"
+        return f"Lesson with {first} {last} ({status})"
+    
+    
 class Payment(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     student = models.ForeignKey(Student, on_delete=models.CASCADE)

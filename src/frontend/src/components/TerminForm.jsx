@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 
-function TerminForm() {
+function TerminForm({ onCreated, onClose }) {
   const [subject, setSubject] = useState("");
   const [level, setLevel] = useState("");
   const [maxStudents, setMaxStudents] = useState("");
@@ -12,71 +12,109 @@ function TerminForm() {
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState("");
-  const [instructor, setInstructor] = useState(null);
   const [validationError, setValidationError] = useState(null);
 
+  // (opcionalno) provjera da je user prijavljen; profil ovdje nije potreban za POST
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN);
-    if (token) {
-      api
-        .get("/api/user/profile/", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => setInstructor(res.data))
-        .catch(() => setInstructor(null));
-    }
+    if (!token) return;
+    api.get("/api/user/profile/", { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
   }, []);
 
-  const handleSubmit = (e) => {
-  e.preventDefault();
+  // addLesson zamjenjuje handleSubmit
+  const addLesson = async (e) => {
+    e.preventDefault();
+    setValidationError(null);
 
-  const parsedPrice = parseFloat(price);
-  if (isNaN(parsedPrice) || parsedPrice <= 0) {
-    setValidationError("Cijena mora biti pozitivan broj veći od nule.");
-    return;
-  }
-  if(maxStudents <= 0){
-    setValidationError("Broj studenata mora biti pozitivan");
-  }
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    if (!token) {
+      setValidationError("Niste prijavljeni.");
+      return;
+    }
 
-  if (!date || !time) {
-    setValidationError("Morate izabrati i datum i vrijeme.");
-    return;
-  }
+    const pPrice = Number(price);
+    const pMax = Number(maxStudents);
+    const pDur = Number(duration);
 
-  const izabraniDateTime = new Date(`${date}T${time}:00`);
-  if (izabraniDateTime.getTime() <= new Date().getTime()) {
-    setValidationError(
-      "Izabrani datum i vrijeme moraju biti veci od trenutnog."
-    );
-    return;
-  }
+    if (!date || !time) {
+      setValidationError("Morate izabrati i datum i vrijeme.");
+      return;
+    }
+    if (!Number.isFinite(pPrice) || pPrice <= 0) {
+      setValidationError("Cijena mora biti pozitivan broj veći od nule.");
+      return;
+    }
+    if (!Number.isInteger(pMax) || pMax <= 0) {
+      setValidationError("Broj studenata mora biti pozitivan cijeli broj.");
+      return;
+    }
+    if (!Number.isInteger(pDur) || pDur <= 0) {
+      setValidationError("Trajanje mora biti pozitivan cijeli broj minuta.");
+      return;
+    }
 
-  console.log(
-    instructor,
-    subject,
-    format,
-    duration,
-    date,
-    time,
-    format === "Uživo" ? location : "Online",
-    price,
-    maxStudents,
-    level
-  );
-  setShowForm(false);
-};
+    // TimeField očekuje HH:MM:SS
+    const timeHHMMSS = time.length === 5 ? `${time}:00` : time;
 
+    // termin mora biti u budućnosti
+    const when = new Date(`${date}T${timeHHMMSS}`);
+    if (when.getTime() <= Date.now()) {
+      setValidationError("Izabrani datum i vrijeme moraju biti veći od trenutnog.");
+      return;
+    }
+
+    // mapiranje razine
+    const levelMapped =
+      level === "Osnovna" ? "OSNOVNA" :
+      level === "Srednja" ? "SREDNJA" : "";
+
+    const payload = {
+      // subject: Number(subject) || undefined, // ako kasnije bude ID
+      location: format === "Uživo" ? (location || "") : "",
+      duration_min: Number(pDur),
+      max_students: Number(pMax),
+      format,                    // "Uživo" | "Online"
+      price: Math.round(pPrice), // backend IntegerField
+      date,                      // "YYYY-MM-DD"
+      time: timeHHMMSS,          // "HH:MM:SS"
+      level: levelMapped,        // "OSNOVNA" | "SREDNJA"
+      // is_available: true,     // default
+    };
+
+    try {
+      const res = await api.post("/api/lessons/", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // reset forme
+      setSubject("");
+      setLevel("");
+      setMaxStudents("");
+      setFormat("");
+      setDuration("");
+      setDate("");
+      setTime("");
+      setLocation("");
+      setPrice("");
+
+      // javi parentu i zatvori modal
+      onCreated && onCreated(res.data);
+      onClose && onClose();
+    } catch (err) {
+      const msg = err?.response?.data
+        ? (typeof err.response.data === "string" ? err.response.data : JSON.stringify(err.response.data))
+        : err.message;
+      setValidationError(`Greška pri spremanju: ${msg}`);
+    }
+  };
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={addLesson}
       className="flex flex-col gap-2 sm:gap-3 w-full max-w-md mx-auto text-[#3674B5]"
     >
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Predmet
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Predmet</label>
         <select
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
           value={subject}
@@ -89,10 +127,9 @@ function TerminForm() {
           <option value="Fizika">Fizika</option>
         </select>
       </div>
+
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Razina
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Razina</label>
         <select
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
           value={level}
@@ -104,10 +141,9 @@ function TerminForm() {
           <option value="Srednja">Srednja škola</option>
         </select>
       </div>
+
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Format
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Format</label>
         <select
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
           value={format}
@@ -119,10 +155,9 @@ function TerminForm() {
           <option value="Online">Online</option>
         </select>
       </div>
+
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Max broj polaznika
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Max broj polaznika</label>
         <input
           type="number"
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
@@ -133,9 +168,7 @@ function TerminForm() {
       </div>
 
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Trajanje
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Trajanje</label>
         <select
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
           value={duration}
@@ -152,9 +185,7 @@ function TerminForm() {
       </div>
 
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Datum
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Datum</label>
         <input
           type="date"
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
@@ -165,9 +196,7 @@ function TerminForm() {
       </div>
 
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Vrijeme
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Vrijeme</label>
         <input
           type="time"
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
@@ -179,9 +208,7 @@ function TerminForm() {
 
       {format === "Uživo" && (
         <div>
-          <label className="block text-sm sm:text-base font-semibold mb-1">
-            Lokacija
-          </label>
+          <label className="block text-sm sm:text-base font-semibold mb-1">Lokacija</label>
           <input
             type="text"
             className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
@@ -194,9 +221,7 @@ function TerminForm() {
       )}
 
       <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Cijena (EUR)
-        </label>
+        <label className="block text-sm sm:text-base font-semibold mb-1">Cijena (EUR)</label>
         <input
           type="number"
           min="0"
@@ -218,7 +243,7 @@ function TerminForm() {
       <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
         <button
           type="button"
-          onClick={() => setShowForm(false)}
+          onClick={onClose}
           className="text-[#3674B5] font-semibold hover:underline text-sm sm:text-base"
         >
           Odustani

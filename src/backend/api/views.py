@@ -13,6 +13,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
 from .models import Lesson
+from rest_framework import serializers
+
 
 User = get_user_model()
 
@@ -217,17 +219,16 @@ class CheckUserRoleMiddleware:
         # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
         response = self.get_response(request)
         return response
-
 class LessonListCreateView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.all()
+    queryset = Lesson.objects.all()  # <<< vraća sve lekcije
     serializer_class = LessonSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]  # i dalje zahtijeva login
 
     def perform_create(self, serializer):
-        # automatski dodaje instruktora na temelju logiranog usera
-        instructor = getattr(self.request.user, 'instructor', None)
-        #if not instructor:
-         #   raise serializers.ValidationError("Instructor nije pronađen za ovog korisnika.")
+        # automatski doda instruktora iz logiranog usera; baci 400 ako user nema profil instruktora
+        instructor = getattr(self.request.user, "instructor", None)
+        if not instructor:
+            raise serializers.ValidationError("Instructor profil nije pronađen za ovog korisnika.")
         serializer.save(instructor_id=instructor)
 
 
