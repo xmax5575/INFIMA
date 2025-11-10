@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
-from rest_framework import generics, views, status
+from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer
+from .serializers import UserSerializer, LessonSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,6 +12,7 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
+from .models import Lesson
 
 User = get_user_model()
 
@@ -216,3 +217,21 @@ class CheckUserRoleMiddleware:
         # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
         response = self.get_response(request)
         return response
+
+class LessonListCreateView(generics.ListCreateAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # automatski dodaje instruktora na temelju logiranog usera
+        instructor = getattr(self.request.user, 'instructor', None)
+        #if not instructor:
+         #   raise serializers.ValidationError("Instructor nije pronađen za ovog korisnika.")
+        serializer.save(instructor_id=instructor)
+
+
+class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]

@@ -113,8 +113,7 @@ class Lesson(models.Model):
         HIGH = 'SREDNJA', 'Srednja škola'
 
     lesson_id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, null=True, blank=True)
-    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
+    instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE)
     is_available = models.BooleanField(default=True)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
     location = models.TextField(null=True, blank=True)
@@ -122,8 +121,8 @@ class Lesson(models.Model):
     max_students = models.IntegerField(default=1)
     format = models.TextField(null=True, blank=True)  # online / in-person
     price = models.IntegerField(null=True, blank=True)
-    date = models.DateField(auto_now_add=True)
-    time = models.TimeField(auto_now_add=True)
+    date = models.DateField(null=True, blank=True)
+    time = models.TimeField(null=True, blank=True)
     
     level = models.CharField(
         max_length=20,

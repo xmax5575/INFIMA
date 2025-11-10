@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from .models import Lesson
 
 User = get_user_model()
 
@@ -24,3 +25,11 @@ class UserSerializer(serializers.ModelSerializer):
         # Use email as username so create_user doesn't raise missing username
         user = User.objects.create_user(username=email, **validated_data)
         return user
+    
+class LessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lesson
+        fields = '__all__'
+        extra_kwargs = {
+            'instructor_id' : {'read_only' : True},
+        }
