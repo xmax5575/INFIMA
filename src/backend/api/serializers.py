@@ -36,4 +36,7 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = '__all__'  # includes all model fields + these two
+        fields = '__all__'
+        extra_kwargs = {
+            'instructor_id': {'read_only': True},
+        }
