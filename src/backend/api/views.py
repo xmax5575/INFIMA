@@ -219,13 +219,32 @@ class CheckUserRoleMiddleware:
         # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
         response = self.get_response(request)
         return response
+    
 class LessonListCreateView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.all()  # <<< vraća sve lekcije
     serializer_class = LessonSerializer
-    permission_classes = [permissions.IsAuthenticated]  # i dalje zahtijeva login
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Prikazuje lekcije ovisno o ulozi korisnika."""
+        user = self.request.user
+
+        # ADMIN -> vidi sve lekcije
+        if user.is_superuser or user.role == 'ADMIN':
+            return Lesson.objects.all()
+
+        # INSTRUKTOR -> vidi samo svoje lekcije
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+
+        # STUDENT -> vidi samo slobodne lekcije
+        if user.role == 'STUDENT':
+            return Lesson.objects.filter(is_available=True)
+
+        # Ostali (bez role) -> ništa
+        return Lesson.objects.none()
 
     def perform_create(self, serializer):
-        # automatski doda instruktora iz logiranog usera; baci 400 ako user nema profil instruktora
+        """Kada instruktor kreira lekciju, automatski ga postavi kao instruktora."""
         instructor = getattr(self.request.user, "instructor", None)
         if not instructor:
             raise serializers.ValidationError("Instructor profil nije pronađen za ovog korisnika.")
@@ -233,6 +252,17 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        """Dodatna zaštita — svatko vidi ono što smije."""
+        user = self.request.user
+
+        if user.is_superuser or user.role == 'ADMIN':
+            return Lesson.objects.all()
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+        if user.role == 'STUDENT':
+            return Lesson.objects.filter(is_available=True)
+        return Lesson.objects.none()

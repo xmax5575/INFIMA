@@ -27,9 +27,13 @@ class UserSerializer(serializers.ModelSerializer):
         return user
     
 class LessonSerializer(serializers.ModelSerializer):
+    instructor_first_name = serializers.CharField(
+        source='instructor_id.instructor_id.first_name', read_only=True
+    )
+    instructor_last_name = serializers.CharField(
+        source='instructor_id.instructor_id.last_name', read_only=True
+    )
+
     class Meta:
         model = Lesson
-        fields = '__all__'
-        extra_kwargs = {
-            'instructor_id' : {'read_only' : True},
-        }
+        fields = '__all__'  # includes all model fields + these two
