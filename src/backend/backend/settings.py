@@ -95,7 +95,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    'api.views.CheckUserRoleMiddleware',
+    'api.middleware.CheckUserRoleMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -123,8 +123,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres.kspsvissxcgnepqvpnxt',
+        'PASSWORD': 'infima123infima',
+        'HOST': 'aws-1-eu-north-1.pooler.supabase.com',
+        'PORT': '5432',
     }
 }
 

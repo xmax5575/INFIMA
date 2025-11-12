@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
-from rest_framework import generics, views, status
+from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer
+from .serializers import UserSerializer, LessonSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,6 +12,9 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
+from .models import Lesson
+from rest_framework import serializers
+
 
 User = get_user_model()
 
@@ -179,33 +182,63 @@ class CreateRoleView(APIView):
         user.role = valid_roles[role]
         user.save()
 
+        from .models import Student, Instructor
+
+        if user.role == User.Role.STUDENT:
+            Student.objects.get_or_create(student_id=user, defaults={'grade': 1})
+        elif user.role == User.Role.INSTRUCTOR:
+            Instructor.objects.get_or_create(instructor_id=user, defaults={'price': 0, 'bio': '', 'location': ''})
+
         # Redirect depending on request type
         if request.content_type == 'application/json':
             return Response({'role': user.role}, status=status.HTTP_200_OK)
         else:
             return redirect('home')  # redirect to homepage/dashboard
 
-class CheckUserRoleMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
+    
+class LessonListCreateView(generics.ListCreateAPIView):
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def __call__(self, request):
-        # prvo provjeri korisnika
-        if request.user.is_authenticated:
-            allowed_paths = (
-                '/api/select-role/',
-                '/select-role/',
-                '/api/token/',
-                '/api/token/refresh/',
-                '/api/auth/',
-                '/admin/',
-                '/static/',
-            )
-            #ako ne počinje kao neki od allowe_paths onda redirectaj na select-role
-            if not any(request.path.startswith(p) for p in allowed_paths):
-                if not request.user.has_role:
-                    return redirect('/api/select-role/')
+    def get_queryset(self):
+        """Prikazuje lekcije ovisno o ulozi korisnika."""
+        user = self.request.user
 
-        # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
-        response = self.get_response(request)
-        return response
+        # ADMIN -> vidi sve lekcije
+        if user.is_superuser or user.role == 'ADMIN':
+            return Lesson.objects.all()
+
+        # INSTRUKTOR -> vidi samo svoje lekcije
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+
+        # STUDENT -> vidi samo slobodne lekcije
+        if user.role == 'STUDENT':
+            return Lesson.objects.filter(is_available=True)
+
+        # Ostali (bez role) -> ništa
+        return Lesson.objects.none()
+
+    def perform_create(self, serializer):
+        """Kada instruktor kreira lekciju, automatski ga postavi kao instruktora."""
+        instructor = getattr(self.request.user, "instructor", None)
+        if not instructor:
+            raise serializers.ValidationError("Instructor profil nije pronađen za ovog korisnika.")
+        serializer.save(instructor_id=instructor)
+
+
+class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        """Dodatna zaštita — svatko vidi ono što smije."""
+        user = self.request.user
+
+        if user.is_superuser or user.role == 'ADMIN':
+            return Lesson.objects.all()
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+        if user.role == 'STUDENT':
+            return Lesson.objects.filter(is_available=True)
+        return Lesson.objects.none()

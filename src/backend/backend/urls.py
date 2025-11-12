@@ -30,5 +30,6 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path("api/auth/google/code/", GoogleAuthCodeExchangeView.as_view(), name="google_auth_code_exchange"),
     path("api/user/profile/", user_profile, name="user_profile"),
-    path("api/select-role/", CreateRoleView.as_view(), name="select-role")
+    path("api/select-role/", CreateRoleView.as_view(), name="select-role"),
+    path('api/', include('api.urls')),
 ] + debug_toolbar_urls()
