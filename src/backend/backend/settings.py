@@ -14,6 +14,8 @@ from pathlib import Path
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+import dj_database_url
+from whitenoise.storage import CompressedManifestStaticFilesStorage
 
 load_dotenv()
 
@@ -25,16 +27,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-4c9+j!fx-)r12e-!#o!xrwi!0x&-y))2oituw+(h4^*aik7c@9'
-
+SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["*"]
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+if DEBUG:
+    # Allows all for local development when DEBUG=True
+    ALLOWED_HOSTS = ["*"]
+    INTERNAL_IPS = ["127.0.0.1"]
+else:
+    # In production, pull a comma-separated list of allowed hosts from the environment
+    ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+    INTERNAL_IPS = []
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -61,8 +65,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     "debug_toolbar",
-     "api",
+    *(["debug_toolbar"] if DEBUG else []),
+    "api",
     "rest_framework",
     "corsheaders",
     "django.contrib.sites",
@@ -86,6 +90,7 @@ SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scop
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'allauth.account.middleware.AccountMiddleware',
@@ -94,7 +99,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    *(["debug_toolbar.middleware.DebugToolbarMiddleware"] if DEBUG else []),
     'api.middleware.CheckUserRoleMiddleware',
 ]
 
@@ -121,16 +126,27 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres.kspsvissxcgnepqvpnxt',
-        'PASSWORD': 'infima123infima',
-        'HOST': 'aws-1-eu-north-1.pooler.supabase.com',
-        'PORT': '5432',
+if os.environ.get('DATABASE_URL'):
+    # Use environment variable if present (for production on Render)
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    # Use your original hardcoded settings for local testing only
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'postgres',
+            'USER': 'postgres.kspsvissxcgnepqvpnxt',
+            'PASSWORD': 'infima123infima',
+            'HOST': 'aws-1-eu-north-1.pooler.supabase.com',
+            'PORT': '5432',
+        }
+    }
 
 
 # Password validation
@@ -171,14 +187,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+if DEBUG:
+    # Allows all origins in development (for easier testing)
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []
+else:
+    # In production, only allow specific Vercel domain(s)
+    CORS_ALLOW_ALL_ORIGINS = False
+    # Fetch the allowed origins from a comma-separated environment variable (set on Render)
+    CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
 
 # specificiramo kako koristimo i django i allauth backend
 AUTHENTICATION_BACKENDS = (
