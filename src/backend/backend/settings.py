@@ -95,7 +95,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    'api.views.CheckUserRoleMiddleware',
+    'api.middleware.CheckUserRoleMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'

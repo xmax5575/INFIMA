@@ -195,30 +195,6 @@ class CreateRoleView(APIView):
         else:
             return redirect('home')  # redirect to homepage/dashboard
 
-class CheckUserRoleMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # prvo provjeri korisnika
-        if request.user.is_authenticated:
-            allowed_paths = (
-                '/api/select-role/',
-                '/select-role/',
-                '/api/token/',
-                '/api/token/refresh/',
-                '/api/auth/',
-                '/admin/',
-                '/static/',
-            )
-            #ako ne počinje kao neki od allowe_paths onda redirectaj na select-role
-            if not any(request.path.startswith(p) for p in allowed_paths):
-                if not request.user.has_role:
-                    return redirect('/api/select-role/')
-
-        # ako ima rolu ili je na dozvoljenoj ruti, nastavi normalno
-        response = self.get_response(request)
-        return response
     
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
