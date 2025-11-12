@@ -27,12 +27,9 @@ class UserSerializer(serializers.ModelSerializer):
         return user
     
 class LessonSerializer(serializers.ModelSerializer):
-    instructor_first_name = serializers.CharField(
-        source='instructor_id.instructor_id.first_name', read_only=True
-    )
-    instructor_last_name = serializers.CharField(
-        source='instructor_id.instructor_id.last_name', read_only=True
-    )
+    instructor_name = serializers.SerializerMethodField(read_only=True)
+    title = serializers.SerializerMethodField(read_only=True)
+    instructor_display = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Lesson
@@ -40,3 +37,17 @@ class LessonSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'instructor_id': {'read_only': True},
         }
+
+    def get_instructor_name(self, obj):
+        try:
+            first = obj.instructor_id.instructor_id.first_name
+            last = obj.instructor_id.instructor_id.last_name
+            return f"{first} {last}".strip()
+        except Exception:
+            return "Nepoznati instruktor"
+
+    def get_title(self, obj):
+        return self.get_instructor_name(obj)
+
+    def get_instructor_display(self, obj):
+        return self.get_instructor_name(obj)
