@@ -8,3 +8,7 @@ pytz
 sqlparse
 psycopg2-binary
 python-dotenv
+django-debug-toolbar
+django-allauth
+requests
+cryptography
