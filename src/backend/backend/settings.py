@@ -197,8 +197,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 if DEBUG:
     # Allows all origins in development (for easier testing)
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ALLOWED_ORIGINS = []
+    CORS_ALLOW_ALL_ORIGINS = False # Must be False for credentials
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:5173', # Your frontend URL
+        'http://127.0.0.1:5173',
+    ]
+    CORS_ALLOW_CREDENTIALS = True
 else:
     # In production, only allow specific Vercel domain(s)
     CORS_ALLOW_ALL_ORIGINS = False
