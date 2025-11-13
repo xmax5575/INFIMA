@@ -1,5 +1,5 @@
 ## STEM-Tutorstvo
-Ovo je službeni repozitorij za Platformu za online poduke STEM tutorstvo.
+Ovo je službeni repozitorij za Platformu za online poduke INFIMA.
 
 
 Cilj ove platforme je ponuditi svima brz i jednostavan pristup kvalitetnim podukama iz STEM područja.
