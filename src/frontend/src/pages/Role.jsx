@@ -6,9 +6,11 @@ import Header from "../components/Header";
 
 function Role() {
   const [role, setRole] = useState("");
+  const [error, setError] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Provjeri token i ako korisnik već ima ulogu — preusmjeri ga
+  // Provjeravi token i ako korisnik već ima ulogu — preusmjeri ga na /home/role.
+  // Ako nije prijavljen vrati korisnika na login.
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) {
@@ -25,19 +27,19 @@ function Role() {
         console.log("Response iz API-ja:", res.data);
 
         if (res.data.role) {
-          // Ako backend vraća npr. "STUDENT" ili "INSTRUCTOR"
+          // Ako backend vraća npr. "STUDENT" ili "INSTRUCTOR".
           navigate(`/home/${res.data.role.toLowerCase()}`);
         }
       })
       .catch((err) => console.error("Greška pri dohvaćanju role:", err));
   }, [navigate]);
 
-  // ✅ Postavi ulogu
+  // Postavi ulogu
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!role) {
-      alert("Molim odaberite ulogu prije potvrde.");
+      setError(true);
       return;
     }
 
@@ -67,7 +69,6 @@ function Role() {
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] text-[#D1F8EF] flex flex-col items-center justify-center font-[Outfit]">
       <Header />
       <h1 className="text-3xl mb-6 font-bold">Odaberite svoju ulogu</h1>
-
       <div className="flex gap-6 mb-5">
         <button
           className={`w-44 h-12 rounded-full font-semibold transition-all duration-300 ease-in-out ${
@@ -75,7 +76,10 @@ function Role() {
               ? "bg-[#578FCA] border-2 border-[#D1F8EF] text-[#D1F8EF] hover:shadow-[0_0_25px_rgba(209,248,239,0.8)] hover:scale-105"
               : "bg-[#A1E3F9] text-[#3674B5]"
           }`}
-          onClick={() => setRole("student")}
+          onClick={() => {
+            setRole("student");
+            setError(false);
+          }}
         >
           Učenik
         </button>
@@ -86,7 +90,10 @@ function Role() {
               ? "bg-[#578FCA] border-2 border-[#D1F8EF] text-[#D1F8EF] hover:shadow-[0_0_25px_rgba(209,248,239,0.8)] hover:scale-105"
               : "bg-[#A1E3F9] text-[#3674B5]"
           }`}
-          onClick={() => setRole("instructor")}
+          onClick={() => {
+            setRole("instructor");
+            setError(false);
+          }}
         >
           Instruktor
         </button>
@@ -94,7 +101,12 @@ function Role() {
 
       <button
         onClick={handleSubmit}
-        className="bg-[#3674B5] px-8 py-3 rounded-full text-[#D1F8EF] font-semibold hover:scale-105 transition-transform"
+        className={`px-8 py-3 rounded-full font-semibold transition-all duration-300 ease-in-out
+    ${
+      error
+        ? "bg-[#3674B5] text-[#D1F8EF] hover:scale-105 animate-[pulse-slow_1s_ease-in-out_infinite]"
+        : "bg-[#3674B5] text-[#D1F8EF] hover:scale-105"
+    }`}
       >
         Potvrdi
       </button>

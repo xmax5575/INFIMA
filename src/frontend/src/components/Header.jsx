@@ -8,17 +8,21 @@ function Header() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      // Uzmi access token iz localStoragea gdje se on nalazi.
       const token = localStorage.getItem(ACCESS_TOKEN);
       if (!token) {
-        setUser(null);
+        setUser(null); // Ako access token ne postoji znaci da korisnik nije prijavljen, odnosno null je.
         return;
       }
 
       try {
+        // Dohvaćamo podatke o profilu korisnika s backend rute.
         const res = await api.get("/api/user/profile/", {
           headers: { Authorization: `Bearer ${token}` },
           withCredentials: true,
         });
+
+        // Postavljamo usera na korisnika kojeg nam je vratio backend.
         setUser(res.data);
       } catch (err) {
         console.error("Greška pri dohvaćanju korisnika:", err);
@@ -29,11 +33,12 @@ function Header() {
     fetchUser();
   }, []);
 
-  const homeLink =
-    user && user.role ? `/home/${user.role.toLowerCase()}` : "/";
+  // Ako naš korisnik postoji i ako ima ulogu treba ga redirectati na stranicu za njegovu ulogu.
+  const homeLink = user && user.role ? `/home/${user.role.toLowerCase()}` : "/";
 
+  // Vraćamo header ovisno o tome je li korisnik prijavljen ili nije.
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-blue/10 backdrop-blur-md flex flex-wrap justify-between items-center px-6 sm:px-16 py-6 text-[#D1F8EF]">
+    <header className="fixed top-0 left-0 w-full z-50 bg-[#3674B5]/80 backdrop-blur-sm flex flex-wrap justify-between items-center px-6 sm:px-16 py-6 text-[#D1F8EF]">
       <Link
         to={homeLink}
         className="text-2xl sm:text-3xl font-bold tracking-widest hover:scale-105 transition-transform"
@@ -49,7 +54,7 @@ function Header() {
             </span>
             <Link
               to="/logout"
-              className="bg-[#A1E3F9] text-[#3674B5] px-4 py-1 rounded hover:scale-105 transition-transform"
+              className="bg-[#D1F8EF] text-[#3674B5] px-4 py-1 rounded hover:scale-105 transition-transform"
             >
               Odjava
             </Link>
