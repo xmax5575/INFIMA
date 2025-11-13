@@ -14,23 +14,24 @@ function Instructor() {
   const [loading, setLoading] = useState(false);
   const [accessToken, setAccessToken] = useState(null);
 
-  // 1) Učitaj token
+  // Učitaj token korisnika.
   useEffect(() => {
     setAccessToken(localStorage.getItem(ACCESS_TOKEN));
   }, []);
 
-  // 2) Učitaj profil (radi instructor_id)
+  // Učitaj profil kad imamo accessToken - zbog instructor_id-a.
+  // Ako je odgovor dobar spremi ga u user
   useEffect(() => {
     if (!accessToken) return;
     fetch(`${API_BASE_URL}/api/user/profile/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then(setUser)
       .catch(() => setUser(null));
   }, [accessToken]);
 
-  // 3) Učitaj SVE lekcije, pa filtriraj po svom instructor_id (front-end filter)
+  // Učitaj sve lekcije, pa filtiraj
   useEffect(() => {
     if (!accessToken) return;
     const load = async () => {
@@ -43,6 +44,7 @@ function Instructor() {
             Authorization: `Bearer ${accessToken}`,
           },
         });
+        // Ako odgovor s backenda nije dobar ispiši grešku
         if (!res.ok) {
           const txt = await res.text();
           console.error("Greška:", res.status, txt);
@@ -52,7 +54,7 @@ function Instructor() {
         const data = await res.json();
         console.log("Sve lekcije:", data);
 
-        // Ako želiš baš samo svoje:
+        // Filter termina samo od prijavljenog instruktora
         const mine =
           user?.instructor_id != null
             ? data.filter(
@@ -70,7 +72,6 @@ function Instructor() {
       }
     };
     load();
-    // Ovisimo i o user?.instructor_id da se ponovno filtrira kad profil stigne
   }, [accessToken, user?.instructor_id]);
 
   return (
@@ -81,23 +82,24 @@ function Instructor() {
         <h1 className="text-2xl font-semibold text-white">Moji termini</h1>
         {err && <div className="mt-3 text-red-200">{err}</div>}
         {loading && <div className="mt-3 text-white/90">Učitavam…</div>}
-
+        {/* Za svaki termin napravi TerminCard u kojem se šalju potrebne informacije/podatci */}
         <ul className="mt-4 space-y-3">
-  {termini.map((t) => (
-    <li key={t.lesson_id ?? t.id}>
-      <TerminCard
-        termin={t}
-        onClick={() => {
-          console.log("Otvoren termin:", t);
-        }}
-      />
-    </li>
-  ))}
+          {termini.map((t) => (
+            <li key={t.lesson_id ?? t.id}>
+              <TerminCard
+                termin={t}
+                onClick={() => {
+                  console.log("Otvoren termin:", t);
+                }}
+                role="instructor"
+              />
+            </li>
+          ))}
 
-  {!loading && termini.length === 0 && !err && (
-    <li className="text-white/90">Nema termina za ovog instruktora.</li>
-  )}
-</ul>
+          {!loading && termini.length === 0 && !err && (
+            <li className="text-white/90">Nema termina za ovog instruktora.</li>
+          )}
+        </ul>
       </div>
 
       <button
