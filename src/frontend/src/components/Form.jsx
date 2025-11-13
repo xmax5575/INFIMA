@@ -6,6 +6,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
+// Forma koja se prikazuje pri prijavi/registraciji i dobiva informaciju o čemu se radi.
 function Form({ route, method }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,15 +40,18 @@ function Form({ route, method }) {
         });
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        alert("Prijava uspješna!");
+        //alert("Prijava uspješna!");
         const res_role = await api.get("/api/user/role/", {
           headers: { Authorization: `Bearer ${res.data.access}` },
           withCredentials: true,
         });
+        // Ako korisnik nema ulogu ide na biranje uloge.
         if (!res_role.data.role) {
-          navigate("/role"); //mora birati role
+          navigate("/role");
+
+          //Inače ide na stranicu povezanu s njegovom ulogom
         } else {
-          navigate(`/home/${res_role.data.role.toLowerCase()}`); //ima role- ide na home
+          navigate(`/home/${res_role.data.role.toLowerCase()}`);
         }
       } else {
         const res = await api.post("/api/user/register/", {
@@ -57,7 +61,8 @@ function Form({ route, method }) {
           password: password,
         });
         if (res.status === 201) {
-          alert("Registracija uspješna! Možete se prijaviti.");
+          //alert("Registracija uspješna! Možete se prijaviti.");
+          // Registracija uspješna, korisnik se mora prijaviti.
           navigate("/login");
         }
       }
@@ -135,7 +140,7 @@ function Form({ route, method }) {
                 type={showPasswordAgain ? "text" : "password"}
                 value={passwordAgain}
                 onChange={(e) => setPasswordAgain(e.target.value)}
-                onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku kad tipka
+                onInput={(e) => e.currentTarget.setCustomValidity("")} // Makni upozorenje kad tipka
                 placeholder="Ponovno unesite lozinku"
                 required
               />

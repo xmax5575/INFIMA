@@ -1,6 +1,6 @@
-// src/components/TerminCard.jsx
-import React from "react";
+import { MapPin } from "lucide-react";
 
+// Funkcija za dohvaćanje inicijala osobe.
 function initials(name) {
   if (!name) return "IN";
   return name
@@ -10,7 +10,7 @@ function initials(name) {
     .map((p) => p[0]?.toUpperCase())
     .join("");
 }
-
+// Funkcija za formatiranje datuma.
 function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -22,14 +22,14 @@ function formatDate(iso) {
     year: "numeric",
   });
 }
-
+// Funkcija za formatiranje vremena.
 function formatTime(t) {
   if (!t) return "";
   const [h, m] = String(t).split(":");
   return `${h}:${m} h`;
 }
 
-export default function TerminCard({ termin, onClick }) {
+export default function TerminCard({ termin, onClick, role }) {
   const {
     level,
     format,
@@ -44,11 +44,14 @@ export default function TerminCard({ termin, onClick }) {
 
   const title =
     instructor_display ??
-    (instructor_id != null ? `Instruktor #${instructor_id}` : "Nepoznat instruktor");
+    (instructor_id != null
+      ? `Instruktor #${instructor_id}`
+      : "Nepoznat instruktor");
 
-  const when = (date || time)
-    ? `${formatDate(date)}${date && time ? " • " : ""}${formatTime(time)}`
-    : "Datum i vrijeme nisu definirani";
+  const when =
+    date || time
+      ? `${formatDate(date)}${date && time ? " • " : ""}${formatTime(time)}`
+      : "Datum i vrijeme nisu definirani";
 
   return (
     <article
@@ -59,7 +62,7 @@ export default function TerminCard({ termin, onClick }) {
         hover:-translate-y-[1px] cursor-default
       "
     >
-      {/* Header: avatar + ime + cijena */}
+      {/* Header: avatar + ime + cijena. */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
@@ -88,7 +91,7 @@ export default function TerminCard({ termin, onClick }) {
         </div>
       </div>
 
-      {/* Sredina: bedževi */}
+      {/* Sredina: razina + format + max_students. */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className="text-[11px] px-2 py-1 rounded-full bg-[#A1E3F9]/50 border border-white/60">
           {level ?? "Razina"}
@@ -103,32 +106,32 @@ export default function TerminCard({ termin, onClick }) {
         )}
       </div>
 
-      {/* Donji dio: kada i gdje */}
-      <div className="mt-3 text-sm">
+      {/* Donji dio: kada i gdje. */}
+      <div className="mt-3 text-sm flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#3674B5]" />
           <span className="opacity-90">{when}</span>
         </div>
 
         {location ? (
-          <div className="mt-1 opacity-90">{location}</div>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-[#3674B5]" />
+            <span className="opacity-90">{location}</span>
+          </div>
         ) : null}
       </div>
-
-      {/* CTA (opcionalno) */}
-      {onClick && (
-        <div className="mt-4">
-          <button
-            className="
+      {/* Ako je osoba student dodaj button za rezervaciju, ako je instruktor za detalje */}
+      <div className="mt-4">
+        <button
+          className="
               rounded-xl bg-[#3674B5] text-white text-sm font-medium
               px-3 py-2 hover:opacity-90 transition
             "
-            onClick={onClick}
-          >
-            Detalji termina
-          </button>
-        </div>
-      )}
+          onClick={onClick}
+        >
+          {role === "student" ? "Rezerviraj" : "Detalji termina"}
+        </button>
+      </div>
     </article>
   );
 }

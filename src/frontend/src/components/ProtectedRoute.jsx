@@ -10,32 +10,38 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (!token) { setLoading(false); return; }
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-    api.get("/api/user/role/", {
-      headers: { Authorization: `Bearer ${token}` },
-      withCredentials: true,
-    })
-    .then(res => setUserRole(res.data.role || null))
-    .catch(() => setUserRole(null))
-    .finally(() => setLoading(false));
+    // Dohvati ulogu korisnika, pri promijeni tokena.
+    api
+      .get("/api/user/role/", {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      })
+      .then((res) => setUserRole(res.data.role || null))
+      .catch(() => setUserRole(null))
+      .finally(() => setLoading(false));
   }, [token]);
 
+  // Ako korisnik nije prijavljen odi na /login rutu.
   if (!token) return <Navigate to="/login" replace />;
   if (loading) return null;
 
-  // ⬇️ Ako je na /role:
+  // Ako je na /role:
   if (location.pathname === "/role") {
-    // ako NEMA role -> prikaži <Role />
+    // Ako nema role -> prikaži <Role />.
     if (!userRole) return children;
-    // ako IMA role -> pošalji ga na svoj home
+    // Ako ima role -> pošalji ga na njegov home.
     return <Navigate to={`/home/${userRole.toLowerCase()}`} replace />;
   }
 
-  // ⬇️ Za sve druge rute: ako NEMA role -> prisilno na /role
+  // Za sve druge rute: ako nema role -> prisilno na /role.
   if (!userRole) return <Navigate to="/role" replace />;
 
-  // ⬇️ Role-based zaštita
+  // Role-based zaštita, dopušta samo instruktorima na home/instructor i studentima na home/student.
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return <Navigate to={`/home/${userRole.toLowerCase()}`} replace />;
   }

@@ -1,27 +1,27 @@
-import React, { useState, useEffect, use } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
 import { useGoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
 import GoogleLogo from "../images/logo.jpg";
 import { useNavigate } from "react-router-dom";
 
+// Button koji služi za login/registraciju Googleom
 function GoogleButton({ method }) {
   const navigate = useNavigate();
   const googleAuthCodeLogin = useGoogleLogin({
-    flow: "auth-code", // Essential for the backend flow
+    flow: "auth-code",
     onSuccess: async (codeResponse) => {
       try {
-        // codeResponse.code contains the authorization code
+        // Šaljemo codeResponse backendu da nam on vrati tokene
         const res = await api.post("/api/auth/google/code/", {
           code: codeResponse.code,
         });
 
-        // 2. Handle Django's successful response (your JWT tokens)
+        // Uspješan odgovor s backenda - spremamo JWT tokene u localStorage.
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
         alert("Google prijava uspješna!");
+
+        // Provjera uloge korisnika i navigate na potrebnu stranicu ovisno o ulozi.
         const roleResponse = await api.get("/api/user/role/", {
           headers: { Authorization: `Bearer ${res.data.access}` },
           withCredentials: true,
@@ -42,7 +42,7 @@ function GoogleButton({ method }) {
   });
   return (
     <button
-      onClick={() => googleAuthCodeLogin()} // <-- The hook function call
+      onClick={() => googleAuthCodeLogin()} // Pozivamo funkciju googleAuthCodeLogin().
       className="w-full flex items-center justify-center gap-3 rounded-lg bg-white/90 hover:bg-white py-3 font-semibold text-[#3674B5] shadow"
     >
       <img src={GoogleLogo} alt="" className="w-4 h-4" />
