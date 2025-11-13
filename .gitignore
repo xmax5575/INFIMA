@@ -4,12 +4,8 @@ src/backend/.env
 src/frontend/.env
 
 env/
-<<<<<<< HEAD
 .env
 
 __pycache__/
 *.pyc
 *.pyo
-=======
-.env
->>>>>>> main
