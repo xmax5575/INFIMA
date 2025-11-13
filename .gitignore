@@ -1,4 +1,7 @@
 secret.json
 db.sqlite3
 src/backend/.env
-\env
+src/frontend/.env
+
+env/
+.env
