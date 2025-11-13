@@ -4,7 +4,6 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Role from "./pages/Role";
-import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { googleLogout } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
