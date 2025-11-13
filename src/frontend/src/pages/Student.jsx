@@ -3,6 +3,8 @@ import Header from "../components/Header";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 function Student() {
   const [termini, setTermini] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +47,7 @@ function Student() {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/lessons/", {
+        const res = await fetch(`${API_BASE_URL}/api/lessons/`, {
           headers: {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
