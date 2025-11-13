@@ -4,6 +4,8 @@ import TerminForm from "../components/TerminForm";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 function Instructor() {
   const [showForm, setShowForm] = useState(false);
   const [termini, setTermini] = useState([]);
@@ -21,7 +23,7 @@ function Instructor() {
   // Ako je odgovor dobar spremi ga u user
   useEffect(() => {
     if (!accessToken) return;
-    fetch("http://127.0.0.1:8000/api/user/profile/", {
+    fetch(`${API_BASE_URL}/api/user/profile/`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
@@ -36,7 +38,7 @@ function Instructor() {
       setLoading(true);
       setErr(null);
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/lessons/", {
+        const res = await fetch(`${API_BASE_URL}/api/lessons/`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
