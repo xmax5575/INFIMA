@@ -208,6 +208,7 @@ else:
     CORS_ALLOW_ALL_ORIGINS = False
     # Fetch the allowed origins from a comma-separated environment variable (set on Render)
     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
+    CORS_ALLOW_CREDENTIALS = True
 
 # specificiramo kako koristimo i django i allauth backend
 AUTHENTICATION_BACKENDS = (
