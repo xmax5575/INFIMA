@@ -14,7 +14,7 @@ Cilj ove platforme je ponuditi svima brz i jednostavan pristup kvalitetnim poduk
 - Karlo Krstić - karlo.krstic@fer.unizg.hr
 
 ### Funkcijski zahtjevi
-[Wiki stranica](https://github.com/xmax5575/STEM-Tutorstvo/wiki/Analiza-zahtjeva)
+[Wiki stranica](https://github.com/xmax5575/INFIMA/wiki/2.-Analiza-zahtjeva)
 
 ### Tehnologije
 
