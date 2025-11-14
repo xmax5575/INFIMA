@@ -18,4 +18,21 @@ Cilj ove platforme je ponuditi svima brz i jednostavan pristup kvalitetnim poduk
 
 ### Tehnologije
 
-### Licenca
+Dokumentacija: Wiki, Draw.io
+
+Frontend: React, Figma, Vite
+
+Backend: Python, Django, OAuth 2.0
+
+Baza: PostgreSQL, Supabase
+
+Razvojni alat: Visual studio code
+
+Deployment: Render, Vercel
+
+Komunikacija: WhatsApp, Microsoft Teams, Discord
+
+Version control: Git, GitHub, Github desktop
+
+
+
