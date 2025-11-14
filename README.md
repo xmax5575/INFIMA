@@ -11,12 +11,12 @@ Cilj ove platforme je ponuditi svima brz i jednostavan pristup kvalitetnim poduk
 - Noa Topic - noa.topic@fer.unizg.hr
 - Karlo Krstić - karlo.krstic@fer.unizg.hr
 
-### Glavni funkcijski zahtjevi
-# F01 Sustav omogućuje učenicima plaćanje rezerviranih satova. 
-# F02 Sustav omogućuje korisnicima rezervaciju termina instrukcija.
-# F03 Sustav omogućuje korisnicima registraciju i prijavu putem OAuth 2.0 standarda uz mogućnost klasične registracije e-poštom.
-# F06 Sustav omogućuje instruktorima oglašavanje termina s detaljnim parametrima (trajanje, cijena, format).
-# F013 Sustav omogućuje učenicima ocjenjivanje i recenziranje instruktora nakon održane sesije.
+## Glavni funkcijski zahtjevi
+### F01 Sustav omogućuje učenicima plaćanje rezerviranih satova. 
+### F02 Sustav omogućuje korisnicima rezervaciju termina instrukcija.
+### F03 Sustav omogućuje korisnicima registraciju i prijavu putem OAuth 2.0 standarda uz mogućnost klasične registracije e-poštom.
+### F06 Sustav omogućuje instruktorima oglašavanje termina s detaljnim parametrima (trajanje, cijena, format).
+### F013 Sustav omogućuje učenicima ocjenjivanje i recenziranje instruktora nakon održane sesije.
 Svi funkcijski zahtjevi: [Wiki stranica](https://github.com/xmax5575/INFIMA/wiki/2.-Analiza-zahtjeva)
 
 ### Tehnologije
