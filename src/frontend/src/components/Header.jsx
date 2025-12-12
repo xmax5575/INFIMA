@@ -45,7 +45,6 @@ function Header() {
       >
         INFIMA
       </Link>
-
       <nav className="flex space-x-6 sm:space-x-16 text-lg sm:text-2xl mt-4 sm:mt-0">
         {user ? (
           <>
@@ -56,6 +55,11 @@ function Header() {
               to="/logout"
               className="bg-[#D1F8EF] text-[#3674B5] px-4 py-1 rounded hover:scale-105 transition-transform"
             >
+            {/* Ovdje treba ici profile ikonica, ona samo okrugla glava i gornji dio tijela,
+                koja poziva na rutu profiles/{instruktor ili ucenik ovisno o roleu}/,
+                napraviti da to na kad se klikne otvori ProfileCard, isto kao TerminCard, u kojem se
+                nalaze sve informacije za profil, opet, ovisno o roleu, onda ćemo napraviti da na tom cardu
+                postoji edit gumb s kojim se edita profil */}
               Odjava
             </Link>
           </>
