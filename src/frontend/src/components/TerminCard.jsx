@@ -30,6 +30,7 @@ function formatTime(t) {
   return `${h}:${m} h`;
 }
 
+
 export default function TerminCard({ termin, onClick, role }) {
   const {
     level,
@@ -76,9 +77,9 @@ export default function TerminCard({ termin, onClick, role }) {
           </div>
           <div className="min-w-0">
             <div className="text-xs opacity-80">Instruktor</div>
-            <div className="font-semibold truncate" title={title} >
+            <button className="font-semibold truncate" title={title}>
               {title}
-            </div>
+            </button>
           </div>
         </div>
 
