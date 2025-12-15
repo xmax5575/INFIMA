@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer
+from .serializers import UserSerializer, LessonSerializer, MyInstructorProfileSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,8 +12,9 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson
+from .models import Lesson, Instructor
 from rest_framework import serializers
+
 
 
 User = get_user_model()
@@ -242,3 +243,34 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         if user.role == 'STUDENT':
             return Lesson.objects.filter(is_available=True)
         return Lesson.objects.none()
+
+
+class MyInstructorProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            instructor = Instructor.objects.get(instructor_id=request.user)
+        except Instructor.DoesNotExist:
+            return Response({"error": "Instruktor profil nije pronađen."}, status=404)
+
+        serializer = MyInstructorProfileSerializer(instructor)
+        return Response(serializer.data)
+    
+class InstructorPublicProfileView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            instructor = Instructor.objects.get(instructor_id=pk)
+        except Instructor.DoesNotExist:
+            return Response(
+                {"error": "Instruktor nije pronađen."},
+                status=404
+            )
+
+        serializer = MyInstructorProfileSerializer(
+            instructor,
+            context={"request": request}
+        )
+        return Response(serializer.data)
