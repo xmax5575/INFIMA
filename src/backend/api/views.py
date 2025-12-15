@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, MyInstructorProfileSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -244,6 +244,43 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Lesson.objects.filter(is_available=True)
         return Lesson.objects.none()
 
+class InstructorUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        CREATE ili UPDATE instruktora koji pripada trenutno prijavljenom korisniku.
+        Frontend NE šalje ID.
+        """
+
+        if request.user.role != 'INSTRUCTOR':
+            return Response(
+                {"detail": "Only instructors can edit instructor profile."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        instructor, created = Instructor.objects.get_or_create(
+            instructor_id=request.user,
+            defaults={
+                "bio": "",
+                "location": "",
+                "price": 0,
+                "video_url": ""
+            }
+        )
+
+        serializer = InstructorUpdateSerializer(
+            instructor,
+            data=request.data,
+            partial=True  # dopušta slanje samo dijela polja
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
 
 class MyInstructorProfileView(APIView):
     permission_classes = [IsAuthenticated]
