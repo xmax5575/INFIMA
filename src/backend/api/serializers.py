@@ -103,7 +103,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
     avg_rating = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
     calendar = serializers.SerializerMethodField()
-    subjects = serializers.SerializerMethodField()
+    subjects = SubjectMiniSerializer(many=True, read_only=True)
     price_eur = serializers.IntegerField(source="price", read_only=True)
 
     class Meta:
@@ -144,13 +144,3 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             is_available=True
         ).order_by("date", "time")
         return CalendarLessonSerializer(qs, many=True).data
-
-    def get_subjects(self, obj):
-        # “Područja” iz lekcija (distinct predmeti)
-        subject_ids = (
-            Lesson.objects.filter(instructor_id=obj, subject__isnull=False)
-            .values_list("subject_id", flat=True)
-            .distinct()
-        )
-        subjects = Subject.objects.filter(subject_id__in=subject_ids).order_by("name")
-        return SubjectMiniSerializer(subjects, many=True).data
