@@ -84,6 +84,11 @@ class Instructor(models.Model):
     price = models.IntegerField()
     rating = models.IntegerField(null=True, blank=True)
     subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
+    video_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="URL video uvoda (YouTube, Vimeo, etc.)"
+    )
 
     def __str__(self):
         return f"Instructor: {self.instructor_id.first_name} {self.instructor_id.last_name}"
