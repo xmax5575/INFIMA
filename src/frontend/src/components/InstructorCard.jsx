@@ -1,6 +1,6 @@
 import React from "react";
 import { Star } from "lucide-react";
-
+import defaultAvatar from "../images/avatar.jpg"
 function getFullName(user) {
   const first = user?.first_name ?? "";
   const last = user?.last_name ?? "";
@@ -46,10 +46,14 @@ export default function InstructorCard({ user, onClose }) {
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
-                  alt=""
+                  alt="Avatar"
                   className="h-full w-full object-cover"
                 />
-              ) : null}
+              ) : <img
+              src={defaultAvatar}
+              alt="Avatar"
+              className="h-full w-full object-cover"
+            />}
             </div>
           </div>
 

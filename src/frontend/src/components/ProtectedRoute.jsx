@@ -25,6 +25,7 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
       .catch(() => setUserRole(null))
       .finally(() => setLoading(false));
   }, [token]);
+  
 
   // Ako korisnik nije prijavljen odi na /login rutu.
   if (!token) return <Navigate to="/login" replace />;

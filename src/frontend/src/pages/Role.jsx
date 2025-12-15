@@ -28,7 +28,7 @@ function Role() {
 
         if (res.data.role) {
           // Ako backend vraća npr. "STUDENT" ili "INSTRUCTOR".
-          navigate(`/home/${res.data.role.toLowerCase()}`);
+          navigate(`/profile/${res.data.role.toLowerCase()}/edit`);
         }
       })
       .catch((err) => console.error("Greška pri dohvaćanju role:", err));
@@ -45,7 +45,7 @@ function Role() {
 
     try {
       const token = localStorage.getItem(ACCESS_TOKEN);
-
+      
       const res = await api.post(
         "/api/select-role/",
         { role },
@@ -58,8 +58,9 @@ function Role() {
       console.log("Uloga uspješno postavljena:", res.data);
 
       // preusmjeri korisnika na njegov home
-      navigate(`/home/${res.data.role.toLowerCase()}`);
+      navigate(`/profile/${res.data.role.toLowerCase()}/edit`);
     } catch (error) {
+      
       console.error("Greška pri postavljanju uloge:", error);
       alert("Došlo je do pogreške prilikom postavljanja uloge.");
     }
