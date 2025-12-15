@@ -71,9 +71,10 @@ class Instructor(models.Model):
     bio = models.TextField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     price = models.IntegerField()
-    rating = models.IntegerField(null=True, blank=True)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-
+    rating = models.FloatField(null=True, blank=True)
+    subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
+    video_url = models.URLField(null=True, blank=True)
+    
 # model koji predstavlja studenta u bazi podataka
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
@@ -84,7 +85,7 @@ class Student(models.Model):
 class Review(models.Model):
     instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
     student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-    rating = models.IntegerField(null=True, blank=True)
+    rating = models.FloatField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
 # model koji predstavlja termine u bazi podataka

@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Lesson
+from .models import Lesson, Instructor, Subject
 
 User = get_user_model()
 
@@ -65,3 +65,21 @@ class LessonSerializer(serializers.ModelSerializer):
         Može se kasnije proširiti (npr. dodati titulu, predmet i sl.).
         """
         return self.get_instructor_name(obj)
+    
+class InstructorUpdateSerializer(serializers.ModelSerializer):
+    # omogućava odabir više predmeta
+    subjects = serializers.SlugRelatedField(
+        many=True,
+        queryset=Subject.objects.all(),
+        slug_field='name'  
+    )
+
+    class Meta:
+        model = Instructor
+        # uključujemo samo polja koja želimo da instruktor može mijenjati
+        fields = ['bio',
+                  'location', 
+                  'price', 
+                  'subjects',
+                  'video_url'
+        ]
