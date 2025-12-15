@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-
 from .models import Instructor, Lesson, Review, Subject
 
 User = get_user_model()
@@ -35,12 +34,19 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
+        # Uključujemo sva polja iz modela
         fields = '__all__'
+        # instructor_id se ne smije mijenjati ručno izvana – određuje ga backend
         extra_kwargs = {
             'instructor_id': {'read_only': True},
         }
 
     def get_instructor_name(self, obj):
+        """
+        Metoda koja dohvaća ime i prezime instruktora.
+        Ako instruktor ne postoji ili dođe do pogreške,
+        vraća se tekst 'Nepoznati instruktor'.
+        """
         try:
             first = obj.instructor_id.instructor_id.first_name
             last = obj.instructor_id.instructor_id.last_name
@@ -49,12 +55,35 @@ class LessonSerializer(serializers.ModelSerializer):
             return "Nepoznati instruktor"
 
     def get_title(self, obj):
+        """
+        Naslov lekcije – trenutno jednak imenu instruktora.
+        """
         return self.get_instructor_name(obj)
 
     def get_instructor_display(self, obj):
+        """
+        Formatiran prikaz instruktora – također se vraća isto ime.
+        Može se kasnije proširiti (npr. dodati titulu, predmet i sl.).
+        """
         return self.get_instructor_name(obj)
+    
+class InstructorUpdateSerializer(serializers.ModelSerializer):
+    # omogućava odabir više predmeta
+    subjects = serializers.SlugRelatedField(
+        many=True,
+        queryset=Subject.objects.all(),
+        slug_field='name'  
+    )
 
-
+    class Meta:
+        model = Instructor
+        # uključujemo samo polja koja želimo da instruktor može mijenjati
+        fields = ['bio',
+                  'location', 
+                  'price', 
+                  'subjects',
+                  'video_url'
+        ]
 
 class SubjectMiniSerializer(serializers.ModelSerializer):
     class Meta:

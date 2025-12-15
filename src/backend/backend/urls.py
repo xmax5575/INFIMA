@@ -16,9 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from debug_toolbar.toolbar import debug_toolbar_urls
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from api.views import CreateUserView, user_profile, GoogleAuthCodeExchangeView, UserRoleView, CreateRoleView
+from django.conf import settings 
+from debug_toolbar.toolbar import debug_toolbar_urls
 
 
 urlpatterns = [
@@ -32,4 +33,7 @@ urlpatterns = [
     path("api/user/profile/", user_profile, name="user_profile"),
     path("api/select-role/", CreateRoleView.as_view(), name="select-role"),
     path('api/', include('api.urls')),
-] + debug_toolbar_urls()
+]
+
+if settings.DEBUG:
+    urlpatterns += debug_toolbar_urls()

@@ -2,8 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from datetime import date, datetime
 
-# --- CUSTOM USER MODEL ---
-
+# klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, role=None, password=None, **extra_fields):
         if not email:
@@ -28,14 +27,14 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-
+# model koji predstavlja korisnika u bazi podataka, nasljeđuje AbstractUser i PermissionsMixin zbog autentifikacije Djanga
 class User(AbstractUser, PermissionsMixin):
     class Role(models.TextChoices):
         STUDENT = 'STUDENT', 'Student'
         INSTRUCTOR = 'INSTRUCTOR', 'Instructor'
         ADMIN = 'ADMIN', 'Administrator'
     
-    id = models.AutoField(primary_key=True)
+    id = models.AutoField(primary_key=True) # primarni ključ 
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
 
@@ -51,76 +50,57 @@ class User(AbstractUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
-    objects = UserManager()
+    objects = UserManager() # povezuje model s UserManagerom
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.email})"
-    
+   
+    # metoda koja vraća True ako korisnik ima postavljenu ulogu
     @property
     def has_role(self):
-        """True if the role is set (not None or empty)."""
         return bool(self.role)
 
-
-# --- SUBJECTS ---
-
+# model koji predstavlja predmet u bazi podataka
 class Subject(models.Model):
-    subject_id = models.AutoField(primary_key=True)
+    subject_id = models.AutoField(primary_key=True) # primarni ključ 
     name = models.TextField(unique=True)
 
-    def __str__(self):
-        return self.name
-
-
-# --- PROFILES ---
-
+# model koji predstavlja instruktora u bazi podataka
 class Instructor(models.Model):
-    instructor_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    instructor_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korsnik, briše se i instruktor, primarni ključ
     bio = models.TextField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     price = models.IntegerField()
-    rating = models.IntegerField(null=True, blank=True)
-    video_url = models.URLField(null=True, blank=True,)
-    subjects=models.ManyToManyField(Subject, blank=True, related_name="instructors")
-
-    def __str__(self):
-        return f"Instructor: {self.instructor_id.first_name} {self.instructor_id.last_name}"
-
-
+    rating = models.FloatField(null=True, blank=True)
+    subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
+    video_url = models.URLField(null=True, blank=True)
+    
 class Student(models.Model):
-    student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
     grade = models.IntegerField()
     knowledge_level = models.TextField(null=True, blank=True)
 
-    def __str__(self):
-        return f"Student: {self.student_id.first_name} {self.student_id.last_name}"
-
-
+# model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
-    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
-    student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    rating = models.IntegerField(null=True, blank=True)
+    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
+    student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    rating = models.FloatField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
-
-# --- LESSONS AND PAYMENTS ---
-
+# model koji predstavlja termine u bazi podataka
 class Lesson(models.Model):
     class Level(models.TextChoices):
         ELEMENTARY = 'OSNOVNA', 'Osnovna škola'
         HIGH = 'SREDNJA', 'Srednja škola'
 
     lesson_id = models.AutoField(primary_key=True)
-    instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE, db_column='instructor_id' )
+    instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE, db_column='instructor_id' ) # ako se obriše instruktor, brišu se i svi njegovi termini, strani ključ
     is_available = models.BooleanField(default=True)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
     location = models.TextField(null=True, blank=True)
     duration_min = models.IntegerField(null=True, blank=True)
     max_students = models.IntegerField(default=1)
-    format = models.TextField(null=True, blank=True)  # online / in-person
+    format = models.TextField(null=True, blank=True) 
     price = models.IntegerField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     time = models.TimeField(null=True, blank=True)
@@ -132,36 +112,30 @@ class Lesson(models.Model):
         blank=True
     )
 
-    def __str__(self):
-        try:
-            first = self.instructor_id.instructor_id.first_name
-            last = self.instructor_id.instructor_id.last_name
-        except Exception:
-            first = last = "?"
-        status = "Free" if self.is_available else "Booked"
-        return f"Lesson with {first} {last} ({status})"
-    
-    
+# model koji predstavlja status prisutnosti u bazi podataka
+class Attendance(models.Model):
+    # ako se termin ili student obrišu, briše se i status prisutnosti
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
+    student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
+    attended = models.BooleanField(default=False)  
+
+# model koji predstavlja plaćanje u bazi podataka
 class Payment(models.Model):
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
+    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, null=True, blank=True) # strani ključ
     amount = models.IntegerField()
     is_paid = models.BooleanField(default=False)
 
-
-# --- QUESTIONS AND SUMMARY ---
-
+# model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):
-    author = models.ForeignKey(Instructor, on_delete=models.SET_NULL, null=True, blank=True)
-    difficulty = models.TextField()  # easy, medium, hard
+    author = models.ForeignKey(Instructor, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    difficulty = models.TextField()  
     text = models.TextField()
     answer = models.TextField()
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
 
-
+# model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):
-    author = models.ForeignKey(Instructor, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    author = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
     notes = models.TextField(null=True, blank=True)
     homework = models.TextField(null=True, blank=True)
