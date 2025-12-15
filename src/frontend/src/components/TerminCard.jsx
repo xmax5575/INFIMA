@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import InstructorCard from "./InstructorCard";
 
 // Funkcija za dohvaćanje inicijala osobe.
 function initials(name) {
@@ -55,7 +56,6 @@ export default function TerminCard({ termin, onClick, role }) {
 
   return (
     <article
-      onClick={onClick}
       className="
         group rounded-2xl border border-white/60 bg-[#D1F8EF] text-[#3674B5]
         shadow-sm hover:shadow-md transition p-4 md:p-5 max-w-xl select-none
@@ -76,7 +76,7 @@ export default function TerminCard({ termin, onClick, role }) {
           </div>
           <div className="min-w-0">
             <div className="text-xs opacity-80">Instruktor</div>
-            <div className="font-semibold truncate" title={title}>
+            <div className="font-semibold truncate" title={title} >
               {title}
             </div>
           </div>

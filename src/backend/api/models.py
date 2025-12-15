@@ -75,7 +75,6 @@ class Instructor(models.Model):
     subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
     video_url = models.URLField(null=True, blank=True)
     
-# model koji predstavlja studenta u bazi podataka
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
     grade = models.IntegerField()
