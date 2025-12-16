@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { ACCESS_TOKEN } from "../constants";
+import { ACCESS_TOKEN, PROFILE_COMPLETED } from "../constants";
 import defaultAvatar from "../images/avatar.jpg";
+
 function EditForm({ role }) {
+  const navigate = useNavigate();
+
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
   const [price, setPrice] = useState("");
@@ -12,36 +16,83 @@ function EditForm({ role }) {
 
   const SUBJECT_OPTIONS = ["Matematika", "Fizika", "Informatika"];
 
-  const onSubmit = (e) => {
+  // AUTOFILL (GET)
+  useEffect(() => {
+    if (!role) return;
+
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    if (!token) return;
+
+    const load = async () => {
+      try {
+        // user ime/prezime
+        const profRes = await api.get("/api/user/profile/");
+        const r = profRes.data;
+        const name =
+          r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim();
+        setFullName(name);
+
+        // instructor details (samo ako je instructor)
+        if (role === "instructor") {
+          const infRes = await api.get("/api/instructor/inf/");
+          const inf = infRes.data;
+
+          setBio(inf.bio ?? "");
+          setLocation(inf.location ?? "");
+          setPrice(inf.price_eur != null ? String(inf.price_eur) : "");
+
+          const subjectNames = Array.isArray(inf.subjects)
+            ? inf.subjects.map((s) => s.name).filter(Boolean)
+            : [];
+          setSubjects(subjectNames);
+        }
+
+        // ako je student i imaš neki endpoint, dodaj ga ovdje
+        // if (role === "student") { ... }
+
+      } catch (err) {
+        console.error("Greška pri dohvaćanju za edit:", err?.response?.data || err);
+      }
+    };
+
+    load();
+  }, [role]);
+
+  // SUBMIT (POST)
+  const onSubmit = async (e) => {
     e.preventDefault();
-    if (subjects.length === 0) {
+
+    if (role === "instructor" && subjects.length === 0) {
       setSubjectsError("Odaberi barem jedno područje.");
       return;
     }
     setSubjectsError("");
-    console.log({ bio, price, location, subjects });
+
+    try {
+      if (role === "instructor") {
+        await api.post("/api/instructor/me/", {
+          bio,
+          location,
+          price: price === "" ? null : Number(price),
+          subjects,
+        });
+      }
+
+      // student submit ako imaš endpoint:
+      // if (role === "student") { await api.post("/api/student/me/", {...}) }
+
+      // ✅ označi profil dovršen
+      localStorage.setItem(PROFILE_COMPLETED, "true");
+
+      // ✅ i odvedi na home
+      navigate(`/home/${role}`, { replace: true });
+    } catch (err) {
+      console.error("Greška pri spremanju:", err?.response?.data || err);
+    }
   };
-  useEffect(() => {
-    const token = localStorage.getItem(ACCESS_TOKEN);
-    if (!token) return;
 
-    api
-      .get("/api/user/profile/", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        const r = res.data;
-
-        // prilagodi poljima koja ti backend vraća:
-        const name =
-          r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim();
-
-        setFullName(name);
-      })
-      .catch(() => {});
-  }, []);
-
-  if (role !== "instructor") return <form />;
+  // ako nije instructor (a nemaš student UI) možeš vratit prazno ili posebnu formu
+  if (role !== "instructor") return <form onSubmit={(e) => e.preventDefault()} />;
 
   return (
     <div className="w-full">
@@ -49,20 +100,16 @@ function EditForm({ role }) {
         <form onSubmit={onSubmit}>
           {/* TOP */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-            {/* avatar */}
             <div className="lg:col-span-3">
-              <div className="lg:col-span-3">
-                <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-white/40 sm:h-[240px]">
-                  <img
-                    src={defaultAvatar}
-                    alt="Avatar"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
+              <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-white/40 sm:h-[240px]">
+                <img
+                  src={defaultAvatar}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
 
-            {/* Text */}
             <div className="lg:col-span-9">
               <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
                 {fullName}
@@ -97,11 +144,8 @@ function EditForm({ role }) {
 
           {/* MAIN */}
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-            {/* LEFT */}
             <div className="lg:col-span-5">
-              {/* Područja + cijena */}
               <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
-                {/* price badge */}
                 <div className="absolute right-4 top-4 rounded-full bg-[#3674B5] px-4 py-2 text-lg font-semibold">
                   <div className="flex items-center gap-2">
                     <input
@@ -110,7 +154,7 @@ function EditForm({ role }) {
                       inputMode="numeric"
                       type="number"
                       min="0"
-                      step="0.5"
+                      step="1"
                       placeholder="10"
                       required
                       className="w-20 rounded-xl bg-white/15 px-3 py-1 text-[#D1F8EF]
@@ -149,29 +193,13 @@ function EditForm({ role }) {
                     );
                   })}
                 </div>
+
                 {subjectsError && (
                   <p className="mt-2 text-sm text-red-200">{subjectsError}</p>
                 )}
               </div>
-
-              {/* Recenzije box (UI placeholder) */}
-              <div className="mt-5 rounded-2xl bg-white p-5">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5] text-[#D1F8EF] font-bold">
-                    ★
-                  </div>
-                  <div className="text-[#3674B5] text-lg sm:text-xl font-semibold">
-                    Recenzije
-                  </div>
-                </div>
-
-                <p className="mt-3 text-[#3674B5]/60 text-sm sm:text-base">
-                  (Kasnije će ovdje biti popis korisničkih recenzija)
-                </p>
-              </div>
             </div>
 
-            {/* RIGHT */}
             <div className="lg:col-span-7">
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
                 <div className="text-lg sm:text-xl font-semibold text-center">
@@ -190,6 +218,7 @@ function EditForm({ role }) {
               </div>
             </div>
           </div>
+
         </form>
       </div>
     </div>

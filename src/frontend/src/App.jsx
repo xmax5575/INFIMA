@@ -54,9 +54,7 @@ function App() {
           <Route
             path="/role"
             element={
-              <ProtectedRoute>
                   <Role />
-              </ProtectedRoute>
               
               
             }

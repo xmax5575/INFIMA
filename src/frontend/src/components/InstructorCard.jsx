@@ -1,28 +1,52 @@
 import React from "react";
 import { Star } from "lucide-react";
-import defaultAvatar from "../images/avatar.jpg"
+import { Link } from "react-router-dom";
+import defaultAvatar from "../images/avatar.jpg";
+
 function getFullName(user) {
-  const first = user?.first_name ?? "";
-  const last = user?.last_name ?? "";
-  const name = `${first} ${last}`.trim();
-  return name || "Instruktor";
+  return (
+    user?.full_name ||
+    `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() ||
+    "Instruktor"
+  );
 }
 
-export default function InstructorCard({ user, onClose }) {
+export default function InstructorCard({ user, onClose, canEdit = false, editTo = "/edit" }) {
   const fullName = getFullName(user);
 
   const bio = user?.bio || "Ovdje ide biografija instruktora.";
-  const location = user?.location || "Zagreb, FER";
+  const location = user?.location || "—";
 
-  const subjects = user?.subjects || ["Matematika", "Fizika", "Informatika"];
+  // subjects dolaze kao objekti -> pretvori u array stringova (name)
+  const subjectsRaw = user?.subjects ?? [];
+  const subjects = Array.isArray(subjectsRaw)
+    ? subjectsRaw.map((s) => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+    : [];
 
-  const ratingRaw = user?.rating ?? user?.avg_rating ?? "5,0";
+  const ratingRaw = user?.rating ?? user?.avg_rating ?? "—";
   const rating = String(ratingRaw).replace(".", ",");
 
+  // cijena kod tebe: price_eur
   const priceLabel =
-    user?.price_label ?? (user?.hourly_rate ? `${user.hourly_rate}€` : "10€");
+    user?.price_label ?? (user?.price_eur != null ? `${user.price_eur}€` : "—");
 
   const avatarUrl = user?.avatar || user?.profile_image || null;
+
+  // calendar/lessons
+  const lessons = Array.isArray(user?.calendar) ? user.calendar : [];
+
+  const formatSlot = (slot) => {
+    const t = (slot.time || "").slice(0, 5); // "12:10:00" -> "12:10"
+    const d = slot.date || "";
+    const place =
+      slot.format === "Online"
+        ? "Online"
+        : slot.location?.trim()
+        ? slot.location
+        : "Uživo";
+
+    return `${d} ${t} • ${place}`;
+  };
 
   return (
     <div className="w-full">
@@ -43,17 +67,11 @@ export default function InstructorCard({ user, onClose }) {
           {/* Avatar */}
           <div className="lg:col-span-3">
             <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080] sm:h-[210px]">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
-              ) : <img
-              src={defaultAvatar}
-              alt="Avatar"
-              className="h-full w-full object-cover"
-            />}
+              <img
+                src={avatarUrl || defaultAvatar}
+                alt="Avatar"
+                className="h-full w-full object-cover"
+              />
             </div>
           </div>
 
@@ -79,9 +97,8 @@ export default function InstructorCard({ user, onClose }) {
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
           {/* LEFT */}
           <div className="lg:col-span-5">
-            {/* Područja + 10€ */}
+            {/* Područja + cijena */}
             <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
-              {/* 10€ badge */}
               <div className="absolute right-4 top-4 rounded-full bg-[#3674B5] px-4 py-2 text-lg font-semibold">
                 {priceLabel}
               </div>
@@ -89,7 +106,7 @@ export default function InstructorCard({ user, onClose }) {
               <h2 className="text-lg sm:text-xl font-semibold">Područja</h2>
 
               <div className="mt-4 flex flex-wrap gap-2 pr-[88px]">
-                {(subjects || []).slice(0, 8).map((s, i) => (
+                {(subjects.length ? subjects : ["—"]).slice(0, 8).map((s, i) => (
                   <span
                     key={`${s}-${i}`}
                     className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
@@ -100,9 +117,8 @@ export default function InstructorCard({ user, onClose }) {
               </div>
             </div>
 
-            {/* Recenzije div + SPOJENA ocjena */}
+            {/* Recenzije */}
             <div className="mt-5 rounded-2xl bg-white p-5">
-              {/* header: star + rating + Recenzije */}
               <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
                   <Star className="h-6 w-6 text-[#D1F8EF] fill-[#D1F8EF]" />
@@ -131,20 +147,24 @@ export default function InstructorCard({ user, onClose }) {
               </div>
 
               <div className="mt-4 rounded-xl bg-white/10 p-4">
-                <div className="text-sm opacity-90">
-                  (kasnije pravi kalendar / termini)
-                </div>
-
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-sm">
-                    Pon 18:00
-                  </span>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-sm">
-                    Sri 19:30
-                  </span>
-                  <span className="rounded-full bg-white/15 px-3 py-1 text-sm">
-                    Sub 10:00
-                  </span>
+                  {lessons.length ? (
+                    lessons.slice(0, 10).map((slot) => (
+                      <span
+                        key={slot.lesson_id}
+                        className="rounded-full bg-white/15 px-3 py-1 text-sm"
+                        title={`${slot.date} ${slot.time} | ${slot.format}${
+                          slot.location ? ` | ${slot.location}` : ""
+                        }`}
+                      >
+                        {formatSlot(slot)}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-sm">
+                      Nema termina
+                    </span>
+                  )}
                 </div>
 
                 <button
@@ -157,6 +177,18 @@ export default function InstructorCard({ user, onClose }) {
             </div>
           </div>
         </div>
+
+        {/* FOOTER: Uredi */}
+        {canEdit && (
+          <div className="mt-6">
+            <Link
+              to={editTo}
+              className="block w-full text-center rounded-xl bg-[#215993] px-4 py-3 text-[#D1F8EF] font-semibold hover:brightness-110"
+            >
+              Uredi
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
