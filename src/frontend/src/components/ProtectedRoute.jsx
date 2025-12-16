@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import api from "../api";
-import { ACCESS_TOKEN, PROFILE_COMPLETED } from "../constants";
+import { ACCESS_TOKEN } from "../constants";
 
 const norm = (v) => (v ? String(v).toLowerCase() : "");
 
@@ -10,14 +10,15 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const token = localStorage.getItem(ACCESS_TOKEN);
 
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState(null); // null = još nije učitano, "" = nema role, "instructor"/"student"
+  const [role, setRole] = useState(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   const allowed = useMemo(() => allowedRoles.map(norm), [allowedRoles]);
 
   useEffect(() => {
     let alive = true;
 
-    const loadRole = async () => {
+    const loadUserData = async () => {
       if (!token) {
         if (alive) {
           setRole(null);
@@ -27,66 +28,78 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
       }
 
       try {
-        const res = await api.get("/api/user/role/");
+        // 1. Dohvati ulogu
+        const roleRes = await api.get("/api/user/role/");
+        const r = norm(roleRes.data?.role);
+
+        // 2. Dohvati profil
+        const profileRes = await api.get("/api/user/profile/");
+
         if (!alive) return;
-        const r = norm(res.data?.role);
-        setRole(r || ""); // "" znači: nema role postavljenu
-      } catch {
+
+        setRole(r || "");
+
+        // LOGIKA KOMPLETNOSTI:
+        // Ako je student -> profil je kompletan čim postoji uloga.
+        // Ako je instruktor -> provjeravamo postoji li biografija.
+        if (r === "student") {
+          setIsProfileComplete(true);
+        } else if (r === "instructor") {
+          const hasBio =
+            !!profileRes.data?.bio && profileRes.data.bio.trim() !== "";
+          setIsProfileComplete(hasBio);
+        } else {
+          setIsProfileComplete(false);
+        }
+      } catch (err) {
         if (!alive) return;
-        setRole(""); // tretiraj kao nema role
+        setRole("");
+        setIsProfileComplete(false);
       } finally {
         if (alive) setLoading(false);
       }
     };
 
     setLoading(true);
-    setRole(null);
-    loadRole();
+    loadUserData();
 
     return () => {
       alive = false;
     };
   }, [token]);
 
-  // 1) nije prijavljen
-  if (!token) return <Navigate to="/login" replace state={{ from: location }} />;
-  if (loading || role === null) return null; // čekaj da role bude učitana
+  // 1) Nije prijavljen
+  if (!token)
+    return <Navigate to="/login" replace state={{ from: location }} />;
 
-  const profileCompleted = localStorage.getItem(PROFILE_COMPLETED) === "true";
+  // Čekaj dok se podaci ne učitaju
+  if (loading || role === null) return null;
 
   const pathname = location.pathname;
-
   const isRolePage = pathname === "/role";
-  const isHomePage = pathname.startsWith("/home/");
-  const isAnyEditPage = pathname.startsWith("/profile/") && pathname.endsWith("/edit");
+  const editPath = `/profile/${role}/edit`;
+  const homePath = `/home/${role}`;
+  const isMyEditPage = pathname === editPath;
 
-  // 2) nema role -> smije samo na /role
+  // 2) NEMA ROLE -> smije samo na /role (npr. tek se registrirao)
   if (role === "") {
     if (isRolePage) return children;
     return <Navigate to="/role" replace />;
   }
 
-  // ako ima role, ovo su "prave" rute
-  const editPath = `/profile/${role}/edit`;
-  const homePath = `/home/${role}`;
-
-  const isMyEditPage = pathname === editPath; // točno moja edit ruta
-
-  // 3) ako je na /role i već ima role -> edit prije home
-  if (isRolePage) {
-    return <Navigate to={profileCompleted ? homePath : editPath} replace />;
-  }
-
-  // 4) HARD BLOK: dok profil nije dovršen -> zabranjen je home i sve ostalo osim moje edit rute
-  if (!profileCompleted) {
-    // pusti samo moju edit rutu
+  // 3) IMA ROLE (Instruktor), ALI NEMA BIO -> baci ga na edit dok ne popuni
+  if (!isProfileComplete) {
     if (isMyEditPage) return children;
-
-    // sve drugo (uključujući /home/* i druge profile editove) -> na moju edit
     return <Navigate to={editPath} replace />;
   }
 
-  // 5) kad je profil dovršen, role-based zaštita
+  // 4) SVE JE OK (Student ili Instruktor s biografijom)
+  // Ako pokuša otići na /role ili tuđi/krivi edit, vrati ga na njegov home
+  if (isRolePage || (pathname.startsWith("/profile/") && !isMyEditPage)) {
+    return <Navigate to={homePath} replace />;
+  }
+
+  // 5) Role-based zaštita (Instruktor ne može na /home/student i obrnuto)
   if (allowed.length > 0 && !allowed.includes(role)) {
     return <Navigate to={homePath} replace />;
   }

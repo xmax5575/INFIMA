@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { ACCESS_TOKEN, PROFILE_COMPLETED } from "../constants";
+import { ACCESS_TOKEN } from "../constants";
 import defaultAvatar from "../images/avatar.jpg";
 
 function EditForm({ role }) {
@@ -49,9 +49,11 @@ function EditForm({ role }) {
 
         // ako je student i imaš neki endpoint, dodaj ga ovdje
         // if (role === "student") { ... }
-
       } catch (err) {
-        console.error("Greška pri dohvaćanju za edit:", err?.response?.data || err);
+        console.error(
+          "Greška pri dohvaćanju za edit:",
+          err?.response?.data || err
+        );
       }
     };
 
@@ -77,13 +79,8 @@ function EditForm({ role }) {
           subjects,
         });
       }
-
       // student submit ako imaš endpoint:
       // if (role === "student") { await api.post("/api/student/me/", {...}) }
-
-      // ✅ označi profil dovršen
-      localStorage.setItem(PROFILE_COMPLETED, "true");
-
       // ✅ i odvedi na home
       navigate(`/home/${role}`, { replace: true });
     } catch (err) {
@@ -92,7 +89,8 @@ function EditForm({ role }) {
   };
 
   // ako nije instructor (a nemaš student UI) možeš vratit prazno ili posebnu formu
-  if (role !== "instructor") return <form onSubmit={(e) => e.preventDefault()} />;
+  if (role !== "instructor")
+    return <form onSubmit={(e) => e.preventDefault()} />;
 
   return (
     <div className="w-full">
@@ -218,7 +216,6 @@ function EditForm({ role }) {
               </div>
             </div>
           </div>
-
         </form>
       </div>
     </div>

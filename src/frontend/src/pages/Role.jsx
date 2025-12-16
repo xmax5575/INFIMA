@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
-import { ACCESS_TOKEN, PROFILE_COMPLETED } from "../constants";
+import { ACCESS_TOKEN } from "../constants"; // ✅ PROFILE_COMPLETED izbačen
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
@@ -21,16 +21,15 @@ function Role() {
       return;
     }
 
-    // ✅ jako bitno: dok smo na odabiru role, profil se smatra "nije dovršen"
-    localStorage.removeItem(PROFILE_COMPLETED); // ili setItem(...,"false")
-
     api
       .get("/api/user/role/")
       .then((res) => {
         const existingRole = normalizeRole(res.data?.role);
         if (existingRole) {
-          // ima role -> ide na edit, ali profil_completed je resetiran pa ga ProtectedRoute neće pustit na home
-          navigate(`/profile/${existingRole}/edit`, { replace: true });
+          // ✅ Ako korisnik već ima ulogu, ProtectedRoute će ga automatski
+          // usmjeriti na Home (student) ili Edit (instruktor bez bio).
+          // Ovdje ga šaljemo na home, a ProtectedRoute će odraditi ostalo.
+          navigate(`/home/${existingRole}`, { replace: true });
         }
       })
       .catch(() => {});
@@ -48,12 +47,19 @@ function Role() {
       const res = await api.post("/api/select-role/", { role });
       const newRole = normalizeRole(res.data?.role) || normalizeRole(role);
 
-      // ✅ opet reset (sigurnost) – profil još nije uređen
-      localStorage.removeItem(PROFILE_COMPLETED);
-
-      navigate(`/profile/${newRole}/edit`, { replace: true });
+      // ✅ NOVA LOGIKA NAVIGACIJE:
+      if (newRole === "student") {
+        // Studenti nemaju bio -> šalji ih odmah na Home
+        navigate(`/home/student`, { replace: true });
+      } else {
+        // Instruktori moraju na Edit zbog biografije
+        navigate(`/profile/instructor/edit`, { replace: true });
+      }
     } catch (err) {
-      console.error("Greška pri postavljanju uloge:", err?.response?.data || err);
+      console.error(
+        "Greška pri postavljanju uloge:",
+        err?.response?.data || err
+      );
       alert("Došlo je do pogreške prilikom postavljanja uloge.");
     }
   };
@@ -61,7 +67,6 @@ function Role() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] text-[#D1F8EF] flex flex-col items-center justify-center font-[Outfit]">
       <Header />
-
       <h1 className="text-3xl mb-6 font-bold">Odaberite svoju ulogu</h1>
 
       <div className="flex gap-6 mb-5">
