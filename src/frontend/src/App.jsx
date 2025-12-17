@@ -55,8 +55,6 @@ function App() {
             path="/role"
             element={
                   <Role />
-              
-              
             }
           />
           <Route

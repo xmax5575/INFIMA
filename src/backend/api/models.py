@@ -111,6 +111,17 @@ class Lesson(models.Model):
         blank=True
     )
 
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVE", "Aktivan"
+        EXPIRED = "EXPIRED", "Istekao"
+        CANCELED = "CANCELED", "Otkazan"
+
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.ACTIVE
+    )
+
 # model koji predstavlja status prisutnosti u bazi podataka
 class Attendance(models.Model):
     # ako se termin ili student obrišu, briše se i status prisutnosti

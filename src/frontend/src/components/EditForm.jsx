@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { ACCESS_TOKEN, PROFILE_COMPLETED } from "../constants";
+import { ACCESS_TOKEN } from "../constants";
 import defaultAvatar from "../images/avatar.jpg";
 
 function EditForm({ role }) {
@@ -49,9 +49,11 @@ function EditForm({ role }) {
 
         // ako je student i imaš neki endpoint, dodaj ga ovdje
         // if (role === "student") { ... }
-
       } catch (err) {
-        console.error("Greška pri dohvaćanju za edit:", err?.response?.data || err);
+        console.error(
+          "Greška pri dohvaćanju za edit:",
+          err?.response?.data || err
+        );
       }
     };
 
@@ -77,22 +79,25 @@ function EditForm({ role }) {
           subjects,
         });
       }
-
       // student submit ako imaš endpoint:
       // if (role === "student") { await api.post("/api/student/me/", {...}) }
-
-      // ✅ označi profil dovršen
-      localStorage.setItem(PROFILE_COMPLETED, "true");
-
       // ✅ i odvedi na home
-      navigate(`/home/${role}`, { replace: true });
+      
+      console.log(role)
+      navigate(`/home/${role}`);
     } catch (err) {
       console.error("Greška pri spremanju:", err?.response?.data || err);
     }
   };
 
+  // Funkcija za odustajanje i resetiranje unosa
+  const handleCancel = () => {
+    navigate("/home/instructor");
+  };
+
   // ako nije instructor (a nemaš student UI) možeš vratit prazno ili posebnu formu
-  if (role !== "instructor") return <form onSubmit={(e) => e.preventDefault()} />;
+  if (role !== "instructor")
+    return <form onSubmit={(e) => e.preventDefault()} />;
 
   return (
     <div className="w-full">
@@ -202,11 +207,8 @@ function EditForm({ role }) {
 
             <div className="lg:col-span-7">
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
-                <div className="text-lg sm:text-xl font-semibold text-center">
-                  Spremi promjene
-                </div>
 
-                <div className="mt-4 rounded-xl bg-white/10 p-4">
+               
                   <button
                     type="submit"
                     className="w-full rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-[#3674B5]
@@ -214,11 +216,18 @@ function EditForm({ role }) {
                   >
                     Spremi promjene
                   </button>
-                </div>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="w-full mt-4 rounded-xl bg-[#215993] px-4 py-2.5 text-white
+                               font-semibold hover:brightness-95"
+                  >
+                    Odustani
+                  </button>
+                
               </div>
             </div>
           </div>
-
         </form>
       </div>
     </div>
