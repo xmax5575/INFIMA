@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
-from datetime import date, datetime
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):

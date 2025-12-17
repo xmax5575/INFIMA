@@ -76,15 +76,15 @@ function Header() {
 
     try {
       if (user?.role?.toLowerCase() === "instructor") {
-        const res = await api.get("/api/instructor/inf/");
-        console.log("GET /api/instructor/inf/ =>", res.data);
+        const res = await api.get("/profiles/instructor/inf/");
+        console.log("GET /profiles/instructor/inf/ =>", res.data);
         setInstructor(res.data);
       } else {
         setInstructor(null);
       }
     } catch (err) {
       console.log(
-        "GET /api/instructor/inf/ error:",
+        "GET /profiles/instructor/inf/ error:",
         err?.response?.status,
         err?.response?.data || err
       );
@@ -180,7 +180,7 @@ function Header() {
                 // merge: user (ime/role) + instructor (bio/price/subjects...)
                 user={{ ...user, ...(instructor || {}) }}
                 canEdit={true}
-                editTo = {`/profile/${user.role.toLowerCase()}/edit`}
+                editTo = {`/profiles/${user.role.toLowerCase()}/edit`}
                 onClose={() => setShowProfile(false)}
               />
             ) : (

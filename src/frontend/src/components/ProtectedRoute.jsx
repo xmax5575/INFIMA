@@ -74,9 +74,11 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   const pathname = location.pathname;
   const isRolePage = pathname === "/role";
-  const editPath = `/profile/${role}/edit`;
+  const editPath = `/profiles/${role}/edit`;
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
+  const isHomePage = pathname.startsWith("/home/");
+  const isAnyEditPage = pathname.startsWith("/profiles/") && pathname.endsWith("/edit");
 
   // 1) Nema role, mora otići na /role
   if (role === "") {
@@ -86,12 +88,26 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // 2) Nema biografije (ako je instruktor), mora otići na /profile/:role/edit
   if (!isProfileComplete) {
+  // ako ima role, ovo su "prave" rute
+  const editPath = `/profiles/${role}/edit`;
+  const homePath = `/home/${role}`;
+
+  const isMyEditPage = pathname === editPath; // točno moja edit ruta
+
+  // 3) ako je na /role i već ima role -> edit prije home
+  if (isRolePage) {
+    return <Navigate to={profileCompleted ? homePath : editPath} replace />;
+  }
+
+  // 4) HARD BLOK: dok profil nije dovršen -> zabranjen je home i sve ostalo osim moje edit rute
+  if (!profileCompleted) {
+    // pusti samo moju edit rutu
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;
   }
 
   // 3) Ako je student ili instruktor s biografijom, ali pokušava otići na /role ili tuđi/krivi edit
-  if (isRolePage || (pathname.startsWith("/profile/") && !isMyEditPage)) {
+  if (isRolePage || (pathname.startsWith("/profiles/") && !isMyEditPage)) {
     return <Navigate to={homePath} replace />;
   }
 

@@ -26,10 +26,8 @@ function Role() {
       .then((res) => {
         const existingRole = normalizeRole(res.data?.role);
         if (existingRole) {
-          // ✅ Ako korisnik već ima ulogu, ProtectedRoute će ga automatski
-          // usmjeriti na Home (student) ili Edit (instruktor bez bio).
-          // Ovdje ga šaljemo na home, a ProtectedRoute će odraditi ostalo.
-          navigate(`/home/${existingRole}`, { replace: true });
+          // ima role -> ide na edit, ali profil_completed je resetiran pa ga ProtectedRoute neće pustit na home
+          navigate(`/profiles/${existingRole}/edit`, { replace: true });
         }
       })
       .catch(() => {});
@@ -53,7 +51,7 @@ function Role() {
         navigate(`/home/student`, { replace: true });
       } else {
         // Instruktori moraju na Edit zbog biografije
-        navigate(`/profile/instructor/edit`, { replace: true });
+        navigate(`/profiles/instructor/edit`, { replace: true });
       }
     } catch (err) {
       console.error(

@@ -34,7 +34,7 @@ function EditForm({ role }) {
 
         // instructor details (samo ako je instructor)
         if (role === "instructor") {
-          const infRes = await api.get("/api/instructor/inf/");
+          const infRes = await api.get("/profiles/instructor/inf/");
           const inf = infRes.data;
 
           setBio(inf.bio ?? "");
@@ -72,7 +72,7 @@ function EditForm({ role }) {
 
     try {
       if (role === "instructor") {
-        await api.post("/api/instructor/me/", {
+        await api.post("/profiles/instructor/me/", {
           bio,
           location,
           price: price === "" ? null : Number(price),
