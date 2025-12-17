@@ -24,15 +24,9 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api/user/register/", CreateUserView.as_view(), name="register"),
-    path("api/user/role/", UserRoleView.as_view(), name="user_role"),
-    path("api/token/", TokenObtainPairView.as_view(), name="get_token"),
-    path("api/token/refresh/", TokenRefreshView.as_view(), name="refresh"),
     path("api-auth/", include("rest_framework.urls")),
-    path("api/auth/google/code/", GoogleAuthCodeExchangeView.as_view(), name="google_auth_code_exchange"),
-    path("api/user/profile/", user_profile, name="user_profile"),
-    path("api/select-role/", CreateRoleView.as_view(), name="select-role"),
     path('api/', include('api.urls')),
+    path("profiles/", include("profiles.urls")),
 ]
 
 if settings.DEBUG:

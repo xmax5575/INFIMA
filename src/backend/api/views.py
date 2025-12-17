@@ -19,6 +19,20 @@ from rest_framework import serializers
 
 User = get_user_model()
 
+# Funkcija za dohvat lekcija na temelju uloge korisnika
+def get_lessons_for_user(user):
+    if user.is_superuser or user.role == User.Role.ADMIN:
+        return Lesson.objects.all()
+
+    if user.role == User.Role.INSTRUCTOR:
+        return Lesson.objects.filter(instructor_id__instructor_id=user)
+
+    if user.role == User.Role.STUDENT:
+        return Lesson.objects.filter(is_available=True)
+
+    return Lesson.objects.none()
+
+
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -105,12 +119,6 @@ class GoogleAuthCodeExchangeView(views.APIView):
             # Catch all other exceptions (e.g., database issues)
             print(f"Internal error during authentication: {e}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
 
 class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
@@ -140,85 +148,13 @@ class UserRoleView(APIView):
         user.role = role
         user.save()
         return Response({'role': role})
-     
-class CreateRoleView(APIView):
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        """
-        Render the role selection page for HTML forms.
-        """
-        # For HTML rendering, you can pass context if needed
-        return render(request, 'users/select_role.html')
-
-    def post(self, request):
-        """
-        Set the user's role via POST.
-        Accepts either form data (HTML) or JSON (API).
-        """
-        role = request.data.get('role') or request.POST.get('role')
-
-        # Map valid input to model Role choices
-        valid_roles = {
-            'student': User.Role.STUDENT,
-            'instructor': User.Role.INSTRUCTOR
-        }
-
-        if role not in valid_roles:
-            # For API request, return JSON error
-            if request.content_type == 'application/json':
-                return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
-            # For HTML, re-render with error message
-            return render(request, 'users/select_role.html', {'error': 'Invalid role'})
-
-        user = request.user
-
-        if user.role:
-            if request.content_type == 'application/json':
-                return Response({'error': 'Role already set'}, status=status.HTTP_400_BAD_REQUEST)
-            return redirect('home')  # already set, redirect to home
-
-        # Save the role
-        user.role = valid_roles[role]
-        user.save()
-
-        from .models import Student, Instructor
-
-        if user.role == User.Role.STUDENT:
-            Student.objects.get_or_create(student_id=user, defaults={'grade': 1})
-        elif user.role == User.Role.INSTRUCTOR:
-            Instructor.objects.get_or_create(instructor_id=user, defaults={'price': 0, 'bio': '', 'location': ''})
-
-        # Redirect depending on request type
-        if request.content_type == 'application/json':
-            return Response({'role': user.role}, status=status.HTTP_200_OK)
-        else:
-            return redirect('home')  # redirect to homepage/dashboard
-
     
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        """Prikazuje lekcije ovisno o ulozi korisnika."""
-        user = self.request.user
-
-        # ADMIN -> vidi sve lekcije
-        if user.is_superuser or user.role == 'ADMIN':
-            return Lesson.objects.all()
-
-        # INSTRUKTOR -> vidi samo svoje lekcije
-        if user.role == 'INSTRUCTOR':
-            return Lesson.objects.filter(instructor_id__instructor_id=user)
-
-        # STUDENT -> vidi samo slobodne lekcije
-        if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True)
-
-        # Ostali (bez role) -> ništa
-        return Lesson.objects.none()
+        return get_lessons_for_user(self.request.user)
 
     def perform_create(self, serializer):
         """Kada instruktor kreira lekciju, automatski ga postavi kao instruktora."""
