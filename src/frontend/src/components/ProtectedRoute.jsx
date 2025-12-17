@@ -58,7 +58,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   const isRolePage = pathname === "/role";
   const isHomePage = pathname.startsWith("/home/");
-  const isAnyEditPage = pathname.startsWith("/profile/") && pathname.endsWith("/edit");
+  const isAnyEditPage = pathname.startsWith("/profiles/") && pathname.endsWith("/edit");
 
   // 2) nema role -> smije samo na /role
   if (role === "") {
@@ -67,7 +67,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }
 
   // ako ima role, ovo su "prave" rute
-  const editPath = `/profile/${role}/edit`;
+  const editPath = `/profiles/${role}/edit`;
   const homePath = `/home/${role}`;
 
   const isMyEditPage = pathname === editPath; // točno moja edit ruta

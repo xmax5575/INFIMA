@@ -30,7 +30,7 @@ function Role() {
         const existingRole = normalizeRole(res.data?.role);
         if (existingRole) {
           // ima role -> ide na edit, ali profil_completed je resetiran pa ga ProtectedRoute neće pustit na home
-          navigate(`/profile/${existingRole}/edit`, { replace: true });
+          navigate(`/profiles/${existingRole}/edit`, { replace: true });
         }
       })
       .catch(() => {});
@@ -51,7 +51,7 @@ function Role() {
       // ✅ opet reset (sigurnost) – profil još nije uređen
       localStorage.removeItem(PROFILE_COMPLETED);
 
-      navigate(`/profile/${newRole}/edit`, { replace: true });
+      navigate(`/profiles/${newRole}/edit`, { replace: true });
     } catch (err) {
       console.error("Greška pri postavljanju uloge:", err?.response?.data || err);
       alert("Došlo je do pogreške prilikom postavljanja uloge.");
