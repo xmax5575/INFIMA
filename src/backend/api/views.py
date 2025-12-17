@@ -14,10 +14,27 @@ import uuid
 from django.contrib.auth.hashers import make_password
 from .models import Lesson, Instructor
 from rest_framework import serializers
+from django.utils import timezone
 
 
 
 User = get_user_model()
+
+def expire_lessons():
+    now = timezone.localtime()
+    today = now.date()
+    now_time = now.time()
+
+    expired_lessons = Lesson.objects.filter(
+        status="ACTIVE",  
+        date__lt=today,  
+    ) | Lesson.objects.filter(
+        status="ACTIVE",  
+        date=today,  
+        time__lt=now_time  
+    )
+    
+    expired_lessons.update(status="EXPIRED", is_available=False)
 
 class CreateUserView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -205,17 +222,19 @@ class LessonListCreateView(generics.ListCreateAPIView):
         """Prikazuje lekcije ovisno o ulozi korisnika."""
         user = self.request.user
 
+        expire_lessons()
+
         # ADMIN -> vidi sve lekcije
         if user.is_superuser or user.role == 'ADMIN':
             return Lesson.objects.all()
 
         # INSTRUKTOR -> vidi samo svoje lekcije
         if user.role == 'INSTRUCTOR':
-            return Lesson.objects.filter(instructor_id__instructor_id=user)
+            return Lesson.objects.filter(instructor_id__instructor_id=user).exclude(status="EXPIRED")
 
         # STUDENT -> vidi samo slobodne lekcije
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True)
+            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")  
 
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
@@ -236,12 +255,15 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         """Dodatna zaštita — svatko vidi ono što smije."""
         user = self.request.user
 
+        expire_lessons()
+
         if user.is_superuser or user.role == 'ADMIN':
             return Lesson.objects.all()
         if user.role == 'INSTRUCTOR':
-            return Lesson.objects.filter(instructor_id__instructor_id=user)
+            return Lesson.objects.filter(instructor_id__instructor_id=user).exclude(status="EXPIRED")
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True)
+            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")  
+
         return Lesson.objects.none()
 
 class InstructorUpdateView(APIView):
