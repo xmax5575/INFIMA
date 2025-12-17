@@ -68,7 +68,7 @@ export default function TerminCard({ termin, onClick, role }) {
   const fetchInstructorData = async (id) => {
     setLoadingInstructor(true);
     try {
-      const response = await api.get(`/api/instructor/${id}/`);  // Poziv prema backendu za profil instruktora
+      const response = await api.get(`/profiles/instructor/${id}/`);  // Poziv prema backendu za profil instruktora
       console.log(response.data);
       setInstructorProfile(response.data);  // Spremamo podatke instruktora u state
     } catch (error) {

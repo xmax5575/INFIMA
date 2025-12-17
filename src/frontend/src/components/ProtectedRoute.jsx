@@ -34,20 +34,23 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         const roleRes = await api.get("/api/user/role/");
         const r = norm(roleRes.data?.role);
 
-        setRole(r || "");  // Set role odmah nakon što je dohvaćena
+        setRole(r || ""); // Set role odmah nakon što je dohvaćena
 
         // 2. Ako je instruktor, pokušaj dohvatiti podatke za instruktora
         if (r === "instructor") {
-          const profileRes = await api.get("/api/instructor/inf/");
+          const profileRes = await api.get("/profiles/instructor/inf/");
           const bio = profileRes.data?.bio;
-          const hasBio = typeof bio === 'string' && bio.trim() !== "";
+          const hasBio = typeof bio === "string" && bio.trim() !== "";
           setIsProfileComplete(hasBio); // Ako je instruktor, postavljamo status biografije
         } else {
           // Ako nije instruktor, postavljamo isProfileComplete na true za studente
           setIsProfileComplete(true);
         }
       } catch (err) {
-        console.error("Greška pri dohvaćanju podataka:", err?.response?.data || err);
+        console.error(
+          "Greška pri dohvaćanju podataka:",
+          err?.response?.data || err
+        );
         setRole(""); // Ako dođe do greške, postavi role na ""
         setIsProfileComplete(false); // Nema biografije za instruktora
       } finally {
@@ -65,10 +68,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return () => {
       alive = false;
     };
-  }, [token]);  // Provodi se svaki put kad se token promijeni
+  }, [token]); // Provodi se svaki put kad se token promijeni
 
   // Provjera učitavanja i stanja role
   if (loading || role === null) {
+    // Ako nema token, preusmjeri na login
+    if (!token) return <Navigate to="/login" replace />;
     return <div>Učitavanje...</div>; // Prikazivanje indikatora učitavanja
   }
 
@@ -77,8 +82,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const editPath = `/profiles/${role}/edit`;
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
-  const isHomePage = pathname.startsWith("/home/");
-  const isAnyEditPage = pathname.startsWith("/profiles/") && pathname.endsWith("/edit");
 
   // 1) Nema role, mora otići na /role
   if (role === "") {
@@ -86,36 +89,25 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/role" replace />;
   }
 
-  // 2) Nema biografije (ako je instruktor), mora otići na /profile/:role/edit
+  // 2) Profil nije dovršen (npr. instruktor bez biografije) -> pusti samo moju edit rutu
   if (!isProfileComplete) {
-  // ako ima role, ovo su "prave" rute
-  const editPath = `/profiles/${role}/edit`;
-  const homePath = `/home/${role}`;
-
-  const isMyEditPage = pathname === editPath; // točno moja edit ruta
-
-  // 3) ako je na /role i već ima role -> edit prije home
-  if (isRolePage) {
-    return <Navigate to={profileCompleted ? homePath : editPath} replace />;
-  }
-
-  // 4) HARD BLOK: dok profil nije dovršen -> zabranjen je home i sve ostalo osim moje edit rute
-  if (!profileCompleted) {
-    // pusti samo moju edit rutu
+    // Ako pokušavaš doći na svoju edit rutu, pusti, inače redirect na svoju edit rutu
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;
   }
 
-  // 3) Ako je student ili instruktor s biografijom, ali pokušava otići na /role ili tuđi/krivi edit
-  if (isRolePage || (pathname.startsWith("/profiles/") && !isMyEditPage)) {
+  // 3) Profil dovršen -> standardne provjere i preusmjeravanja
+  if (isRolePage) return <Navigate to={homePath} replace />;
+
+  // Zabranjuj tuđe edit rute
+  if (pathname.startsWith("/profiles/") && !isMyEditPage) {
     return <Navigate to={homePath} replace />;
   }
 
-  // 4) Role-based zaštita: instruktor ne može na /home/student i obrnuto
+  // Role-based zaštita: ako allowedRoles su zadane i ne sadrže trenutnu ulogu, preusmjeri na home
   if (allowed.length > 0 && !allowed.includes(role)) {
     return <Navigate to={homePath} replace />;
   }
 
- 
   return children;
 }
