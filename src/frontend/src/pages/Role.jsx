@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
-import { ACCESS_TOKEN } from "../constants"; // ✅ PROFILE_COMPLETED izbačen
+import { ACCESS_TOKEN } from "../constants"; 
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 

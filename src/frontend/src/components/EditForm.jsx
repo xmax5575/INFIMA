@@ -82,10 +82,17 @@ function EditForm({ role }) {
       // student submit ako imaš endpoint:
       // if (role === "student") { await api.post("/api/student/me/", {...}) }
       // ✅ i odvedi na home
-      navigate(`/home/${role}`, { replace: true });
+      
+      console.log(role)
+      navigate(`/home/${role}`);
     } catch (err) {
       console.error("Greška pri spremanju:", err?.response?.data || err);
     }
+  };
+
+  // Funkcija za odustajanje i resetiranje unosa
+  const handleCancel = () => {
+    navigate("/home/instructor");
   };
 
   // ako nije instructor (a nemaš student UI) možeš vratit prazno ili posebnu formu
@@ -200,11 +207,8 @@ function EditForm({ role }) {
 
             <div className="lg:col-span-7">
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
-                <div className="text-lg sm:text-xl font-semibold text-center">
-                  Spremi promjene
-                </div>
 
-                <div className="mt-4 rounded-xl bg-white/10 p-4">
+               
                   <button
                     type="submit"
                     className="w-full rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-[#3674B5]
@@ -212,7 +216,15 @@ function EditForm({ role }) {
                   >
                     Spremi promjene
                   </button>
-                </div>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="w-full mt-4 rounded-xl bg-[#215993] px-4 py-2.5 text-white
+                               font-semibold hover:brightness-95"
+                  >
+                    Odustani
+                  </button>
+                
               </div>
             </div>
           </div>
