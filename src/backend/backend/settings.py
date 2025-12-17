@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     "debug_toolbar",
     "api",
     "profiles",
+    "lessons",
     "rest_framework",
     "corsheaders",
     "django.contrib.sites",

@@ -25,6 +25,7 @@ urlpatterns = [
     path("api-auth/", include("rest_framework.urls")),
     path('api/', include('api.urls')),
     path("profiles/", include("profiles.urls")),
+    path("lessons/", include("lessons.urls")),
 ]
 
 if settings.DEBUG:
