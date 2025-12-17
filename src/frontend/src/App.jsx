@@ -10,6 +10,7 @@ import { jwtDecode } from "jwt-decode";
 import { ACCESS_TOKEN } from "./constants";
 import Instructor from "./pages/Instructor";
 import Student from "./pages/Student";
+import Profile from "./pages/Profile";
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -53,8 +54,8 @@ function App() {
           <Route
             path="/role"
             element={
+                  <Role />
               
-                <Role />
               
             }
           />
@@ -74,6 +75,20 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile/instructor/edit"
+            element = {
+              <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
+                  <Profile role = "instructor"/>
+              </ProtectedRoute>
+            }/>
+            <Route
+            path="/profile/student/edit"
+            element = {
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <Profile role = "student"/>
+              </ProtectedRoute>
+            }/>
         </Routes>
       </BrowserRouter>
     </>
