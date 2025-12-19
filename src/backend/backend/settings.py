@@ -176,7 +176,7 @@ AUTH_USER_MODEL = 'api.User' # Zamijenili smo običnog usera s našim prilagođe
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Zagreb'
 
 USE_I18N = True
 
