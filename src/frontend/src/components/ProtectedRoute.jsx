@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
 
@@ -7,7 +7,6 @@ const norm = (v) => (v ? String(v).toLowerCase() : "");
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const location = useLocation();
-  const navigate = useNavigate(); // Koristimo useNavigate za preusmjeravanje
   const token = localStorage.getItem(ACCESS_TOKEN);
 
   const [loading, setLoading] = useState(true);
@@ -21,56 +20,62 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
     const loadUserData = async () => {
       if (!token) {
-        if (alive) {
-          setRole(null);
-          setIsProfileComplete(false); // Postavljamo isProfileComplete na false
-          setLoading(false);
-        }
+        if (!alive) return;
+        setRole(null);
+        setIsProfileComplete(false);
+        setLoading(false);
         return;
       }
 
       try {
-        // 1. Dohvati ulogu
+        // 1) rola
         const roleRes = await api.get("/api/user/role/");
         const r = norm(roleRes.data?.role);
 
-        setRole(r || "");  // Set role odmah nakon što je dohvaćena
+        if (!alive) return;
+        setRole(r || "");
 
-        // 2. Ako je instruktor, pokušaj dohvatiti podatke za instruktora
+        // 2) profil (samo za instruktora)
         if (r === "instructor") {
-          const profileRes = await api.get("/api/instructor/inf/");
-          const bio = profileRes.data?.bio;
-          const hasBio = typeof bio === 'string' && bio.trim() !== "";
-          setIsProfileComplete(hasBio); // Ako je instruktor, postavljamo status biografije
+          try {
+            const profileRes = await api.get("/api/instructor/inf/"); // <-- po potrebi promijeni u /info/ ili /me/
+            const bio = profileRes.data?.bio;
+            const hasBio = typeof bio === "string" && bio.trim() !== "";
+            if (alive) setIsProfileComplete(hasBio);
+          } catch (err) {
+            const status = err?.response?.status;
+
+            // 404 = profil ne postoji -> tretiraj kao "nije kompletiran", NE briši rolu
+            if (status === 404) {
+              if (alive) setIsProfileComplete(false);
+            } else {
+              console.error("Greška pri dohvaćanju instructor profila:", err?.response?.data || err);
+              if (alive) setIsProfileComplete(false);
+            }
+          }
         } else {
-          // Ako nije instruktor, postavljamo isProfileComplete na true za studente
-          setIsProfileComplete(true);
+          if (alive) setIsProfileComplete(true);
         }
       } catch (err) {
-        console.error("Greška pri dohvaćanju podataka:", err?.response?.data || err);
-        setRole(""); // Ako dođe do greške, postavi role na ""
-        setIsProfileComplete(false); // Nema biografije za instruktora
+        // Greška na role endpointu (npr. 401/403) -> tu ima smisla fallback
+        console.error("Greška pri dohvaćanju role:", err?.response?.data || err);
+        if (!alive) return;
+        setRole("");              // nema role / neautorizirano / sl.
+        setIsProfileComplete(false);
       } finally {
         if (alive) setLoading(false);
       }
     };
 
-    if (token) {
-      setLoading(true);
-      loadUserData();
-    } else {
-      setLoading(false);
-    }
+    setLoading(true);
+    loadUserData();
 
     return () => {
       alive = false;
     };
-  }, [token]);  // Provodi se svaki put kad se token promijeni
+  }, [token]);
 
-  // Provjera učitavanja i stanja role
-  if (loading || role === null) {
-    return <div>Učitavanje...</div>; // Prikazivanje indikatora učitavanja
-  }
+  if (loading || role === null) return <div>Učitavanje...</div>;
 
   const pathname = location.pathname;
   const isRolePage = pathname === "/role";
@@ -78,28 +83,27 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
 
-  // 1) Nema role, mora otići na /role
+  // 1) Nema role -> /role
   if (role === "") {
     if (isRolePage) return children;
     return <Navigate to="/role" replace />;
   }
 
-  // 2) Nema biografije (ako je instruktor), mora otići na /profile/:role/edit
+  // 2) Instruktor bez profila/bio -> na edit
   if (!isProfileComplete) {
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;
   }
 
-  // 3) Ako je student ili instruktor s biografijom, ali pokušava otići na /role ili tuđi/krivi edit
+  // 3) Ne dozvoli /role ili tuđi edit
   if (isRolePage || (pathname.startsWith("/profile/") && !isMyEditPage)) {
     return <Navigate to={homePath} replace />;
   }
 
-  // 4) Role-based zaštita: instruktor ne može na /home/student i obrnuto
+  // 4) Role-based zaštita
   if (allowed.length > 0 && !allowed.includes(role)) {
     return <Navigate to={homePath} replace />;
   }
 
- 
   return children;
 }

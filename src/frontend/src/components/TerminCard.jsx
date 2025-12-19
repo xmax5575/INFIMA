@@ -64,11 +64,11 @@ export default function TerminCard({ termin, onClick, role }) {
       : "Datum i vrijeme nisu definirani";
 
   // Funkcija za dohvat podataka o instruktoru putem ID-a
-  /*
+
   const fetchInstructorData = async (id) => {
     setLoadingInstructor(true);
     try {
-      const response = await api.get(`/instructor/${id}/`);  // Poziv prema backendu za profil instruktora
+      const response = await api.get(`api/instructor/${id}/`);  // Poziv prema backendu za profil instruktora
       console.log(response.data);
       setInstructorProfile(response.data);  // Spremamo podatke instruktora u state
     } catch (error) {
@@ -77,14 +77,14 @@ export default function TerminCard({ termin, onClick, role }) {
       setLoadingInstructor(false);
     }
   };
-  */ 
+
  //KAD KARLO DOVRSI PREKO ID OVO CE RADIT I VRACAT CE DOBRE PODATKE
 
   // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
       console.log(instructor_id)
-    //fetchInstructorData(instructor_id);  // Ako je instruktor, dohvatiti podatke
+    fetchInstructorData(instructor_id);  // Ako je instruktor, dohvatiti podatke
     }
     setShowInstructor(!showInstructor);  // Prebacivanje između prikaza i skrivanja profila
   };
@@ -177,7 +177,7 @@ export default function TerminCard({ termin, onClick, role }) {
   <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowInstructor(false)}>
     <div onClick={(e) => e.stopPropagation()} className="w-full max-w-6xl max-h-[85vh] overflow-y-auto">
       <InstructorCard
-        user={null}  // Prosljeđivanje podataka o instruktoru
+        user={instructorProfile}  // Prosljeđivanje podataka o instruktoru
         onClose={() => setShowInstructor(false)}  // Zatvaranje profila
       />
     </div>
