@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor
+from .models import Lesson, Instructor, Student
 from rest_framework import serializers
 from django.utils import timezone
 
@@ -330,6 +330,41 @@ class InstructorPublicProfileView(APIView):
 
         serializer = MyInstructorProfileSerializer(
             instructor,
+            context={"request": request}
+        )
+        return Response(serializer.data)
+
+
+class MyStudentProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student profil nije pronađen."},
+                status=404
+            )
+
+        serializer = StudentProfileSerializer(student)
+        return Response(serializer.data)
+    
+
+class StudentPublicProfileView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(student_id=pk)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student nije pronađen."},
+                status=404
+            )
+
+        serializer = StudentProfileSerializer(
+            student,
             context={"request": request}
         )
         return Response(serializer.data)

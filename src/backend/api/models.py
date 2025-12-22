@@ -82,7 +82,30 @@ class Student(models.Model):
     learning_goals = models.TextField(null=True, blank=True)
     preferred_times = models.JSONField(default=list, blank=True)
     notifications_enabled = models.BooleanField(default=False)
-    favorite_instructors = models.ManyToManyField(Instructor, blank=True, related_name="favorited_by")
+    favorite_instructors = models.ManyToManyField(
+        Instructor,
+        through="StudentFavoriteInstructor",
+        related_name="favorited_by",
+        blank=True
+    )
+
+
+class StudentFavoriteInstructor(models.Model):
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        db_column="student_id_id"
+    )
+    instructor = models.ForeignKey(
+        Instructor,
+        on_delete=models.CASCADE,
+        db_column="instructor_id_id"
+    )
+
+    class Meta:
+        db_table = "api_student_favorite_instructors"
+        managed = False
+
 
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
