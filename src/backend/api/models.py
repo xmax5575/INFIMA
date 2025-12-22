@@ -79,6 +79,10 @@ class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
     grade = models.IntegerField()
     knowledge_level = models.TextField(null=True, blank=True)
+    learning_goals = models.TextField(null=True, blank=True)
+    preferred_times = models.JSONField(default=list, blank=True)
+    notifications_enabled = models.BooleanField(default=False)
+    favorite_instructors = models.ManyToManyField(Instructor, blank=True, related_name="favorited_by")
 
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
