@@ -31,6 +31,8 @@ class LessonSerializer(serializers.ModelSerializer):
     instructor_name = serializers.SerializerMethodField(read_only=True)
     title = serializers.SerializerMethodField(read_only=True)
     instructor_display = serializers.SerializerMethodField(read_only=True)
+    location = serializers.CharField(source="instructor_id.location", read_only=True)
+    price = serializers.IntegerField(source="instructor_id.price", read_only=True)
 
     class Meta:
         model = Lesson
