@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-from .models import Instructor, Lesson, Review, Subject
+from .models import Instructor, Lesson, Review, Subject, Student
 
 User = get_user_model()
 
@@ -175,3 +175,40 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             is_available=True
         ).order_by("date", "time")
         return CalendarLessonSerializer(qs, many=True).data
+    
+class FavoriteInstructorMiniSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
+
+    class Meta:
+        model = Instructor
+        fields = ["instructor_id", "first_name", "last_name"]
+
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="student_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="student_id.last_name", read_only=True)
+    favorite_instructors = FavoriteInstructorMiniSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Student
+        fields = [
+            "first_name",
+            "last_name",
+            "grade",
+            "knowledge_level",
+            "learning_goals",
+            "preferred_times",
+            "notifications_enabled",
+            "favorite_instructors"
+        ]
+
+
+class InstructorListSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="instructor_id.id", read_only=True)
+    first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
+
+    class Meta:
+        model = Instructor
+        fields = ["id", "first_name", "last_name"]
