@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -367,4 +367,13 @@ class StudentPublicProfileView(APIView):
             student,
             context={"request": request}
         )
+        return Response(serializer.data)
+    
+
+class InstructorListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        instructors = Instructor.objects.select_related("instructor_id")
+        serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)

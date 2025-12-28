@@ -12,6 +12,8 @@ urlpatterns = [
     path("instructor/inf/", views.MyInstructorProfileView.as_view(), name="instructor-inf"),
     # Endpoint za prikaz instruktorovog profila prema ID-u
     path("instructor/<int:pk>/", views.InstructorPublicProfileView.as_view(), name="instructor-detail"),
+    # Endpoint za dohvat svih instruktora
+    path("instructors/all/", views.InstructorListView.as_view(), name="instructor-list"),
     # Endpoint za prikaz vlastitog učenikovog profila
     path("student/inf/", views.MyStudentProfileView.as_view(), name="student-inf"),
     # Endpoint za prikaz učenikovovg profila prema ID-u

@@ -202,3 +202,13 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "notifications_enabled",
             "favorite_instructors"
         ]
+
+
+class InstructorListSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="instructor_id.id", read_only=True)
+    first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
+
+    class Meta:
+        model = Instructor
+        fields = ["id", "first_name", "last_name"]
