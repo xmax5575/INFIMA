@@ -10,4 +10,5 @@ urlpatterns = [
     path('instructor/me/', views.InstructorUpdateView.as_view(), name='instructor-update'),
     path("instructor/inf/", views.MyInstructorProfileView.as_view(), name="instructor-inf"),
     path("instructor/<int:pk>/", views.InstructorPublicProfileView.as_view(), name="instructor-detail"),
+    path('student/me/', views.StudentUpdateView.as_view(), name='student-update'),
 ]
