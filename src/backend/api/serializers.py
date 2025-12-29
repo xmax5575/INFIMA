@@ -94,11 +94,12 @@ ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više instruktora
-    favorite_instructors = serializers.SlugRelatedField(
-        many=True,
-        queryset=Instructor.objects.all(),
-        slug_field='instructor_id'
-    )
+    favorite_instructors = serializers.PrimaryKeyRelatedField(
+    many=True,
+    queryset=Instructor.objects.all(),
+    required=False
+)
+
 
     class Meta:
         model = Student

@@ -18,5 +18,6 @@ urlpatterns = [
     path("student/inf/", views.MyStudentProfileView.as_view(), name="student-inf"),
     # Endpoint za prikaz učenikovovg profila prema ID-u
     path("student/<int:pk>/", views.StudentPublicProfileView.as_view(), name="student-detail"),
+    
     path('student/me/', views.StudentUpdateView.as_view(), name='student-update'),
 ]

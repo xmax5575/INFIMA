@@ -24,7 +24,7 @@ const HOURS = Array.from({ length: 14 }, (_, i) =>
 const MINUTES = ["00", "15", "30", "45"];
 
 const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
-const LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"];
+const LEVELS = ["loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"];
 
 // "HH:MM" -> minute
 const toMinutes = (t) => {
@@ -175,71 +175,99 @@ export default function StudentEditPage() {
   };
 
   // ---------- load profile ----------
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get("/api/user/profile/");
-        const data = res.data || {};
+  // ---------- load profile ----------
+useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      // ✅ koristi student endpoint
+      const res = await api.get("/api/student/inf/");
+      const data = res.data || {};
 
-        setFormData({
-          full_name: data.full_name || "",
-          grade: data.grade != null ? String(data.grade) : "",
-          learning_goals: data.learning_goals || "",
-        });
+      // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
+      const full_name =
+        data.full_name ||
+        `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim();
 
-        // ✅ school_level (NE school_type)
-        if (
-          data.school_level === "osnovna" ||
-          data.school_level === "srednja"
-        ) {
-          setSchoolLevel(data.school_level);
-        }
+      setFormData({
+        full_name: full_name || "",
+        grade: data.grade != null ? String(data.grade) : "",
+        learning_goals: data.learning_goals || "",
+      });
 
-        // notifikacije
-        setNotificationsEnabled(
-          data.notifications_enabled ?? data.notify_new_slots ?? false
-        );
-
-        // preferred_times -> parse u {day, from, to}
-        const fromApi = Array.isArray(data.preferred_times)
-          ? data.preferred_times
-          : [];
-        const parsed = fromApi.map(parsePreferredRange).filter(Boolean);
-        setTimeSlots(parsed.length ? parsed : [{ day: "", from: "", to: "" }]);
-
-        // subjects -> array: [{name:"Matematika", level:"dobra"}, ...]
-        const subj = Array.isArray(data.subjects) ? data.subjects : [];
-        const nextMap = { Matematika: "", Fizika: "", Informatika: "" };
-        subj.forEach((s) => {
-          const name = s?.name;
-          const level = s?.level;
-          if (name && Object.prototype.hasOwnProperty.call(nextMap, name)) {
-            nextMap[name] = level ?? "";
-          }
-        });
-        setSubjectLevels(nextMap);
-
-        // favorites -> array id-eva ili array objekata
-        const favRaw =
-          data.favorite_instructors ??
-          data.favorites ??
-          data.favorite_instructor_ids ??
-          [];
-
-        const favIds = Array.isArray(favRaw)
-          ? favRaw
-              .map((x) => (typeof x === "number" ? x : x?.id))
-              .filter(Boolean)
-          : [];
-
-        setFavoriteIds(favIds);
-      } catch (err) {
-        console.error(err);
+      // ✅ ako ti backend još nema school_level, ostavi ovo - neće smetati
+      if (data.school_level === "osnovna" || data.school_level === "srednja") {
+        setSchoolLevel(data.school_level);
       }
-    };
 
-    fetchProfile();
-  }, []);
+      // ✅ notifikacije
+      setNotificationsEnabled(
+        data.notifications_enabled ?? data.notify_new_slots ?? false
+      );
+
+      // ✅ preferred_times: podrži i objekt i string format
+      const fromApi = Array.isArray(data.preferred_times) ? data.preferred_times : [];
+
+      const parsedSlots = fromApi
+        .map((x) => {
+          // novi format: {day, start, end}
+          if (x && typeof x === "object") {
+            const day = x.day;
+            const from = x.start;
+            const to = x.end;
+            if (!day || !from || !to) return null;
+            return { day, from: String(from).slice(0, 5), to: String(to).slice(0, 5) };
+          }
+
+          // stari format: "Ponedjeljak 18:00-19:30"
+          if (typeof x === "string") return parsePreferredRange(x);
+
+          return null;
+        })
+        .filter(Boolean);
+
+      setTimeSlots(parsedSlots.length ? parsedSlots : [{ day: "", from: "", to: "" }]);
+
+      // ✅ knowledge_level: [{subject, level}]
+      const kl = Array.isArray(data.knowledge_level) ? data.knowledge_level : [];
+      const nextMap = { Matematika: "", Fizika: "", Informatika: "" };
+
+      kl.forEach((s) => {
+        const subject = s?.subject;
+        const level = s?.level;
+        if (subject && Object.prototype.hasOwnProperty.call(nextMap, subject)) {
+          nextMap[subject] = level ?? "";
+        }
+      });
+      setSubjectLevels(nextMap);
+
+      // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]
+      const favRaw =
+        data.favorite_instructors ??
+        data.favorites ??
+        data.favorite_instructor_ids ??
+        [];
+
+      const favIds = Array.isArray(favRaw)
+        ? favRaw
+            .map((x) => {
+              if (typeof x === "number") return x;
+              // backend ti vraća instructor_id
+              return x?.instructor_id ?? x?.id;
+            })
+            .filter((n) => typeof n === "number")
+        : [];
+
+      setFavoriteIds(favIds);
+    } catch (err) {
+      console.error("Ne mogu dohvatiti profil:", err);
+      console.error("STATUS:", err?.response?.status);
+      console.error("DATA:", err?.response?.data);
+    }
+  };
+
+  fetchProfile();
+}, []);
+
 
   // load instructors
   useEffect(() => {
@@ -321,25 +349,43 @@ export default function StudentEditPage() {
           const b = toMinutes(s.to);
           return a != null && b != null && b > a;
         })
-        .map((s) => `${s.day} ${s.from}-${s.to}`);
+        .map((s) => ({
+          day: s.day,
+          start: s.from,
+          end: s.to,
+        }));
 
-      const subjects = SUBJECTS.map((name) => ({
-        name,
-        level: subjectLevels[name] || null,
+      const knowledge_level = SUBJECTS.map((subject) => ({
+        subject,
+        level: subjectLevels[subject] || null,
       })).filter((x) => x.level);
 
-      await api.patch("/api/user/profile/", {
-        school_level: schoolLevel || null, 
-        grade: formData.grade || null,
+      console.log({
+        school_level: schoolLevel || null,
+        grade: Number(formData.grade) || null,
         learning_goals: formData.learning_goals,
         preferred_times,
-        subjects,
+        knowledge_level,
         notifications_enabled: notificationsEnabled,
-        favorite_instructors: favoriteIds, 
+        favorite_instructors: favoriteIds,
+      });
+
+      await api.post("/api/student/me/", {
+        school_level: schoolLevel || null,
+        grade: Number(formData.grade) || null,
+        learning_goals: formData.learning_goals,
+        preferred_times,
+        knowledge_level,
+        notifications_enabled: notificationsEnabled,
+        favorite_instructors: favoriteIds,
       });
 
       navigate("/home/student");
     } catch (err) {
+        console.error("STATUS:", err?.response?.status);
+  console.error("DATA:", err?.response?.data);
+  console.error("ERR:", err);
+  alert("Greška pri spremanju.");
       console.error(err);
       alert("Greška pri spremanju.");
     } finally {
@@ -352,7 +398,7 @@ export default function StudentEditPage() {
       <Header />
 
       <div className="w-full max-w-4xl rounded-[32px] bg-[#D1F8EF] p-8 shadow-xl border border-white/20">
-        <form onSubmit={onSubmit}>
+        <form onSubmit={onSubmit} className="p-8">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Avatar / škola ispod */}
             <div className="w-full md:w-1/3 flex flex-col items-center">
@@ -408,7 +454,7 @@ export default function StudentEditPage() {
 
             {/* Desno: podaci */}
             <div className="flex-1 space-y-5">
-              <h2 className="mt-4 text-3xl font-bold text-[#215993]">
+              <h2 className="mt-4 text-4xl font-bold text-[#215993]">
                 {formData.full_name || "Student"}
               </h2>
 

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import defaultAvatar from "../images/avatar.jpg";
+import api from "../api";
 
 function getFullName(user) {
   return (
@@ -11,47 +12,93 @@ function getFullName(user) {
   );
 }
 
+const levelLabel = (lvl) => {
+  if (lvl === "vrlo_dobra") return "vrlo dobra";
+  return lvl ?? "";
+};
+
 export default function StudentCard({
   user,
   onClose,
-  // 👇 defaultno sada PRIKAZUJEMO gumb Uredi i vodimo na /profile/student/edit
   canEdit = true,
   editTo = "/profile/student/edit",
 }) {
-  const fullName = getFullName(user);
+  const [student, setStudent] = useState(user ?? null);
+  const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState("");
 
-  const bio =
-    user?.bio || "Ovdje ide opis učenika, njegovih interesa i ciljeva učenja.";
+  // ✅ dohvat s /api/student/inf
+  useEffect(() => {
+    let alive = true;
 
-  const location = user?.location || "—";
+    (async () => {
+      setLoading(true);
+      setErrMsg("");
 
-  // PREDMETI + RAZINA ZNANJA
-  const subjectsRaw = user?.subjects ?? [];
-  const subjects = Array.isArray(subjectsRaw)
-    ? subjectsRaw
-        .map((s) => {
-          if (typeof s === "string") {
-            return { name: s, level: null };
+      const urls = ["/api/student/inf/", "/api/student/inf"];
+
+      try {
+        let ok = false;
+        for (const url of urls) {
+          try {
+            const res = await api.get(url);
+            if (!alive) return;
+            setStudent(res.data);
+            ok = true;
+            break;
+          } catch (e) {
+            if (e?.response?.status !== 404) throw e;
           }
-          return {
-            name: s?.name ?? "",
-            level: s?.level ?? s?.knowledge_level ?? null,
-          };
-        })
-        .filter((s) => s.name)
-    : [];
+        }
+        if (!ok) setErrMsg("Ne mogu dohvatiti podatke o učeniku (404).");
+      } catch (e) {
+        if (!alive) return;
+        setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
+        console.error("STATUS:", e?.response?.status);
+        console.error("DATA:", e?.response?.data);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
 
-  // RAZRED / SEMESTAR
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const u = student;
+
+  const fullName = useMemo(() => getFullName(u), [u]);
+
   const grade =
-    user?.grade ??
-    user?.school_grade ??
-    user?.semester ??
-    user?.class_label ??
-    "Nije navedeno";
+    u?.grade ?? u?.school_grade ?? u?.semester ?? u?.class_label ?? "—";
 
-  // PREFERIRANI TERMINI
-  const prefRaw = user?.preferred_slots ?? user?.preferred_times ?? [];
-  const preferredSlots = Array.isArray(prefRaw) ? prefRaw : [];
+  const notificationsEnabled =
+    u?.notifications_enabled ?? u?.notify_new_slots ?? false;
+
+  const avatarUrl = u?.avatar || u?.profile_image || null;
+
+  // ✅ knowledge_level: [{subject, level}]
+  const subjects = useMemo(() => {
+    const raw = u?.knowledge_level ?? u?.subjects ?? [];
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .map((s) => {
+        if (typeof s === "string") return { name: s, level: null };
+        return {
+          name: s?.subject ?? s?.name ?? "",
+          level: s?.level ?? null,
+        };
+      })
+      .filter((s) => s.name);
+  }, [u]);
+
+  // ✅ preferred_times: [{day, start, end}] ili string
+  const preferredSlots = useMemo(() => {
+    const raw = u?.preferred_slots ?? u?.preferred_times ?? [];
+    return Array.isArray(raw) ? raw : [];
+  }, [u]);
 
   const formatPrefSlot = (slot) => {
     if (typeof slot === "string") return slot;
@@ -59,32 +106,39 @@ export default function StudentCard({
     const day = slot?.day || slot?.date || "";
     const from = (slot?.from || slot?.start || "").slice(0, 5);
     const to = (slot?.to || slot?.end || "").slice(0, 5);
-    const part = slot?.part_of_day || "";
 
     if (day && from && to) return `${day} ${from}–${to}`;
-    if (part && day) return `${day} • ${part}`;
-    if (part) return part;
     return day || "Termin";
   };
 
-  // CILJEVI UČENJA
-  const goalsRaw = user?.goals ?? user?.learning_goals ?? [];
-  const goals = Array.isArray(goalsRaw) ? goalsRaw : goalsRaw ? [goalsRaw] : [];
+  // ✅ learning_goals: string
+  const goals = useMemo(() => {
+    const raw = u?.goals ?? u?.learning_goals ?? "";
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    return raw ? [raw] : [];
+  }, [u]);
 
-  // OMILJENI INSTRUKTORI
-  const favoritesRaw = user?.favorite_instructors ?? user?.favorites ?? [];
-  const favoriteCount = Array.isArray(favoritesRaw) ? favoritesRaw.length : 0;
-
-  // OBAVIJESTI
-  const notificationsEnabled =
-    user?.notifications_enabled ?? user?.notify_new_slots ?? false;
-
-  const avatarUrl = user?.avatar || user?.profile_image || null;
+  // ✅ favorite_instructors: [{instructor_id, first_name, last_name}] ili id-evi
+  const favorites = useMemo(() => {
+    const raw = u?.favorite_instructors ?? u?.favorites ?? [];
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((x) => {
+        if (typeof x === "number") return { id: x, full_name: `Instruktor #${x}` };
+        return {
+          id: x?.instructor_id ?? x?.id,
+          full_name:
+            x?.full_name ||
+            `${x?.first_name ?? ""} ${x?.last_name ?? ""}`.trim() ||
+            "Instruktor",
+        };
+      })
+      .filter((x) => x.id != null);
+  }, [u]);
 
   return (
     <div className="w-full">
-      <div className="relative mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-5 sm:p-7">
-        {/* Close */}
+      <div className="relative mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-12 ">
         {onClose && (
           <button
             onClick={onClose}
@@ -95,162 +149,174 @@ export default function StudentCard({
           </button>
         )}
 
-        {/* TOP */}
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-          {/* Avatar */}
-          <div className="lg:col-span-3">
-            <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080] sm:h-[210px]">
-              <img
-                src={avatarUrl || defaultAvatar}
-                alt="Avatar učenika"
-                className="h-full w-full object-cover"
-              />
-            </div>
+        {loading && (
+          <div className="mb-4 rounded-xl bg-white/80 p-3 text-[#215993] font-semibold">
+            Učitavam učenika...
           </div>
+        )}
 
-          {/* Text */}
-          <div className="lg:col-span-9">
-            <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
-              {fullName}
-            </h1>
-
-            <div className="mt-3 text-[#3674B5] text-base sm:text-lg leading-snug">
-              <span className="font-bold">O učeniku: </span>
-              <span className="font-normal">{bio}</span>
-            </div>
-
-            <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
-              <span className="font-bold">Lokacija: </span>
-              <span className="font-normal">{location}</span>
-            </div>
-
-            <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
-              <span className="font-bold">Razred / semestar: </span>
-              <span className="font-normal">{grade}</span>
-            </div>
+        {errMsg && (
+          <div className="mb-4 rounded-xl bg-red-100 p-3 text-red-700 font-semibold">
+            {errMsg}
           </div>
-        </div>
+        )}
 
-        {/* MAIN */}
-        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-          {/* LEFT: predmeti + omiljeni instruktorI */}
-          <div className="lg:col-span-5">
-            {/* Predmeti + razina */}
-            <div className="rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
-              <h2 className="text-lg sm:text-xl font-semibold">
-                Predmeti i razina znanja
-              </h2>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(subjects.length
-                  ? subjects
-                  : [{ name: "Nije navedeno", level: null }]
-                ).map((s, i) => (
-                  <span
-                    key={`${s.name}-${i}`}
-                    className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
-                  >
-                    {s.level ? `${s.name} • ${s.level}` : s.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Omiljeni instruktori */}
-            <div className="mt-5 rounded-2xl bg-white p-5">
-              <div className="flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
-                  <Star className="h-6 w-6 text-[#D1F8EF] fill-[#D1F8EF]" />
+        {!loading && !u ? (
+          <div className="rounded-2xl bg-white/70 p-6 text-[#215993] font-semibold">
+            Nema podataka o učeniku za prikaz.
+          </div>
+        ) : (
+          <>
+            {/* TOP */}
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+              <div className="lg:col-span-3">
+                <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080] sm:h-[210px]">
+                  <img
+                    src={avatarUrl || defaultAvatar}
+                    alt="Avatar učenika"
+                    className="h-full w-full object-cover"
+                  />
                 </div>
 
-                <div className="text-[#3674B5] text-3xl font-semibold">
-                  {favoriteCount}
-                </div>
-
-                <div className="text-[#3674B5] text-lg sm:text-xl font-semibold">
-                  Omiljenih instruktora
+                {/* Badge */}
+                <div className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white/70 border border-white/60 px-4 py-3 text-[#215993] font-bold">
+                  Obavijesti: {notificationsEnabled ? "UKLJUČENE" : "ISKLJUČENE"}
                 </div>
               </div>
 
-              <p className="mt-3 text-[#3674B5]/60 text-sm sm:text-base">
-                Učenik može dodati instruktore na popis omiljenih radi bržeg
-                pronalaska i praćenja novih termina.
-              </p>
-            </div>
-          </div>
+              <div className="lg:col-span-9 p-2">
+                <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
+                  {fullName}
+                </h1>
+                <div className="mt-6">
+                      <div className="text-base sm:text-lg font-bold text-[#3674B5]/90">
+                        Ciljevi učenja
+                      </div>
 
-          {/* RIGHT: preferirani termini + ciljevi */}
-          <div className="lg:col-span-7">
-            <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
-              <div className="text-lg sm:text-xl font-semibold text-center">
-                Preferirani termini
+                      {goals.length ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm sm:text-base text-[#3674B5]/90">
+                          {goals.slice(0, 12).map((g, i) => (
+                            <li key={i}>{g}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-2 text-sm sm:text-base text-[#D1F8EF]/80">
+                          Učenik još nije definirao ciljeve učenja.
+                        </p>
+                      )}
+                    </div>
+
+                <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
+                  <span className="font-bold">Razred: </span>
+                  <span className="font-normal">{grade}.</span>
+                </div>
               </div>
+            </div>
 
-              <div className="mt-4 rounded-xl bg-white/10 p-4">
-                <div className="flex flex-wrap gap-2">
-                  {preferredSlots.length ? (
-                    preferredSlots.slice(0, 12).map((slot, idx) => (
+            {/* MAIN */}
+            <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
+              {/* LEFT */}
+              <div className="lg:col-span-5">
+                {/* Predmeti */}
+                <div className="rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
+                  <h2 className="text-lg sm:text-xl font-semibold">
+                    Predmeti i razina znanja
+                  </h2>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {(subjects.length
+                      ? subjects
+                      : [{ name: "Nije navedeno", level: null }]
+                    ).map((s, i) => (
                       <span
-                        key={idx}
-                        className="rounded-full bg-white/15 px-3 py-1 text-sm"
+                        key={`${s.name}-${i}`}
+                        className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
                       >
-                        {formatPrefSlot(slot)}
+                        {s.level ? `${s.name} • ${levelLabel(s.level)}` : s.name}
                       </span>
-                    ))
-                  ) : (
-                    <span className="rounded-full bg-white/15 px-3 py-1 text-sm">
-                      Nisu postavljeni preferirani termini
-                    </span>
-                  )}
+                    ))}
+                  </div>
                 </div>
 
-                <div className="mt-5">
-                  <div className="text-base sm:text-lg font-semibold">
-                    Ciljevi učenja
+                {/* Omiljeni instruktori (broj + lista) */}
+                <div className="mt-5 rounded-2xl bg-white p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
+                      <Star className="h-6 w-6 text-[#D1F8EF] fill-[#D1F8EF]" />
+                    </div>
+
+                    <div className="text-[#3674B5] text-3xl font-semibold">
+                      {favorites.length}
+                    </div>
+
+                    <div className="text-[#3674B5] text-lg sm:text-xl font-semibold">
+                      Omiljenih instruktora
+                    </div>
                   </div>
-                  {goals.length ? (
-                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm sm:text-base">
-                      {goals.slice(0, 6).map((g, i) => (
-                        <li key={i}>{g}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm sm:text-base text-[#D1F8EF]/80">
-                      Učenik još nije definirao ciljeve učenja.
-                    </p>
-                  )}
+
+                  <div className="mt-4 space-y-2">
+                    {favorites.length ? (
+                      favorites.map((f) => (
+                        <div
+                          key={f.id}
+                          className="rounded-xl bg-[#D1F8EF]/50 border border-white/60 px-4 py-2 text-[#215993] font-semibold"
+                        >
+                          {f.full_name}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-[#3674B5]/70">
+                        Nema omiljenih instruktora.
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-sm sm:text-base">
-                    Obavijesti o novim slobodnim terminima:{" "}
-                    <span className="font-semibold">
-                      {notificationsEnabled ? "Uključene" : "Isključene"}
-                    </span>
+              {/* RIGHT */}
+              <div className="lg:col-span-7">
+                <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
+                  <div className="text-lg sm:text-xl font-semibold text-center">
+                    Preferirani termini
                   </div>
 
-                  <button
-                    type="button"
-                    className="rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-sm sm:text-base text-[#3674B5] font-semibold hover:brightness-95"
-                  >
-                    Postavke obavijesti
-                  </button>
+                  <div className="mt-4 rounded-xl bg-white/10 p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {preferredSlots.length ? (
+                        preferredSlots.slice(0, 12).map((slot, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-full bg-white/15 px-3 py-1 text-sm sm:text-base"
+                          >
+                            {formatPrefSlot(slot)}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="rounded-full bg-white/15 px-3 py-1 text-sm sm:text-base">
+                          Nisu postavljeni preferirani termini
+                        </span>
+                      )}
+                    </div>
+
+                    
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* FOOTER: Uredi profil učenika */}
-        {canEdit && (
-          <div className="mt-6">
-            <Link
-              to={editTo}
-              className="block w-full text-center rounded-xl bg-[#215993] px-4 py-3 text-[#D1F8EF] font-semibold hover:brightness-110"
-            >
-              Uredi profil
-            </Link>
-          </div>
+            {/* ✅ SAMO JEDAN GUMB NA DNU */}
+            {canEdit && (
+              <div className="mt-6">
+                <Link
+                  to={editTo}
+                  className="block w-full text-center rounded-xl bg-[#215993] px-4 py-3 text-[#D1F8EF] font-semibold hover:brightness-110"
+                  onClick={onClose}
+                >
+                  Uredi profil
+                </Link>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -36,20 +36,40 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         setRole(r || "");
 
         // 2) profil (samo za instruktora)
+        // 2) profil (instruktor + student)
         if (r === "instructor") {
           try {
-            const profileRes = await api.get("/api/instructor/inf/"); // <-- po potrebi promijeni u /info/ ili /me/
+            const profileRes = await api.get("/api/instructor/inf/");
             const bio = profileRes.data?.bio;
             const hasBio = typeof bio === "string" && bio.trim() !== "";
             if (alive) setIsProfileComplete(hasBio);
           } catch (err) {
             const status = err?.response?.status;
-
-            // 404 = profil ne postoji -> tretiraj kao "nije kompletiran", NE briši rolu
             if (status === 404) {
               if (alive) setIsProfileComplete(false);
             } else {
-              console.error("Greška pri dohvaćanju instructor profila:", err?.response?.data || err);
+              console.error(
+                "Greška pri dohvaćanju instructor profila:",
+                err?.response?.data || err
+              );
+              if (alive) setIsProfileComplete(false);
+            }
+          }
+        } else if (r === "student") {
+          try {
+            const profileRes = await api.get("/api/student/inf/");
+            const goals = profileRes.data?.learning_goals;
+            const hasGoals = typeof goals === "string" && goals.trim() !== "";
+            if (alive) setIsProfileComplete(hasGoals);
+          } catch (err) {
+            const status = err?.response?.status;
+            if (status === 404) {
+              if (alive) setIsProfileComplete(false);
+            } else {
+              console.error(
+                "Greška pri dohvaćanju student profila:",
+                err?.response?.data || err
+              );
               if (alive) setIsProfileComplete(false);
             }
           }
@@ -58,9 +78,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         }
       } catch (err) {
         // Greška na role endpointu (npr. 401/403) -> tu ima smisla fallback
-        console.error("Greška pri dohvaćanju role:", err?.response?.data || err);
+        console.error(
+          "Greška pri dohvaćanju role:",
+          err?.response?.data || err
+        );
         if (!alive) return;
-        setRole("");              // nema role / neautorizirano / sl.
+        setRole(""); // nema role / neautorizirano / sl.
         setIsProfileComplete(false);
       } finally {
         if (alive) setLoading(false);
