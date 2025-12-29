@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
@@ -86,6 +87,61 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                   'subjects',
                   'video_url'
         ]
+
+
+ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
+ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
+
+class StudentUpdateSerializer(serializers.ModelSerializer):
+    # omogućava odabir više instruktora
+    favorite_instructors = serializers.SlugRelatedField(
+        many=True,
+        queryset=Instructor.objects.all(),
+        slug_field='instructor_id'
+    )
+
+    class Meta:
+        model = Student
+        # uključujemo samo polja koja želimo da student može mijenjati
+        fields = [
+            'grade',
+            'knowledge_level',
+            'learning_goals', 
+            'preferred_times', 
+            'notifications_enabled',
+            'favorite_instructors'
+        ]
+
+        # validacija knowledge_level
+    def validate_knowledge_level(self, value):
+        for item in value:
+            subject = item.get("subject")
+            level = item.get("level")
+            if subject not in ALLOWED_SUBJECTS:
+                raise serializers.ValidationError(f"Unknown subject: {subject}")
+            if level not in ALLOWED_LEVELS:
+                raise serializers.ValidationError(f"Unknown level: {level}")
+        return value
+
+    # validacija preferred_times
+    def validate_preferred_times(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Preferred_times must be a list")
+        
+        for slot in value:
+            if not isinstance(slot, dict):
+                raise serializers.ValidationError("Each slot must be a dict with day, start, end")
+            if "day" not in slot or "start" not in slot or "end" not in slot:
+                raise serializers.ValidationError("Each slot must have day, start, end keys")
+
+            # Provjera formata vremena HH:MM
+            for key in ["start", "end"]:
+                try:
+                    datetime.strptime(slot[key], "%H:%M")
+                except ValueError:
+                    raise serializers.ValidationError(f"{key} must be in HH:MM format")
+        
+        return value
 
 class SubjectMiniSerializer(serializers.ModelSerializer):
     class Meta:

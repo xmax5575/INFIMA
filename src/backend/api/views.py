@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -333,6 +333,44 @@ class InstructorPublicProfileView(APIView):
             context={"request": request}
         )
         return Response(serializer.data)
+    
+class StudentUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
+        """
+
+        if request.user.role != 'STUDENT':
+            return Response(
+                {"detail": "Only students can edit student profile."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        student, created = Student.objects.get_or_create(
+            student_id=request.user,
+            defaults={
+                "grade": 0,
+                "knowledge_level": [],  
+                "learning_goals": "", 
+                "preferred_times": [],  
+                "notifications_enabled": False
+            }
+        )
+
+        serializer = StudentUpdateSerializer(
+            student,
+            data=request.data,
+            partial=True  # dopušta slanje samo dijela polja
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
 
 
 class MyStudentProfileView(APIView):
