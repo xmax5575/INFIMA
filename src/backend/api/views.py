@@ -351,7 +351,8 @@ class StudentUpdateView(APIView):
         student, created = Student.objects.get_or_create(
             student_id=request.user,
             defaults={
-                "grade": 0,
+                "grade": None,
+                "school_level": None,
                 "knowledge_level": [],  
                 "learning_goals": "", 
                 "preferred_times": [],  

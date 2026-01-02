@@ -91,6 +91,7 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
 
 ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
 ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
+ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više instruktora
@@ -105,6 +106,7 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
         model = Student
         # uključujemo samo polja koja želimo da student može mijenjati
         fields = [
+            'school_level',
             'grade',
             'knowledge_level',
             'learning_goals', 
@@ -112,10 +114,20 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
             'notifications_enabled',
             'favorite_instructors'
         ]
-
-        # validacija knowledge_level
+    #validacija school_level
+    def validate_school_level(self, value):
+        if value is None:
+            return value
+        if value not in ALLOWED_SCHOOL_LEVELS:
+            raise serializers.ValidationError("school_level must be 'osnovna' or 'srednja'")
+        return value
+    # validacija knowledge_level
     def validate_knowledge_level(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("knowledge_level must be a list")
         for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each knowledge_level item must be an object")
             subject = item.get("subject")
             level = item.get("level")
             if subject not in ALLOWED_SUBJECTS:
@@ -136,11 +148,14 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Each slot must have day, start, end keys")
 
             # Provjera formata vremena HH:MM
-            for key in ["start", "end"]:
-                try:
-                    datetime.strptime(slot[key], "%H:%M")
-                except ValueError:
-                    raise serializers.ValidationError(f"{key} must be in HH:MM format")
+            try:
+                start = datetime.strptime(slot["start"], "%H:%M").time()
+                end = datetime.strptime(slot["end"], "%H:%M").time()
+            except ValueError:
+                raise serializers.ValidationError("start and end must be in HH:MM format")
+
+            if end <= start:
+                raise serializers.ValidationError("end time must be after start time")
         
         return value
 
