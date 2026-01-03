@@ -182,7 +182,7 @@ useEffect(() => {
       // ✅ koristi student endpoint
       const res = await api.get("/api/student/inf/");
       const data = res.data || {};
-
+      console.log(data);
       // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
       const full_name =
         data.full_name ||
@@ -486,7 +486,8 @@ useEffect(() => {
                         <option value="">Odaberi razinu</option>
                         {LEVELS.map((lvl) => (
                           <option key={lvl} value={lvl}>
-                            {lvl}
+
+                            {lvl === "vrlo_dobra"? "vrlo dobra" : lvl}
                           </option>
                         ))}
                       </select>

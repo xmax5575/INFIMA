@@ -69,6 +69,13 @@ export default function StudentCard({
   const u = student;
 
   const fullName = useMemo(() => getFullName(u), [u]);
+  const schoolLevel = u?.school_level?? null;
+  const schoolLabel =
+  schoolLevel === "osnovna"
+    ? "Osnovna škola"
+    : schoolLevel === "srednja"
+    ? "Srednja škola"
+    : "";
 
   const grade =
     u?.grade ?? u?.school_grade ?? u?.semester ?? u?.class_label ?? "—";
@@ -206,10 +213,11 @@ export default function StudentCard({
                       )}
                     </div>
 
-                <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
-                  <span className="font-bold">Razred: </span>
-                  <span className="font-normal">{grade}.</span>
-                </div>
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/60 px-4 py-1 text-sm font-semibold text-[#215993] border border-white/70 shadow-sm">
+    {schoolLabel && <span>{schoolLabel}</span>}
+    {schoolLabel && grade && <span className="opacity-50">•</span>}
+    {grade && <span>{grade}. razred</span>}
+  </div>
               </div>
             </div>
 
