@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
 
@@ -7,6 +7,7 @@ const norm = (v) => (v ? String(v).toLowerCase() : "");
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const token = localStorage.getItem(ACCESS_TOKEN);
 
   const [loading, setLoading] = useState(true);
@@ -35,24 +36,27 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         if (!alive) return;
         setRole(r || "");
 
-        // 2) profil (samo za instruktora)
         // 2) profil (instruktor + student)
         if (r === "instructor") {
           try {
             const profileRes = await api.get("/api/instructor/inf/");
             const bio = profileRes.data?.bio;
             const hasBio = typeof bio === "string" && bio.trim() !== "";
-            if (alive) setIsProfileComplete(hasBio);
+            const savedFlag =
+              localStorage.getItem("profile_saved_instructor") === "1";
+            if (alive) setIsProfileComplete(hasBio || savedFlag);
           } catch (err) {
             const status = err?.response?.status;
+            const savedFlag =
+              localStorage.getItem("profile_saved_instructor") === "1";
             if (status === 404) {
-              if (alive) setIsProfileComplete(false);
+              if (alive) setIsProfileComplete(savedFlag);
             } else {
               console.error(
                 "Greška pri dohvaćanju instructor profila:",
                 err?.response?.data || err
               );
-              if (alive) setIsProfileComplete(false);
+              if (alive) setIsProfileComplete(savedFlag);
             }
           }
         } else if (r === "student") {
@@ -60,17 +64,21 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
             const profileRes = await api.get("/api/student/inf/");
             const goals = profileRes.data?.learning_goals;
             const hasGoals = typeof goals === "string" && goals.trim() !== "";
-            if (alive) setIsProfileComplete(hasGoals);
+            const savedFlag =
+              localStorage.getItem("profile_saved_student") === "1";
+            if (alive) setIsProfileComplete(hasGoals || savedFlag);
           } catch (err) {
             const status = err?.response?.status;
+            const savedFlag =
+              localStorage.getItem("profile_saved_student") === "1";
             if (status === 404) {
-              if (alive) setIsProfileComplete(false);
+              if (alive) setIsProfileComplete(savedFlag);
             } else {
               console.error(
                 "Greška pri dohvaćanju student profila:",
                 err?.response?.data || err
               );
-              if (alive) setIsProfileComplete(false);
+              if (alive) setIsProfileComplete(savedFlag);
             }
           }
         } else {
@@ -97,6 +105,47 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
       alive = false;
     };
   }, [token]);
+
+  // Ako se triggera profileUpdated event, odmah se prelazi na home page.
+  useEffect(() => {
+    const onProfileUpdated = (e) => {
+      try {
+        const detail = e?.detail ?? null;
+        if (!detail || !detail.role) return;
+        const r = String(detail.role).toLowerCase();
+
+        // If we don't yet know the role, set it so the routing logic can proceed.
+        setRole((current) => (current === null ? r : current));
+
+        if (typeof detail.isProfileComplete === "boolean") {
+          setIsProfileComplete(detail.isProfileComplete);
+        } else {
+          const savedFlag = localStorage.getItem(`profile_saved_${r}`) === "1";
+          setIsProfileComplete(savedFlag);
+        }
+
+        // Remove the temporary saved flag so it can't be reused.
+        try {
+          localStorage.removeItem(`profile_saved_${r}`);
+        } catch (e) {
+          console.error("Failed to remove profile_saved flag:", e);
+        }
+
+        const editPathForRole = `/profile/${r}/edit`;
+        if (
+          location.pathname === editPathForRole ||
+          location.pathname.startsWith(editPathForRole)
+        ) {
+          navigate(`/home/${r}`);
+        }
+      } catch (err) {
+        console.error("Error handling profileUpdated event:", err);
+      }
+    };
+
+    window.addEventListener("profileUpdated", onProfileUpdated);
+    return () => window.removeEventListener("profileUpdated", onProfileUpdated);
+  }, [location.pathname, navigate]);
 
   if (loading || role === null) return <div>Učitavanje...</div>;
 

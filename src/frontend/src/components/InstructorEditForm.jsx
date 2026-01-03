@@ -40,7 +40,10 @@ export default function InstructorEditForm() {
           : [];
         setSubjects(subjectNames);
       } catch (err) {
-        console.error("Greška pri dohvaćanju za edit:", err?.response?.data || err);
+        console.error(
+          "Greška pri dohvaćanju za edit:",
+          err?.response?.data || err
+        );
       }
     };
 
@@ -57,12 +60,31 @@ export default function InstructorEditForm() {
     setSubjectsError("");
 
     try {
-      await api.post("/api/instructor/me/", {
+      const res = await api.post("/api/instructor/me/", {
         bio,
         location,
         price: price === "" ? null : Number(price),
         subjects,
       });
+
+      console.debug("POST /api/instructor/me/ succeeded:", res?.data);
+
+      // Kada je profil spremljen prvi put, postavi zastavicu u localStorage.
+      try {
+        localStorage.setItem("profile_saved_instructor", "1");
+      } catch (e) {
+        console.error(
+          "Failed to set profile_saved_instructor in localStorage:",
+          e
+        );
+      }
+
+      // Dispatch da je profil ažuriran.
+      window.dispatchEvent(
+        new CustomEvent("profileUpdated", {
+          detail: { role: "instructor", isProfileComplete: true },
+        })
+      );
 
       navigate("/home/instructor");
     } catch (err) {
@@ -79,7 +101,11 @@ export default function InstructorEditForm() {
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-3">
               <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-white/40 sm:h-[240px]">
-                <img src={defaultAvatar} alt="Avatar" className="h-full w-full object-cover" />
+                <img
+                  src={defaultAvatar}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
               </div>
             </div>
 
@@ -147,7 +173,9 @@ export default function InstructorEditForm() {
                         key={s}
                         onClick={() =>
                           setSubjects((prev) =>
-                            prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+                            prev.includes(s)
+                              ? prev.filter((x) => x !== s)
+                              : [...prev, s]
                           )
                         }
                         className={
@@ -163,7 +191,9 @@ export default function InstructorEditForm() {
                   })}
                 </div>
 
-                {subjectsError && <p className="mt-2 text-sm text-red-200">{subjectsError}</p>}
+                {subjectsError && (
+                  <p className="mt-2 text-sm text-red-200">{subjectsError}</p>
+                )}
               </div>
             </div>
 
@@ -171,6 +201,18 @@ export default function InstructorEditForm() {
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
                 <button
                   type="submit"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem("profile_saved_instructor", "1");
+                    } catch (e) {
+                      console.error("Failed to set profile_saved_instructor:", e);
+                    }
+                    window.dispatchEvent(
+                      new CustomEvent("profileUpdated", {
+                        detail: { role: "instructor", isProfileComplete: true },
+                      })
+                    );
+                  }}
                   className="w-full rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-[#3674B5]
                              font-semibold hover:brightness-95"
                 >

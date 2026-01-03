@@ -176,98 +176,113 @@ export default function StudentEditPage() {
 
   // ---------- load profile ----------
   // ---------- load profile ----------
-useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      // ✅ koristi student endpoint
-      const res = await api.get("/api/student/inf/");
-      const data = res.data || {};
-      console.log(data);
-      // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
-      const full_name =
-        data.full_name ||
-        `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim();
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        // ✅ koristi student endpoint
+        const res = await api.get("/api/student/inf/");
+        const data = res.data || {};
+        console.log(data);
+        // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
+        const full_name =
+          data.full_name ||
+          `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim();
 
-      setFormData({
-        full_name: full_name || "",
-        grade: data.grade != null ? String(data.grade) : "",
-        learning_goals: data.learning_goals || "",
-      });
+        setFormData({
+          full_name: full_name || "",
+          grade: data.grade != null ? String(data.grade) : "",
+          learning_goals: data.learning_goals || "",
+        });
 
-      // ✅ ako ti backend još nema school_level, ostavi ovo - neće smetati
-      if (data.school_level === "osnovna" || data.school_level === "srednja") {
-        setSchoolLevel(data.school_level);
-      }
-
-      // ✅ notifikacije
-      setNotificationsEnabled(
-        data.notifications_enabled ?? data.notify_new_slots ?? false
-      );
-
-      // ✅ preferred_times: podrži i objekt i string format
-      const fromApi = Array.isArray(data.preferred_times) ? data.preferred_times : [];
-
-      const parsedSlots = fromApi
-        .map((x) => {
-          // novi format: {day, start, end}
-          if (x && typeof x === "object") {
-            const day = x.day;
-            const from = x.start;
-            const to = x.end;
-            if (!day || !from || !to) return null;
-            return { day, from: String(from).slice(0, 5), to: String(to).slice(0, 5) };
-          }
-
-          // stari format: "Ponedjeljak 18:00-19:30"
-          if (typeof x === "string") return parsePreferredRange(x);
-
-          return null;
-        })
-        .filter(Boolean);
-
-      setTimeSlots(parsedSlots.length ? parsedSlots : [{ day: "", from: "", to: "" }]);
-
-      // ✅ knowledge_level: [{subject, level}]
-      const kl = Array.isArray(data.knowledge_level) ? data.knowledge_level : [];
-      const nextMap = { Matematika: "", Fizika: "", Informatika: "" };
-
-      kl.forEach((s) => {
-        const subject = s?.subject;
-        const level = s?.level;
-        if (subject && Object.prototype.hasOwnProperty.call(nextMap, subject)) {
-          nextMap[subject] = level ?? "";
+        // ✅ ako ti backend još nema school_level, ostavi ovo - neće smetati
+        if (
+          data.school_level === "osnovna" ||
+          data.school_level === "srednja"
+        ) {
+          setSchoolLevel(data.school_level);
         }
-      });
-      setSubjectLevels(nextMap);
 
-      // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]
-      const favRaw =
-        data.favorite_instructors ??
-        data.favorites ??
-        data.favorite_instructor_ids ??
-        [];
+        // ✅ notifikacije
+        setNotificationsEnabled(
+          data.notifications_enabled ?? data.notify_new_slots ?? false
+        );
 
-      const favIds = Array.isArray(favRaw)
-        ? favRaw
-            .map((x) => {
-              if (typeof x === "number") return x;
-              // backend ti vraća instructor_id
-              return x?.instructor_id ?? x?.id;
-            })
-            .filter((n) => typeof n === "number")
-        : [];
+        // ✅ preferred_times: podrži i objekt i string format
+        const fromApi = Array.isArray(data.preferred_times)
+          ? data.preferred_times
+          : [];
 
-      setFavoriteIds(favIds);
-    } catch (err) {
-      console.error("Ne mogu dohvatiti profil:", err);
-      console.error("STATUS:", err?.response?.status);
-      console.error("DATA:", err?.response?.data);
-    }
-  };
+        const parsedSlots = fromApi
+          .map((x) => {
+            // novi format: {day, start, end}
+            if (x && typeof x === "object") {
+              const day = x.day;
+              const from = x.start;
+              const to = x.end;
+              if (!day || !from || !to) return null;
+              return {
+                day,
+                from: String(from).slice(0, 5),
+                to: String(to).slice(0, 5),
+              };
+            }
 
-  fetchProfile();
-}, []);
+            // stari format: "Ponedjeljak 18:00-19:30"
+            if (typeof x === "string") return parsePreferredRange(x);
 
+            return null;
+          })
+          .filter(Boolean);
+
+        setTimeSlots(
+          parsedSlots.length ? parsedSlots : [{ day: "", from: "", to: "" }]
+        );
+
+        // ✅ knowledge_level: [{subject, level}]
+        const kl = Array.isArray(data.knowledge_level)
+          ? data.knowledge_level
+          : [];
+        const nextMap = { Matematika: "", Fizika: "", Informatika: "" };
+
+        kl.forEach((s) => {
+          const subject = s?.subject;
+          const level = s?.level;
+          if (
+            subject &&
+            Object.prototype.hasOwnProperty.call(nextMap, subject)
+          ) {
+            nextMap[subject] = level ?? "";
+          }
+        });
+        setSubjectLevels(nextMap);
+
+        // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]
+        const favRaw =
+          data.favorite_instructors ??
+          data.favorites ??
+          data.favorite_instructor_ids ??
+          [];
+
+        const favIds = Array.isArray(favRaw)
+          ? favRaw
+              .map((x) => {
+                if (typeof x === "number") return x;
+                // backend ti vraća instructor_id
+                return x?.instructor_id ?? x?.id;
+              })
+              .filter((n) => typeof n === "number")
+          : [];
+
+        setFavoriteIds(favIds);
+      } catch (err) {
+        console.error("Ne mogu dohvatiti profil:", err);
+        console.error("STATUS:", err?.response?.status);
+        console.error("DATA:", err?.response?.data);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   // load instructors
   useEffect(() => {
@@ -380,12 +395,24 @@ useEffect(() => {
         favorite_instructors: favoriteIds,
       });
 
+      // Kada je profil spremljen prvi put, postavi zastavicu u localStorage.
+      try {
+        localStorage.setItem("profile_saved_student", "1");
+      } catch (e) {}
+
+      // Dispatch da je profil ažuriran.
+      window.dispatchEvent(
+        new CustomEvent("profileUpdated", {
+          detail: { role: "student", isProfileComplete: true },
+        })
+      );
+
       navigate("/home/student");
     } catch (err) {
-        console.error("STATUS:", err?.response?.status);
-  console.error("DATA:", err?.response?.data);
-  console.error("ERR:", err);
-  alert("Greška pri spremanju.");
+      console.error("STATUS:", err?.response?.status);
+      console.error("DATA:", err?.response?.data);
+      console.error("ERR:", err);
+      alert("Greška pri spremanju.");
       console.error(err);
       alert("Greška pri spremanju.");
     } finally {
@@ -486,8 +513,7 @@ useEffect(() => {
                         <option value="">Odaberi razinu</option>
                         {LEVELS.map((lvl) => (
                           <option key={lvl} value={lvl}>
-
-                            {lvl === "vrlo_dobra"? "vrlo dobra" : lvl}
+                            {lvl === "vrlo_dobra" ? "vrlo dobra" : lvl}
                           </option>
                         ))}
                       </select>
@@ -830,6 +856,18 @@ useEffect(() => {
               <button
                 type="submit"
                 disabled={loading}
+                onClick={() => {
+                  try {
+                    localStorage.setItem("profile_saved_student", "1");
+                  } catch (e) {
+                    console.error("Failed to set profile_saved_student:", e);
+                  }
+                  window.dispatchEvent(
+                    new CustomEvent("profileUpdated", {
+                      detail: { role: "student", isProfileComplete: true },
+                    })
+                  );
+                }}
                 className="w-full py-3 bg-[#D1F8EF] text-[#215993] font-bold rounded-xl hover:bg:white transition-all shadow-md active:scale-[0.98]"
               >
                 {loading ? "Spremanje..." : "Spremi promjene"}
