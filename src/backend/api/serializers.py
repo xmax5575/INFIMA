@@ -267,6 +267,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         fields = [
             "first_name",
             "last_name",
+            "school_level",
             "grade",
             "knowledge_level",
             "learning_goals",
