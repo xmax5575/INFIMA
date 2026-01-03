@@ -85,24 +85,6 @@ class Student(models.Model):
     notifications_enabled = models.BooleanField(default=False)
     favorite_instructors = models.ManyToManyField(Instructor, blank=True, related_name="favorited_by")
 
-
-class StudentFavoriteInstructor(models.Model):
-    student = models.ForeignKey(
-        Student,
-        on_delete=models.CASCADE,
-        db_column="student_id_id"
-    )
-    instructor = models.ForeignKey(
-        Instructor,
-        on_delete=models.CASCADE,
-        db_column="instructor_id_id"
-    )
-
-    class Meta:
-        db_table = "api_student_favorite_instructors"
-        managed = False
-
-
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
     instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
