@@ -25,6 +25,8 @@ const MINUTES = ["00", "15", "30", "45"];
 
 const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
 const LEVELS = ["loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"];
+const DEFAULT_SLOT = { day: "Ponedjeljak", from: "08:00", to: "09:00" };
+
 
 // "HH:MM" -> minute
 const toMinutes = (t) => {
@@ -91,8 +93,8 @@ export default function StudentEditPage() {
   }));
 
   // termini: [{ day, from:"HH:MM", to:"HH:MM" }]
-  const [timeSlots, setTimeSlots] = useState([{ day: "", from: "", to: "" }]);
-
+  const [timeSlots, setTimeSlots] = useState([ DEFAULT_SLOT]);
+console.log(timeSlots);
   // ---------- modal helpers ----------
   const closeInstructorModal = () => {
     setIsInstructorModalOpen(false);
@@ -235,7 +237,7 @@ export default function StudentEditPage() {
           .filter(Boolean);
 
         setTimeSlots(
-          parsedSlots.length ? parsedSlots : [{ day: "", from: "", to: "" }]
+          parsedSlots.length ? parsedSlots : [DEFAULT_SLOT]
         );
 
         // ✅ knowledge_level: [{subject, level}]
@@ -343,7 +345,7 @@ export default function StudentEditPage() {
   };
 
   const handleAddSlot = () =>
-    setTimeSlots((prev) => [...prev, { day: "", from: "", to: "" }]);
+    setTimeSlots((prev) => [...prev, { ...DEFAULT_SLOT }]);
   const handleRemoveSlot = (index) =>
     setTimeSlots((prev) => prev.filter((_, i) => i !== index));
 
@@ -355,7 +357,7 @@ export default function StudentEditPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    console.log(timeSlots);
     try {
       const preferred_times = timeSlots
         .filter((s) => s.day && s.from && s.to)
@@ -431,7 +433,7 @@ export default function StudentEditPage() {
       <Header />
 
       <div className="w-full max-w-4xl rounded-[32px] bg-[#D1F8EF] p-8 shadow-xl border border-white/20">
-        <form onSubmit={onSubmit} className="p-8">
+        <form onSubmit={onSubmit} className="p-6">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Avatar / škola ispod */}
             <div className="w-full md:w-1/3 flex flex-col items-center">
@@ -551,7 +553,7 @@ export default function StudentEditPage() {
                         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                           {/* Dan */}
                           <select
-                            className={`${inputStyle} sm:w-40`}
+                            className={`${inputStyle} sm:w-32`}
                             value={slot.day}
                             onChange={(e) =>
                               handleSlotChange(index, "day", e.target.value)
@@ -706,27 +708,6 @@ export default function StudentEditPage() {
                     aria-pressed={notificationsEnabled}
                     aria-label="Uključi/Isključi obavijesti"
                   >
-                    {/* Tekst u pozadini (da uvijek piše ON i OFF) */}
-                    <span className="absolute inset-0 flex items-center justify-between px-3 text-xs font-bold tracking-wider">
-                      <span
-                        className={
-                          notificationsEnabled
-                            ? "text-white/90"
-                            : "text-[#215993]/70"
-                        }
-                      >
-                        ON
-                      </span>
-                      <span
-                        className={
-                          notificationsEnabled
-                            ? "text-white/50"
-                            : "text-[#215993]/90"
-                        }
-                      >
-                        OFF
-                      </span>
-                    </span>
 
                     {/* Klizač (thumb) */}
                     <span
