@@ -69,22 +69,20 @@ export default function InstructorEditForm() {
 
       console.debug("POST /api/instructor/me/ succeeded:", res?.data);
 
-      // Kada je profil spremljen prvi put, postavi zastavicu u localStorage.
-      try {
+      // Kada je profil spremljen, postavi zastavicu u localStorage.
+      if (
+        bio.trim() !== "" &&
+        location.trim() !== "" &&
+        subjects.length > 0 &&
+        Number(price) > 0
+      ){
         localStorage.setItem("profile_saved_instructor", "1");
-      } catch (e) {
-        console.error(
-          "Failed to set profile_saved_instructor in localStorage:",
-          e
+        window.dispatchEvent(
+          new CustomEvent("profileUpdated", {
+            detail: { role: "instructor", isProfileComplete: true },
+          })
         );
       }
-
-      // Dispatch da je profil ažuriran.
-      window.dispatchEvent(
-        new CustomEvent("profileUpdated", {
-          detail: { role: "instructor", isProfileComplete: true },
-        })
-      );
 
       navigate("/home/instructor");
     } catch (err) {
@@ -151,7 +149,7 @@ export default function InstructorEditForm() {
                       onChange={(e) => setPrice(e.target.value)}
                       inputMode="numeric"
                       type="number"
-                      min="0"
+                      min="1"
                       step="1"
                       placeholder="10"
                       required
@@ -201,18 +199,6 @@ export default function InstructorEditForm() {
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
                 <button
                   type="submit"
-                  onClick={() => {
-                    try {
-                      localStorage.setItem("profile_saved_instructor", "1");
-                    } catch (e) {
-                      console.error("Failed to set profile_saved_instructor:", e);
-                    }
-                    window.dispatchEvent(
-                      new CustomEvent("profileUpdated", {
-                        detail: { role: "instructor", isProfileComplete: true },
-                      })
-                    );
-                  }}
                   className="w-full rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-[#3674B5]
                              font-semibold hover:brightness-95"
                 >

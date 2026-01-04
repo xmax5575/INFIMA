@@ -395,17 +395,23 @@ export default function StudentEditPage() {
         favorite_instructors: favoriteIds,
       });
 
-      // Kada je profil spremljen prvi put, postavi zastavicu u localStorage.
-      try {
+      if (
+        schoolLevel &&
+        formData.grade &&
+        formData.learning_goals &&
+        knowledge_level.Matematika !== "" &&
+        knowledge_level.Fizika !== "" &&
+        knowledge_level.Informatika !== "" &&
+        preferred_times.length > 0
+      )
+      {
         localStorage.setItem("profile_saved_student", "1");
-      } catch (e) {}
-
-      // Dispatch da je profil ažuriran.
-      window.dispatchEvent(
-        new CustomEvent("profileUpdated", {
-          detail: { role: "student", isProfileComplete: true },
-        })
-      );
+        window.dispatchEvent(
+          new CustomEvent("profileUpdated", {
+            detail: { role: "student", isProfileComplete: true },
+          })
+        );
+      }
 
       navigate("/home/student");
     } catch (err) {
@@ -552,7 +558,6 @@ export default function StudentEditPage() {
                             }
                             required
                           >
-                            <option value="">Odaberi dan</option>
                             {DAYS.map((d) => (
                               <option key={d} value={d}>
                                 {d}
@@ -856,18 +861,6 @@ export default function StudentEditPage() {
               <button
                 type="submit"
                 disabled={loading}
-                onClick={() => {
-                  try {
-                    localStorage.setItem("profile_saved_student", "1");
-                  } catch (e) {
-                    console.error("Failed to set profile_saved_student:", e);
-                  }
-                  window.dispatchEvent(
-                    new CustomEvent("profileUpdated", {
-                      detail: { role: "student", isProfileComplete: true },
-                    })
-                  );
-                }}
                 className="w-full py-3 bg-[#D1F8EF] text-[#215993] font-bold rounded-xl hover:bg:white transition-all shadow-md active:scale-[0.98]"
               >
                 {loading ? "Spremanje..." : "Spremi promjene"}
