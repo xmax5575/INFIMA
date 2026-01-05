@@ -291,6 +291,9 @@ class InstructorUpdateView(APIView):
             }
         )
 
+        # zapamti staru lokaciju da znamo je li se promijenila
+        old_location = instructor.location
+
         serializer = InstructorUpdateSerializer(
             instructor,
             data=request.data,
@@ -299,10 +302,34 @@ class InstructorUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        # nova lokacija iz requesta (ako je uopće poslano polje "location")
+        new_location = serializer.validated_data.get("location", old_location)
+
+        # ako imamo novu (drugačiju) lokaciju, probamo ju geokodirati
+        if new_location and new_location != old_location:
+            api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", None)
+            if api_key:
+                try:
+                    resp = requests.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={"address": new_location, "key": api_key},
+                        timeout=5,
+                    )
+                    data = resp.json()
+                    if data.get("status") == "OK":
+                        loc = data["results"][0]["geometry"]["location"]
+                        instructor.lat = loc.get("lat")
+                        instructor.lng = loc.get("lng")
+                        instructor.save(update_fields=["lat", "lng"])
+                except Exception as e:
+                    # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
+                    print("Geocoding failed:", e)
+
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
+
 
 class MyInstructorProfileView(APIView):
     permission_classes = [IsAuthenticated]

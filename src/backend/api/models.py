@@ -74,6 +74,8 @@ class Instructor(models.Model):
     rating = models.FloatField(null=True, blank=True)
     subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
     video_url = models.URLField(null=True, blank=True)
+    lat = models.FloatField(null=True, blank=True)
+    lng = models.FloatField(null=True, blank=True)  
     
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
