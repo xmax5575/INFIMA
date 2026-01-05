@@ -1,7 +1,8 @@
+from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-from .models import Instructor, Lesson, Review, Subject
+from .models import Instructor, Lesson, Review, Subject, Student
 
 User = get_user_model()
 
@@ -31,6 +32,8 @@ class LessonSerializer(serializers.ModelSerializer):
     instructor_name = serializers.SerializerMethodField(read_only=True)
     title = serializers.SerializerMethodField(read_only=True)
     instructor_display = serializers.SerializerMethodField(read_only=True)
+    location = serializers.CharField(source="instructor_id.location", read_only=True)
+    price = serializers.IntegerField(source="instructor_id.price", read_only=True)
 
     class Meta:
         model = Lesson
@@ -84,6 +87,77 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                   'subjects',
                   'video_url'
         ]
+
+
+ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
+ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
+ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
+
+class StudentUpdateSerializer(serializers.ModelSerializer):
+    # omogućava odabir više instruktora
+    favorite_instructors = serializers.PrimaryKeyRelatedField(
+    many=True,
+    queryset=Instructor.objects.all(),
+    required=False
+)
+
+
+    class Meta:
+        model = Student
+        # uključujemo samo polja koja želimo da student može mijenjati
+        fields = [
+            'school_level',
+            'grade',
+            'knowledge_level',
+            'learning_goals', 
+            'preferred_times', 
+            'notifications_enabled',
+            'favorite_instructors'
+        ]
+    #validacija school_level
+    def validate_school_level(self, value):
+        if value is None:
+            return value
+        if value not in ALLOWED_SCHOOL_LEVELS:
+            raise serializers.ValidationError("school_level must be 'osnovna' or 'srednja'")
+        return value
+    # validacija knowledge_level
+    def validate_knowledge_level(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("knowledge_level must be a list")
+        for item in value:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError("Each knowledge_level item must be an object")
+            subject = item.get("subject")
+            level = item.get("level")
+            if subject not in ALLOWED_SUBJECTS:
+                raise serializers.ValidationError(f"Unknown subject: {subject}")
+            if level not in ALLOWED_LEVELS:
+                raise serializers.ValidationError(f"Unknown level: {level}")
+        return value
+
+    # validacija preferred_times
+    def validate_preferred_times(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Preferred_times must be a list")
+        
+        for slot in value:
+            if not isinstance(slot, dict):
+                raise serializers.ValidationError("Each slot must be a dict with day, start, end")
+            if "day" not in slot or "start" not in slot or "end" not in slot:
+                raise serializers.ValidationError("Each slot must have day, start, end keys")
+
+            # Provjera formata vremena HH:MM
+            try:
+                start = datetime.strptime(slot["start"], "%H:%M").time()
+                end = datetime.strptime(slot["end"], "%H:%M").time()
+            except ValueError:
+                raise serializers.ValidationError("start and end must be in HH:MM format")
+
+            if end <= start:
+                raise serializers.ValidationError("end time must be after start time")
+        
+        return value
 
 class SubjectMiniSerializer(serializers.ModelSerializer):
     class Meta:
@@ -173,3 +247,41 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             is_available=True
         ).order_by("date", "time")
         return CalendarLessonSerializer(qs, many=True).data
+    
+class FavoriteInstructorMiniSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
+
+    class Meta:
+        model = Instructor
+        fields = ["instructor_id", "first_name", "last_name"]
+
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(source="student_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="student_id.last_name", read_only=True)
+    favorite_instructors = FavoriteInstructorMiniSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Student
+        fields = [
+            "first_name",
+            "last_name",
+            "school_level",
+            "grade",
+            "knowledge_level",
+            "learning_goals",
+            "preferred_times",
+            "notifications_enabled",
+            "favorite_instructors"
+        ]
+
+
+class InstructorListSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="instructor_id.id", read_only=True)
+    first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
+    last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
+
+    class Meta:
+        model = Instructor
+        fields = ["id", "first_name", "last_name"]

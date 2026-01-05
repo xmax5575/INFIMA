@@ -36,11 +36,13 @@ function formatTime(t) {
 }
 
 export default function TerminCard({ termin, onClick, role }) {
+  console.log(termin);
   const {
     level,
     format,
     price,
     date,
+    duration_min, 
     time,
     max_students,
     location,
@@ -126,7 +128,7 @@ export default function TerminCard({ termin, onClick, role }) {
           className="shrink-0 rounded-xl bg-white/90 border border-white/70 px-3 py-1
             text-sm font-bold"
         >
-          {price != null ? `${price} €` : "—"}
+          {price != null ? `${price*duration_min/60} €` : "—"}
         </div>
       </div>
 
@@ -142,7 +144,11 @@ export default function TerminCard({ termin, onClick, role }) {
           <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
             max {max_students}
           </span>
+          
         )}
+        <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
+          {duration_min ?? duration_min} min
+        </span>
       </div>
 
       {/* Donji dio: kada i gdje. */}

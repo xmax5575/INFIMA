@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor
+from .models import Lesson, Instructor, Student
 from rest_framework import serializers
 from django.utils import timezone
 
@@ -332,4 +332,87 @@ class InstructorPublicProfileView(APIView):
             instructor,
             context={"request": request}
         )
+        return Response(serializer.data)
+    
+class StudentUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """
+        CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
+        """
+
+        if request.user.role != 'STUDENT':
+            return Response(
+                {"detail": "Only students can edit student profile."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        student, created = Student.objects.get_or_create(
+            student_id=request.user,
+            defaults={
+                "grade": None,
+                "school_level": None,
+                "knowledge_level": [],  
+                "learning_goals": "", 
+                "preferred_times": [],  
+                "notifications_enabled": False
+            }
+        )
+
+        serializer = StudentUpdateSerializer(
+            student,
+            data=request.data,
+            partial=True  # dopušta slanje samo dijela polja
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+
+class MyStudentProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student profil nije pronađen."},
+                status=404
+            )
+
+        serializer = StudentProfileSerializer(student)
+        return Response(serializer.data)
+    
+
+class StudentPublicProfileView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        try:
+            student = Student.objects.get(student_id=pk)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student nije pronađen."},
+                status=404
+            )
+
+        serializer = StudentProfileSerializer(
+            student,
+            context={"request": request}
+        )
+        return Response(serializer.data)
+    
+
+class InstructorListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        instructors = Instructor.objects.select_related("instructor_id")
+        serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)
