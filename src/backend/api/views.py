@@ -12,10 +12,10 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student
+from .models import Lesson, Instructor, Student, Attendance
 from rest_framework import serializers
 from django.utils import timezone
-
+from django.db.models import Count, F
 
 
 User = get_user_model()
@@ -234,7 +234,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         # STUDENT -> vidi samo slobodne lekcije
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")  
+            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED").annotate(occupied=Count("attendance")).filter(occupied__lt=F("max_students"))   
 
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
@@ -415,4 +415,31 @@ class InstructorListView(APIView):
     def get(self, request):
         instructors = Instructor.objects.select_related("instructor_id")
         serializer = InstructorListSerializer(instructors, many=True)
+        return Response(serializer.data)
+    
+
+class StudentMyLessonsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can access this endpoint."}, status=403)
+
+        student = getattr(request.user, "student", None)
+        if not student:
+            return Response({"error": "Student profil nije pronađen."}, status=404)
+
+        lessons = (
+            Lesson.objects
+            .filter(attendance__student=student).filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")
+            .select_related(
+                "subject",
+                "instructor_id",
+                "instructor_id__instructor_id"
+            )
+            .order_by("-date", "-time")
+            .distinct()
+        )
+
+        serializer = LessonSerializer(lessons, many=True)
         return Response(serializer.data)
