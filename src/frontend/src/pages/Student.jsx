@@ -2,13 +2,18 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
+import api from "../api";
+
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function Student() {
   const [termini, setTermini] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState("all");
   const [err, setErr] = useState(null);
+  const [studentId, setStudentId] = useState(null);
+
 
   useEffect(() => {
     const load = async () => {
@@ -59,12 +64,74 @@ function Student() {
 
     load();
   }, []);
+  useEffect(() => {
+  const loadMe = async () => {
+    try {
+      const res = await api.get("/api/student/inf/");
+      console.log("Ulogirani student:", res.data);
+
+      setStudentId(res.data.id); // ⬅️ OVO TI TREBA
+    } catch (err) {
+      console.error("Greška pri dohvaćanju studenta (/api/me)", err);
+    }
+  };
+
+  loadMe();
+}, []);
+
+
+  const reserveLesson = async (lesson_id, student_id) => {
+    console.log(lesson_id, student_id);
+    const token = localStorage.getItem(ACCESS_TOKEN);
+
+    /*try {
+      const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          lesson_id,
+          student_id,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Neuspješna rezervacija");
+      }
+
+      alert("Termin uspješno rezerviran ✅");
+    } catch (err) {
+      console.error(err);
+      alert("Greška pri rezervaciji ❌");
+    }*/
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
       <Header />
       <div className="max-w-3xl w-full mx-auto px-4 pb-16">
-        <h1 className="text-2xl font-semibold text-white">Svi termini</h1>
+        <div className="px-4 flex gap-6">
+          <button
+            onClick={() => setTab("all")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "all" ? "text-white" : "text-white/70"}`}
+          >
+            Svi termini
+          </button>
+
+          <button
+            onClick={() => setTab("mine")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "mine" ? "text-white" : "text-white/70"}`}
+          >
+            Moji termini
+          </button>
+        </div>
+
         {err && (
           <div className="mt-4 bg-red-50/80 text-red-700 rounded-xl p-3 border border-red-200">
             {err}
@@ -75,7 +142,11 @@ function Student() {
           <ul className="mt-6 space-y-3">
             {termini.map((t) => (
               <li key={t.lesson_id}>
-                <TerminCard termin={t} role="student" />
+                <TerminCard
+                  termin={t}
+                  role="student"
+                  onReserve={reserveLesson}
+                />
               </li>
             ))}
             {termini.length === 0 && (

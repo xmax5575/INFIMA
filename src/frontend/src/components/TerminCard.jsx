@@ -35,7 +35,7 @@ function formatTime(t) {
   return `${h}:${m} h`;
 }
 
-export default function TerminCard({ termin, onClick, role }) {
+export default function TerminCard({ termin, onReserve, role }) {
   console.log(termin);
   const {
     level,
@@ -48,6 +48,7 @@ export default function TerminCard({ termin, onClick, role }) {
     location,
     instructor_display,
     instructor_id,
+    lesson_id,
   } = termin || {};
 
   const [showInstructor, setShowInstructor] = useState(false);  // State za prikazivanje profila instruktora
@@ -80,8 +81,7 @@ export default function TerminCard({ termin, onClick, role }) {
     }
   };
 
- //KAD KARLO DOVRSI PREKO ID OVO CE RADIT I VRACAT CE DOBRE PODATKE
-
+  
   // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
@@ -147,7 +147,7 @@ export default function TerminCard({ termin, onClick, role }) {
           
         )}
         <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
-          {duration_min ?? duration_min} min
+          {duration_min} min
         </span>
       </div>
 
@@ -168,15 +168,16 @@ export default function TerminCard({ termin, onClick, role }) {
 
       {/* Ako je osoba student dodaj button za rezervaciju, ako je instruktor za detalje */}
       <div className="mt-4">
-        <button
+        {role === "student"? <button
           className="
               rounded-xl bg-[#3674B5] text-white text-sm font-medium
               px-3 py-2 hover:opacity-90 transition
             "
-          onClick={onClick}
+          onClick={() => onReserve(lesson_id, student_id)}
         >
-          {role === "student" ? "Rezerviraj" : "Detalji termina"}
-        </button>
+          Rezerviraj
+          
+        </button>:<></>}
       </div>
     </article>
    {showInstructor  && (
