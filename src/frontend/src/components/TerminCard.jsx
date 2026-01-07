@@ -3,6 +3,8 @@ import { MapPin } from "lucide-react";
 import InstructorCard from "./InstructorCard";
 import api from "../api";
 import GoogleMapEmbed from "./GoogleMapEmbed";
+import LogoLoader from "./LogoBulbProgress";
+import LogoBulbProgress from "./LogoBulbProgress";
 
 /* Helperi */
 function initials(name) {
@@ -188,7 +190,7 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
           className="w-full max-w-6xl max-h-[85vh] overflow-y-auto"
         >
           {loadingInstructor ? (
-            <div className="bg-white p-6 rounded-xl">Učitavanje…</div>
+            <div className="bg-[#3674B5] p-6 rounded-xl"><LogoBulbProgress/></div>
           ) : (
             <InstructorCard
               user={instructorProfile}
