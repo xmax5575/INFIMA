@@ -2,14 +2,20 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
+import api from "../api";
+
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function Student() {
   const [termini, setTermini] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState("all");
   const [err, setErr] = useState(null);
+  const [myTermini, setMyTermini] = useState([]);
 
+ 
+  
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -59,12 +65,91 @@ function Student() {
 
     load();
   }, []);
+  useEffect(() => {
+  const loadMine = async () => {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setMyTermini(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  loadMine();
+}, [tab]);
+
+  
+
+
+  const reserveLesson = async (lesson_id) => {
+  const token = localStorage.getItem(ACCESS_TOKEN);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ lesson_id }),
+    });
+
+    if (!res.ok) {
+      throw new Error("Neuspješna rezervacija");
+    }
+
+    // ✅ OVO JE KLJUČ
+    setMyTermini(prev => {
+      // ako je već unutra – ne dodaj
+      if (prev.some(t => t.lesson_id === lesson_id)) return prev;
+
+      // pronađi puni termin iz `termini`
+      const reservedTermin = termini.find(t => t.lesson_id === lesson_id);
+
+      return reservedTermin ? [...prev, reservedTermin] : prev;
+    });
+
+    alert("Termin uspješno rezerviran ✅");
+  } catch (err) {
+    console.error(err);
+    alert("Greška pri rezervaciji ❌");
+  }
+};
+
+  const myLessonIds = new Set(myTermini.map(t => t.lesson_id));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
       <Header />
       <div className="max-w-3xl w-full mx-auto px-4 pb-16">
-        <h1 className="text-2xl font-semibold text-white">Svi termini</h1>
+        <div className="px-4 flex gap-6">
+          <button
+            onClick={() => setTab("all")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "all" ? "text-white" : "text-white/70"}`}
+          >
+            Svi termini
+          </button>
+
+          <button
+            onClick={() => setTab("mine")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "mine" ? "text-white" : "text-white/70"}`}
+          >
+            Moji termini
+          </button>
+        </div>
+
         {err && (
           <div className="mt-4 bg-red-50/80 text-red-700 rounded-xl p-3 border border-red-200">
             {err}
@@ -73,16 +158,24 @@ function Student() {
         {loading && <div className="mt-4 text-white/90">Učitavam termine…</div>}
         {!loading && !err && (
           <ul className="mt-6 space-y-3">
-            {termini.map((t) => (
+            {(tab === "all" ? termini : myTermini).map((t) => (
               <li key={t.lesson_id}>
-                <TerminCard termin={t} role="student" />
+                <TerminCard
+                  termin={t}
+                  role="student"
+                  onReserve={reserveLesson}
+                  canReserve={tab === "all"}
+                  reserved={myLessonIds.has(t.lesson_id)} 
+                 
+                />
               </li>
             ))}
-            {termini.length === 0 && (
-              <li className="text-white/90">
-                Trenutno nema dostupnih termina.
-              </li>
-            )}
+            {(tab === "all" ? termini : myTermini).length === 0 && (
+  <li className="text-white/90">
+    Nema termina za ovaj prikaz.
+  </li>
+)}
+
           </ul>
         )}
       </div>

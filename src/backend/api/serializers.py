@@ -258,6 +258,7 @@ class FavoriteInstructorMiniSerializer(serializers.ModelSerializer):
 
 
 class StudentProfileSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="student_id_id", read_only=True)
     first_name = serializers.CharField(source="student_id.first_name", read_only=True)
     last_name = serializers.CharField(source="student_id.last_name", read_only=True)
     favorite_instructors = FavoriteInstructorMiniSerializer(many=True, read_only=True)
@@ -265,6 +266,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = [
+            "id",
             "first_name",
             "last_name",
             "school_level",
@@ -285,3 +287,6 @@ class InstructorListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instructor
         fields = ["id", "first_name", "last_name"]
+
+class AttendanceCreateSerializer(serializers.Serializer):
+    lesson_id = serializers.IntegerField()
