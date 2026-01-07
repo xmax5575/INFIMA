@@ -22,4 +22,6 @@ urlpatterns = [
     path('student/me/', views.StudentUpdateView.as_view(), name='student-update'),
     #endpoint za prikaz studentovih lekcija
     path("student/lessons/", views.StudentMyLessonsView.as_view(), name="student_my_lessons"),
+    # Endpoint za rezerviranje termina za instrukcije
+    path("lessons/reserve/", views.ReserveLessonView.as_view()),
 ]

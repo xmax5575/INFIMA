@@ -285,3 +285,6 @@ class InstructorListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Instructor
         fields = ["id", "first_name", "last_name"]
+
+class AttendanceCreateSerializer(serializers.Serializer):
+    lesson_id = serializers.IntegerField()
