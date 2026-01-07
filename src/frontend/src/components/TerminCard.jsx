@@ -35,7 +35,7 @@ function formatTime(t) {
   return `${h}:${m} h`;
 }
 
-export default function TerminCard({ termin, onReserve, role }) {
+export default function TerminCard({ termin, onReserve, role, canReserve, reserved}) {
   console.log(termin);
   const {
     level,
@@ -168,16 +168,20 @@ export default function TerminCard({ termin, onReserve, role }) {
 
       {/* Ako je osoba student dodaj button za rezervaciju, ako je instruktor za detalje */}
       <div className="mt-4">
-        {role === "student"? <button
-          className="
-              rounded-xl bg-[#3674B5] text-white text-sm font-medium
-              px-3 py-2 hover:opacity-90 transition
-            "
-          onClick={() => onReserve(lesson_id, student_id)}
+        {reserved && (
+        <span className="text-[#3674B5]-600 font-semibold">
+          Rezervirano
+        </span>
+      )}
+
+      {canReserve && !reserved && (
+        <button
+          onClick={() => onReserve(termin.lesson_id)}
+          className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
         >
           Rezerviraj
-          
-        </button>:<></>}
+        </button>
+      )}
       </div>
     </article>
    {showInstructor  && (

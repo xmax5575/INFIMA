@@ -12,9 +12,10 @@ function Student() {
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("all");
   const [err, setErr] = useState(null);
-  const [studentId, setStudentId] = useState(null);
+  const [myTermini, setMyTermini] = useState([]);
 
-
+ 
+  
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -65,48 +66,65 @@ function Student() {
     load();
   }, []);
   useEffect(() => {
-  const loadMe = async () => {
-    try {
-      const res = await api.get("/api/student/inf/");
-      console.log("Ulogirani student:", res.data);
+  const loadMine = async () => {
+    const token = localStorage.getItem(ACCESS_TOKEN);
 
-      setStudentId(res.data.id); // ⬅️ OVO TI TREBA
-    } catch (err) {
-      console.error("Greška pri dohvaćanju studenta (/api/me)", err);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setMyTermini(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  loadMe();
-}, []);
+  loadMine();
+}, [tab]);
+
+  
 
 
-  const reserveLesson = async (lesson_id, student_id) => {
-    console.log(lesson_id, student_id);
-    const token = localStorage.getItem(ACCESS_TOKEN);
+  const reserveLesson = async (lesson_id) => {
+  const token = localStorage.getItem(ACCESS_TOKEN);
 
-    /*try {
-      const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          lesson_id,
-          student_id,
-        }),
-      });
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ lesson_id }),
+    });
 
-      if (!res.ok) {
-        throw new Error("Neuspješna rezervacija");
-      }
+    if (!res.ok) {
+      throw new Error("Neuspješna rezervacija");
+    }
 
-      alert("Termin uspješno rezerviran ✅");
-    } catch (err) {
-      console.error(err);
-      alert("Greška pri rezervaciji ❌");
-    }*/
-  };
+    // ✅ OVO JE KLJUČ
+    setMyTermini(prev => {
+      // ako je već unutra – ne dodaj
+      if (prev.some(t => t.lesson_id === lesson_id)) return prev;
+
+      // pronađi puni termin iz `termini`
+      const reservedTermin = termini.find(t => t.lesson_id === lesson_id);
+
+      return reservedTermin ? [...prev, reservedTermin] : prev;
+    });
+
+    alert("Termin uspješno rezerviran ✅");
+  } catch (err) {
+    console.error(err);
+    alert("Greška pri rezervaciji ❌");
+  }
+};
+
+  const myLessonIds = new Set(myTermini.map(t => t.lesson_id));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
@@ -140,20 +158,24 @@ function Student() {
         {loading && <div className="mt-4 text-white/90">Učitavam termine…</div>}
         {!loading && !err && (
           <ul className="mt-6 space-y-3">
-            {termini.map((t) => (
+            {(tab === "all" ? termini : myTermini).map((t) => (
               <li key={t.lesson_id}>
                 <TerminCard
                   termin={t}
                   role="student"
                   onReserve={reserveLesson}
+                  canReserve={tab === "all"}
+                  reserved={myLessonIds.has(t.lesson_id)} 
+                 
                 />
               </li>
             ))}
-            {termini.length === 0 && (
-              <li className="text-white/90">
-                Trenutno nema dostupnih termina.
-              </li>
-            )}
+            {(tab === "all" ? termini : myTermini).length === 0 && (
+  <li className="text-white/90">
+    Nema termina za ovaj prikaz.
+  </li>
+)}
+
           </ul>
         )}
       </div>
