@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
 import defaultAvatar from "../images/avatar.jpg";
+import GoogleMapEmbed from "./GoogleMapEmbed";
 
 export default function InstructorEditForm() {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ export default function InstructorEditForm() {
         location.trim() !== "" &&
         subjects.length > 0 &&
         Number(price) > 0
-      ){
+      ) {
         localStorage.setItem("profile_saved_instructor", "1");
         window.dispatchEvent(
           new CustomEvent("profileUpdated", {
@@ -135,6 +136,14 @@ export default function InstructorEditForm() {
                   className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5]
                              font-normal outline-none focus:bg-white"
                 />
+                {location && (
+                  <div className="mt-4 h-56">
+                    <GoogleMapEmbed
+                      location={location}
+                      className="h-full w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
