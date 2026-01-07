@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,10 +12,10 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student
+from .models import Lesson, Instructor, Student, Attendance
 from rest_framework import serializers
 from django.utils import timezone
-
+from django.db.models import Count, F
 
 
 User = get_user_model()
@@ -234,7 +234,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         # STUDENT -> vidi samo slobodne lekcije
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")  
+            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED").annotate(occupied=Count("attendance")).filter(occupied__lt=F("max_students"))   
 
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
@@ -416,3 +416,90 @@ class InstructorListView(APIView):
         instructors = Instructor.objects.select_related("instructor_id")
         serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)
+    
+
+class StudentMyLessonsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can access this endpoint."}, status=403)
+
+        student = getattr(request.user, "student", None)
+        if not student:
+            return Response({"error": "Student profil nije pronađen."}, status=404)
+
+        lessons = (
+            Lesson.objects
+            .filter(attendance__student=student).filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")
+            .select_related(
+                "subject",
+                "instructor_id",
+                "instructor_id__instructor_id"
+            )
+            .order_by("-date", "-time")
+            .distinct()
+        )
+
+        serializer = LessonSerializer(lessons, many=True)
+        return Response(serializer.data)
+    
+class ReserveLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response(
+                {"error": "Only students can reserve lessons"},
+                status=403
+            )
+
+        serializer = AttendanceCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        lesson_id = serializer.validated_data["lesson_id"]
+
+        # student
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        # lesson
+        try:
+            lesson = Lesson.objects.get(
+                lesson_id=lesson_id,
+                status="ACTIVE",
+                is_available=True
+            )
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not available"}, status=404)
+
+        # već prijavljen?
+        if Attendance.objects.filter(lesson=lesson, student=student).exists():
+            return Response(
+                {"error": "Already reserved"},
+                status=409
+            )
+
+        # kapacitet
+        current_count = Attendance.objects.filter(lesson=lesson).count()
+        if current_count >= lesson.max_students:
+            return Response(
+                {"error": "Lesson is full"},
+                status=400
+            )
+
+        # upis
+        attendance = Attendance.objects.create(
+            lesson=lesson,
+            student=student
+        )
+
+        return Response(
+            {
+                "message": "Lesson reserved successfully",
+                "lesson_id": lesson.lesson_id
+            },
+            status=201
+        )

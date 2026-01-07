@@ -135,6 +135,9 @@ class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
     attended = models.BooleanField(default=False)  
 
+    class Meta:
+        unique_together = ("lesson", "student")
+
 # model koji predstavlja plaćanje u bazi podataka
 class Payment(models.Model):
     attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, null=True, blank=True) # strani ključ
