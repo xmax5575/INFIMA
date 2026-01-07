@@ -12,8 +12,6 @@ function TerminForm({ onCreated, onClose }) {
   const [duration, setDuration] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [location, setLocation] = useState("");
-  const [price, setPrice] = useState("");
   const [validationError, setValidationError] = useState(null);
 
   // Provjeramo je li korisnik prijavljen i ako je dohvaćamo podatke o njemu
@@ -39,17 +37,12 @@ function TerminForm({ onCreated, onClose }) {
     }
 
     // Pretvaramo potrebne podatke u Number.
-    const pPrice = Number(price);
     const pMax = Number(maxStudents);
     const pDur = Number(duration);
 
     // Validacija podataka i provjera.
     if (!date || !time) {
       setValidationError("Morate izabrati i datum i vrijeme.");
-      return;
-    }
-    if (!Number.isFinite(pPrice) || pPrice <= 0) {
-      setValidationError("Cijena mora biti pozitivan broj veći od nule.");
       return;
     }
     if (!Number.isInteger(pMax) || pMax <= 0) {
@@ -80,11 +73,9 @@ function TerminForm({ onCreated, onClose }) {
 
     const payload = {
       // Subject: Number(subject) || undefined, ako kasnije bude ID.
-      location: format === "Uživo" ? location || "" : "",
       duration_min: Number(pDur),
       max_students: Number(pMax),
       format, // "Uživo" | "Online".
-      price: Math.round(pPrice), // Backend IntegerField.
       date, // "YYYY-MM-DD".
       time: timeHHMMSS, // "HH:MM:SS".
       level: levelMapped, // "OSNOVNA" | "SREDNJA".
@@ -104,8 +95,6 @@ function TerminForm({ onCreated, onClose }) {
       setDuration("");
       setDate("");
       setTime("");
-      setLocation("");
-      setPrice("");
 
       // javi parentu i zatvori modal
       onCreated && onCreated(res.data);
@@ -229,38 +218,6 @@ function TerminForm({ onCreated, onClose }) {
           className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          required
-        />
-      </div>
-
-      {format === "Uživo" && (
-        <div>
-          <label className="block text-sm sm:text-base font-semibold mb-1">
-            Lokacija
-          </label>
-          <input
-            type="text"
-            className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
-            placeholder="npr. Autoškola Zagreb"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-          />
-        </div>
-      )}
-
-      <div>
-        <label className="block text-sm sm:text-base font-semibold mb-1">
-          Cijena (EUR)
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.5"
-          className="w-full p-2 sm:p-3 border rounded focus:ring-2 focus:ring-[#3674B5]/40 outline-none text-sm sm:text-base"
-          placeholder="npr. 20"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
           required
         />
       </div>

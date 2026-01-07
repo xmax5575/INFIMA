@@ -71,20 +71,25 @@ class Instructor(models.Model):
     bio = models.TextField(null=True, blank=True)
     location = models.TextField(null=True, blank=True)
     price = models.IntegerField()
-    rating = models.IntegerField(null=True, blank=True)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-
-# model koji predstavlja studenta u bazi podataka
+    rating = models.FloatField(null=True, blank=True)
+    subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
+    video_url = models.URLField(null=True, blank=True)
+    
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
-    grade = models.IntegerField()
-    knowledge_level = models.TextField(null=True, blank=True)
+    school_level = models.CharField(max_length=20, null=True, blank=True)
+    grade = models.IntegerField(null=True, blank=True)
+    knowledge_level = models.JSONField(default=list, blank=True)
+    learning_goals = models.TextField(null=True, blank=True)
+    preferred_times = models.JSONField(default=list, blank=True)
+    notifications_enabled = models.BooleanField(default=False)
+    favorite_instructors = models.ManyToManyField(Instructor, blank=True, related_name="favorited_by")
 
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
     instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
     student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-    rating = models.IntegerField(null=True, blank=True)
+    rating = models.FloatField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
 # model koji predstavlja termine u bazi podataka
@@ -110,6 +115,17 @@ class Lesson(models.Model):
         choices=Level.choices,
         null=True,
         blank=True
+    )
+
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVE", "Aktivan"
+        EXPIRED = "EXPIRED", "Istekao"
+        CANCELED = "CANCELED", "Otkazan"
+
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.ACTIVE
     )
 
 # model koji predstavlja status prisutnosti u bazi podataka
