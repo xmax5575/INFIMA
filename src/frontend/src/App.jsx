@@ -11,6 +11,8 @@ import { ACCESS_TOKEN } from "./constants";
 import Instructor from "./pages/Instructor";
 import Student from "./pages/Student";
 import Profile from "./pages/Profile";
+import LessonCall from "./pages/LessonCall";
+
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -87,6 +89,16 @@ function App() {
                   <Profile role = "student"/>
               </ProtectedRoute>
             }/>
+
+            <Route
+              path="/lesson/:lessonId/call"
+              element={
+                <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
+                  <LessonCall />
+                </ProtectedRoute>
+              }
+            />
+
         </Routes>
       </BrowserRouter>
     </>

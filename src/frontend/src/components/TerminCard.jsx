@@ -5,6 +5,7 @@ import api from "../api";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import LogoLoader from "./LogoBulbProgress";
 import LogoBulbProgress from "./LogoBulbProgress";
+import { useNavigate } from "react-router-dom";
 
 /* Helperi */
 function initials(name) {
@@ -50,6 +51,12 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
     instructor_id,
     lesson_id,
   } = termin || {};
+
+  const navigate = useNavigate();
+
+  const goToMeeting = () => {
+    navigate(`/lesson/${lesson_id}/call`);
+  };
 
   const [showInstructor, setShowInstructor] = useState(false);
   const [instructorProfile, setInstructorProfile] = useState(null);
@@ -152,22 +159,39 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
       )}
 
       {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
-      <div className="mt-4 flex items-center gap-3">
-        {reserved && (
-          <span className="font-semibold text-[#3674B5]">
-            Rezervirano
-          </span>
+      <div className="mt-4 flex items-center gap-3 flex-wrap">
+
+        {/* STUDENT – ULAZ U MEETING */}
+        {role === "student" && reserved && (
+          <button
+            onClick={goToMeeting}
+            className="px-4 py-2 bg-green-600 text-white rounded-xl"
+          >
+            Uđi u meeting
+          </button>
         )}
 
-        {canReserve && !reserved && (
+        {/* STUDENT – REZERVACIJA */}
+        {role === "student" && canReserve && !reserved && (
           <button
-            onClick={() => onReserve(termin.lesson_id)}
+            onClick={() => onReserve(lesson_id)}
             className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
           >
             Rezerviraj
           </button>
         )}
 
+        {/* INSTRUKTOR – START MEETING */}
+        {role === "instructor" && (
+          <button
+            onClick={goToMeeting}
+            className="px-4 py-2 bg-green-700 text-white rounded-xl"
+          >
+            Pokreni meeting
+          </button>
+        )}
+
+        {/* DETALJI */}
         {role !== "student" && (
           <button
             onClick={onClick}

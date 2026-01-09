@@ -129,6 +129,7 @@ class Lesson(models.Model):
         choices=Status.choices,
         default=Status.ACTIVE
     )
+    jitsi_room = models.CharField(max_length=255, blank=True, null=True)
 
 # model koji predstavlja status prisutnosti u bazi podataka
 class Attendance(models.Model):

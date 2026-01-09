@@ -530,3 +530,45 @@ class ReserveLessonView(APIView):
             },
             status=201
         )
+
+class LessonJitsiRoomView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # 👨‍🏫 INSTRUKTOR
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+            if not lesson.jitsi_room:
+                lesson.jitsi_room = f"infima-{lesson.lesson_id}-{uuid.uuid4().hex[:8]}"
+                lesson.save(update_fields=["jitsi_room"])
+
+            return Response({"room": lesson.jitsi_room})
+
+        # 👨‍🎓 STUDENT
+        if user.role == User.Role.STUDENT:
+            student = getattr(user, "student", None)
+
+            if not Attendance.objects.filter(
+                lesson=lesson,
+                student=student
+            ).exists():
+                return Response({"error": "Forbidden"}, status=403)
+
+            if not lesson.jitsi_room:
+                return Response(
+                    {"error": "Meeting not started yet"},
+                    status=400
+                )
+
+            return Response({"room": lesson.jitsi_room})
+
+        return Response({"error": "Forbidden"}, status=403)

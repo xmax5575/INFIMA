@@ -24,4 +24,6 @@ urlpatterns = [
     path("student/lessons/", views.StudentMyLessonsView.as_view(), name="student_my_lessons"),
     # Endpoint za rezerviranje termina za instrukcije
     path("lessons/reserve/", views.ReserveLessonView.as_view()),
+
+    path("lessons/<int:lesson_id>/jitsi/", views.LessonJitsiRoomView.as_view()),
 ]
