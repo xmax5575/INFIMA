@@ -55,6 +55,7 @@ export default function TerminCard({
     instructor_display,
     instructor_id,
     lesson_id,
+    subject
   } = termin || {};
 
   const [showInstructor, setShowInstructor] = useState(false);
@@ -125,6 +126,9 @@ export default function TerminCard({
         <div className="mt-7 flex flex-wrap gap-2 text-lg justify-start">
           <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
             {level ?? "Razina"}
+          </span>
+          <span className="px-2 py-1 rounded-full bg-white/70 ring-1">
+            {subject ?? "Predmet"}
           </span>
           <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
             {format ?? "Format"}
