@@ -8,15 +8,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-    migrations.SeparateDatabaseAndState(
-        database_operations=[],
-        state_operations=[
-            migrations.RenameField(
-                model_name='instructor',
-                old_name='sujects',
-                new_name='subjects',
-            ),
-        ],
-    ),
-]
-
+    ]
