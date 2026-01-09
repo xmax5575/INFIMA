@@ -101,11 +101,15 @@ function Student() {
     loadMine();
   }, [tab]);
 
-  const reserveLesson = async (lesson_id) => {
+  const reserveOrCancelLesson = async (lesson_id) => {
     const token = localStorage.getItem(ACCESS_TOKEN);
+    const isReserved = myLessonIds.has(lesson_id);
+    const endpoint = isReserved
+      ? `api/lessons/cancel/`
+      : `api/lessons/reserve/`;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
+      const res = await fetch(`${API_BASE_URL}/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -118,18 +122,16 @@ function Student() {
         throw new Error("Neuspješna rezervacija");
       }
 
-      // ✅ OVO JE KLJUČ
-      setMyTermini((prev) => {
-        // ako je već unutra – ne dodaj
-        if (prev.some((t) => t.lesson_id === lesson_id)) return prev;
-
-        // pronađi puni termin iz `termini`
+      if (isReserved) {
+        setMyTermini((prev) => prev.filter((t) => t.lesson_id !== lesson_id));
+        alert("Rezervacija otkazana");
+      } else {
         const reservedTermin = termini.find((t) => t.lesson_id === lesson_id);
-
-        return reservedTermin ? [...prev, reservedTermin] : prev;
-      });
-
-      alert("Termin uspješno rezerviran ✅");
+        setMyTermini((prev) =>
+          reservedTermin ? [...prev, reservedTermin] : prev
+        );
+        alert("Termin uspješno rezerviran ✅");
+      }
     } catch (err) {
       console.error(err);
       alert("Greška pri rezervaciji ❌");
@@ -137,87 +139,6 @@ function Student() {
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
-  const applyFilters = () => {
-    console.log("Primijenjeni filteri:", filters);
-    setShowFilters(false);
-  };
-
-  const filteredTermini =
-    tab === "all"
-      ? termini.filter((t) => {
-          if (filters.format && t.format !== filters.format) return false;
-
-          /*KAD FABO NAPRAVI OVO CE RADIT*/
-          if (
-            filters.subject.length > 0 &&
-            !filters.subject.includes(t.subject)
-          ) {
-            return false;
-          }
-
-          if (filters.days) {
-            const now = new Date();
-            const lessonDateTime = new Date(`${t.date}T${t.time}`);
-
-            const diff = (lessonDateTime - now) / (1000 * 60 * 60 * 24);
-
-            if (diff < 0) return false; // prošli termini ❌
-            if (diff > filters.days) return false; // predaleko u budućnosti ❌
-          }
-
-          /*OVDJE DODAT OCJENE*/
-          /*if (filters.rating && t.teacher_rating < filters.rating) return false;*/
-
-          return true;
-        })
-      : myTermini;
-
-  const [sortBy, setSortBy] = useState([]);
-  const opposites = {
-    date_asc: "date_desc",
-    date_desc: "date_asc",
-    price_asc: "price_desc",
-    price_desc: "price_asc",
-  };
-  const toggleSort = (key) => {
-    setSortBy((prev) => {
-      // 1. Ako je ovaj kriterij već aktivan, samo ga ugasi
-      if (prev.includes(key)) {
-        return prev.filter((k) => k !== key);
-      }
-
-      // 2. Pronađi suprotnost (npr. ako je key 'date_asc', opposite je 'date_desc')
-      const opposite = opposites[key];
-
-      // 3. Makni suprotnost ako postoji i dodaj novi ključ
-      const filtered = opposite ? prev.filter((k) => k !== opposite) : prev;
-
-      return [...filtered, key];
-    });
-  };
-  const sortedTermini = [...filteredTermini].sort((a, b) => {
-    // Ako nema odabranih kriterija, vrati originalni redoslijed
-    if (sortBy.length === 0) return 0;
-
-    for (const criteria of sortBy) {
-      let res = 0;
-      const aDate = new Date(`${a.date}T${a.time}`);
-      const bDate = new Date(`${b.date}T${b.time}`);
-
-      if (criteria === "date_asc") res = aDate - bDate;
-      else if (criteria === "date_desc") res = bDate - aDate;
-      else if (criteria === "rating_desc")
-        res = (b.teacher_rating ?? 0) - (a.teacher_rating ?? 0);
-      else if (criteria === "price_asc") res = (a.price ?? 0) - (b.price ?? 0);
-      else if (criteria === "price_desc") res = (b.price ?? 0) - (a.price ?? 0);
-
-      // KLJUČ: Ako su stavke različite po ovom kriteriju (res nije 0),
-      // sortiraj ih odmah i ne gledaj dalje.
-      // Ako su identične (res je 0), petlja ide na idući kriterij u nizu sortBy.
-      if (res !== 0) return res;
-    }
-    return 0;
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
@@ -279,7 +200,7 @@ function Student() {
                 <TerminCard
                   termin={t}
                   role="student"
-                  onReserve={reserveLesson}
+                  onReserveOrCancel={reserveOrCancelLesson}
                   canReserve={tab === "all"}
                   reserved={myLessonIds.has(t.lesson_id)}
                 />
