@@ -530,3 +530,39 @@ class ReserveLessonView(APIView):
             },
             status=201
         )
+    
+class CancelLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response(
+                {"error": "Only students can cancel lessons"},
+                status=403
+            )
+        
+        serializer = AttendanceCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        lesson_id = serializer.validated_data["lesson_id"]
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        attendance = Attendance.objects.filter(lesson_id=lesson_id, student=student)
+
+        if not attendance.exists():
+            return Response(
+                {"error": "Reservation not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        attendance.delete()
+
+        return Response(
+            {"message": "Lesson reservation cancelled successfully",
+             "lesson_id": lesson_id},
+            status=status.HTTP_200_OK
+        )
