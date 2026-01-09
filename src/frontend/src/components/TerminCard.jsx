@@ -36,7 +36,7 @@ function formatTime(t) {
 }
 
 export default function TerminCard({ termin, onReserve, role, canReserve, reserved, onClick}) {
-  console.log(termin);
+  console.log("Termin je ", termin);
   const {
     level,
     format,
@@ -161,7 +161,7 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
 
         {canReserve && !reserved && (
           <button
-            onClick={() => onReserve(termin.lesson_id)}
+            onClick={() => onReserve(lesson_id)}
             className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
           >
             Rezerviraj

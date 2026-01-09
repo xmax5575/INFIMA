@@ -136,6 +136,7 @@ class Attendance(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
     student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
     attended = models.BooleanField(default=False)  
+    reminder_sent = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("lesson", "student")
