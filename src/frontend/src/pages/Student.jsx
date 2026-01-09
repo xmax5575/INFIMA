@@ -159,7 +159,7 @@ function Student() {
                 <TerminCard
                   termin={t}
                   role="student"
-                  onReserve={reserveOrCancelLesson}
+                  onReserveOrCancel={reserveOrCancelLesson}
                   canReserve={tab === "all"}
                   reserved={myLessonIds.has(t.lesson_id)}
                 />
