@@ -16,31 +16,6 @@ function Student() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
 
-  // Sort state and helper to toggle sort keys
-  const [sortBy, setSortBy] = useState([]);
-  const opposites = {
-    date_asc: "date_desc",
-    date_desc: "date_asc",
-    price_asc: "price_desc",
-    price_desc: "price_asc",
-  };
-  const toggleSort = (key) => {
-    setSortBy((prev) => {
-      // 1. Ako je ovaj kriterij već aktivan, samo ga ugasi
-      if (prev.includes(key)) {
-        return prev.filter((k) => k !== key);
-      }
-
-      // 2. Pronađi suprotnost (npr. ako je key 'date_asc', opposite je 'date_desc')
-      const opposite = opposites[key];
-
-      // 3. Makni suprotnost ako postoji i dodaj novi ključ
-      const filtered = opposite ? prev.filter((k) => k !== opposite) : prev;
-
-      return [...filtered, key];
-    });
-  };
-
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
     subject: [], // "matematika" | "fizika" | "informatika"
@@ -168,7 +143,7 @@ function Student() {
     console.log("Primijenjeni filteri:", filters);
     setShowFilters(false);
   };
-  
+
   const filteredTermini =
     tab === "all"
       ? termini.filter((t) => {
@@ -198,32 +173,38 @@ function Student() {
           return true;
         })
       : myTermini;
-  const sortedTermini = sortBy
-    ? [...filteredTermini].sort((a, b) => {
-        const aDate = new Date(`${a.date}T${a.time}`);
-        const bDate = new Date(`${b.date}T${b.time}`);
 
-        if (sortBy === "date_asc") {
-          return aDate - bDate;
-        }
+  const [sortBy, setSortBy] = useState(null); // "date_asc" | "date_desc" | "rating_desc" | "price_asc" | "price_desc"
+  const toggleSort = (key) => {
+    setSortBy((prev) => (prev === key ? null : key));
+  };
+  const sortedTermini = [...filteredTermini].sort((a, b) => {
+    if (!sortBy) return 0;
 
-        if (sortBy === "date_desc") {
-          return bDate - aDate;
-        }
+    const aDate = new Date(`${a.date}T${a.time}`);
+    const bDate = new Date(`${b.date}T${b.time}`);
 
-        if (sortBy === "rating_desc") {
-          return (b.teacher_rating ?? 0) - (a.teacher_rating ?? 0);
-        }
-        if (sortBy === "price_asc") {
-          return (a.price ?? 0) - (b.price ?? 0);
-        }
-        if (sortBy === "price_desc") {
-          return (b.price ?? 0) - (a.price ?? 0);
-        }
+    const priceA = Number(a.price);
+    const priceB = Number(b.price);
 
+    const ratingA = Number(a.teacher_rating);
+    const ratingB = Number(b.teacher_rating);
+
+    switch (sortBy) {
+      case "date_asc":
+        return aDate - bDate;
+      case "date_desc":
+        return bDate - aDate;
+      case "rating_desc":
+        return ratingB - ratingA;
+      case "price_asc":
+        return priceA - priceB;
+      case "price_desc":
+        return priceB - priceA;
+      default:
         return 0;
-      })
-    : filteredTermini;
+    }
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
@@ -488,7 +469,7 @@ function Student() {
                 ["price_asc", "Najniža cijena"],
                 ["price_desc", "Najviša cijena"],
               ].map(([key, label]) => {
-                const isActive = sortBy.includes(key); // Provjeravamo je li u nizu
+                const isActive = sortBy === key;
                 return (
                   <button
                     key={key}
