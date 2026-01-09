@@ -381,7 +381,7 @@ function Student() {
                         }
                         className={filterBtnClass(isActive)}
                       >
-                        {d} dana
+                        &lt;{d} dana
                       </button>
                     );
                   })}
