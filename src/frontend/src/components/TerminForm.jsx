@@ -13,6 +13,7 @@ function TerminForm({ onCreated, onClose }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [validationError, setValidationError] = useState(null);
+  
 
   // Provjeramo je li korisnik prijavljen i ako je dohvaćamo podatke o njemu
   useEffect(() => {
