@@ -16,6 +16,31 @@ function Student() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
 
+  // Sort state and helper to toggle sort keys
+  const [sortBy, setSortBy] = useState([]);
+  const opposites = {
+    date_asc: "date_desc",
+    date_desc: "date_asc",
+    price_asc: "price_desc",
+    price_desc: "price_asc",
+  };
+  const toggleSort = (key) => {
+    setSortBy((prev) => {
+      // 1. Ako je ovaj kriterij već aktivan, samo ga ugasi
+      if (prev.includes(key)) {
+        return prev.filter((k) => k !== key);
+      }
+
+      // 2. Pronađi suprotnost (npr. ako je key 'date_asc', opposite je 'date_desc')
+      const opposite = opposites[key];
+
+      // 3. Makni suprotnost ako postoji i dodaj novi ključ
+      const filtered = opposite ? prev.filter((k) => k !== opposite) : prev;
+
+      return [...filtered, key];
+    });
+  };
+
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
     subject: [], // "matematika" | "fizika" | "informatika"
@@ -139,6 +164,66 @@ function Student() {
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
+  const applyFilters = () => {
+    console.log("Primijenjeni filteri:", filters);
+    setShowFilters(false);
+  };
+  
+  const filteredTermini =
+    tab === "all"
+      ? termini.filter((t) => {
+          if (filters.format && t.format !== filters.format) return false;
+
+          /*KAD FABO NAPRAVI OVO CE RADIT*/
+          if (
+            filters.subject.length > 0 &&
+            !filters.subject.includes(t.subject)
+          ) {
+            return false;
+          }
+
+          if (filters.days) {
+            const now = new Date();
+            const lessonDateTime = new Date(`${t.date}T${t.time}`);
+
+            const diff = (lessonDateTime - now) / (1000 * 60 * 60 * 24);
+
+            if (diff < 0) return false; // prošli termini ❌
+            if (diff > filters.days) return false; // predaleko u budućnosti ❌
+          }
+
+          /*OVDJE DODAT OCJENE*/
+          /*if (filters.rating && t.teacher_rating < filters.rating) return false;*/
+
+          return true;
+        })
+      : myTermini;
+  const sortedTermini = sortBy
+    ? [...filteredTermini].sort((a, b) => {
+        const aDate = new Date(`${a.date}T${a.time}`);
+        const bDate = new Date(`${b.date}T${b.time}`);
+
+        if (sortBy === "date_asc") {
+          return aDate - bDate;
+        }
+
+        if (sortBy === "date_desc") {
+          return bDate - aDate;
+        }
+
+        if (sortBy === "rating_desc") {
+          return (b.teacher_rating ?? 0) - (a.teacher_rating ?? 0);
+        }
+        if (sortBy === "price_asc") {
+          return (a.price ?? 0) - (b.price ?? 0);
+        }
+        if (sortBy === "price_desc") {
+          return (b.price ?? 0) - (a.price ?? 0);
+        }
+
+        return 0;
+      })
+    : filteredTermini;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
