@@ -4,7 +4,6 @@ import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 
-
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function Student() {
@@ -14,8 +13,6 @@ function Student() {
   const [err, setErr] = useState(null);
   const [myTermini, setMyTermini] = useState([]);
 
- 
-  
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -66,65 +63,64 @@ function Student() {
     load();
   }, []);
   useEffect(() => {
-  const loadMine = async () => {
+    const loadMine = async () => {
+      const token = localStorage.getItem(ACCESS_TOKEN);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        setMyTermini(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    loadMine();
+  }, [tab]);
+
+  const reserveOrCancelLesson = async (lesson_id) => {
     const token = localStorage.getItem(ACCESS_TOKEN);
+    const isReserved = myLessonIds.has(lesson_id);
+    const endpoint = isReserved
+      ? `api/lessons/cancel/`
+      : `api/lessons/reserve/`;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+      const res = await fetch(`${API_BASE_URL}/${endpoint}`, {
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ lesson_id }),
       });
 
-      const data = await res.json();
-      setMyTermini(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error(e);
+      if (!res.ok) {
+        throw new Error("Neuspješna rezervacija");
+      }
+
+      if (isReserved) {
+        setMyTermini((prev) => prev.filter((t) => t.lesson_id !== lesson_id));
+        alert("Rezervacija otkazana");
+      } else {
+        const reservedTermin = termini.find((t) => t.lesson_id === lesson_id);
+        setMyTermini((prev) =>
+          reservedTermin ? [...prev, reservedTermin] : prev
+        );
+        alert("Termin uspješno rezerviran ✅");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Greška pri rezervaciji ❌");
     }
   };
 
-  loadMine();
-}, [tab]);
-
-  
-
-
-  const reserveLesson = async (lesson_id) => {
-  const token = localStorage.getItem(ACCESS_TOKEN);
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/lessons/reserve/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ lesson_id }),
-    });
-
-    if (!res.ok) {
-      throw new Error("Neuspješna rezervacija");
-    }
-
-    // ✅ OVO JE KLJUČ
-    setMyTermini(prev => {
-      // ako je već unutra – ne dodaj
-      if (prev.some(t => t.lesson_id === lesson_id)) return prev;
-
-      // pronađi puni termin iz `termini`
-      const reservedTermin = termini.find(t => t.lesson_id === lesson_id);
-
-      return reservedTermin ? [...prev, reservedTermin] : prev;
-    });
-
-    alert("Termin uspješno rezerviran ✅");
-  } catch (err) {
-    console.error(err);
-    alert("Greška pri rezervaciji ❌");
-  }
-};
-
-  const myLessonIds = new Set(myTermini.map(t => t.lesson_id));
+  const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
@@ -163,19 +159,15 @@ function Student() {
                 <TerminCard
                   termin={t}
                   role="student"
-                  onReserve={reserveLesson}
+                  onReserve={reserveOrCancelLesson}
                   canReserve={tab === "all"}
-                  reserved={myLessonIds.has(t.lesson_id)} 
-                 
+                  reserved={myLessonIds.has(t.lesson_id)}
                 />
               </li>
             ))}
             {(tab === "all" ? termini : myTermini).length === 0 && (
-  <li className="text-white/90">
-    Nema termina za ovaj prikaz.
-  </li>
-)}
-
+              <li className="text-white/90">Nema termina za ovaj prikaz.</li>
+            )}
           </ul>
         )}
       </div>
