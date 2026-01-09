@@ -101,7 +101,7 @@ export default function StudentEditPage() {
     setInstructorDetailError("");
   };
   const [avatarPreview, setAvatarPreview] = useState(null);
-const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
 
   const openInstructorModal = async (ins) => {
     const id = ins?.id;
@@ -436,31 +436,33 @@ const [avatarFile, setAvatarFile] = useState(null);
             {/* Avatar / škola ispod */}
             <div className="w-full md:w-1/3 flex flex-col items-center">
               <label htmlFor="avatarUpload" className="cursor-pointer">
-  <div className="w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50 shadow-md flex items-center justify-center hover:opacity-90 transition">
-    <img
-  src={avatarPreview || defaultAvatar}
-  alt="Avatar"
-  className="w-56 h-56 rounded-3xl object-cover"
-/>
+                <div className="relative group w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50">
+                  <img
+                    src={avatarPreview || defaultAvatar}
+                    alt="Avatar"
+                    className="w-56 h-56 rounded-3xl object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[500ms] bg-black/60">
+                    <span className="text-[#E8FCF7] font-bold text-lg text-center uppercase">
+                      {avatarPreview ? "Promijeni sliku" : "Klik za upload"}
+                    </span>
+                  </div>
+                </div>
+              </label>
 
-  </div>
-</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="avatarUpload"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
 
-<input
-  type="file"
-  accept="image/*"
-  className="hidden"
-  id="avatarUpload"
-  onChange={(e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setAvatarFile(file); // 👈 ovo ide backendu
-    setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
-  }}
-/>
-
-
+                  setAvatarFile(file); // 👈 ovo ide backendu
+                  setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
+                }}
+              />
 
               {/* Škola + Razred kartica */}
               <div className="w-full max-w-[224px] mt-6 rounded-2xl bg-white/50 border border-white/60 p-4 shadow-sm">

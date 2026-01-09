@@ -23,8 +23,6 @@ function Student() {
     rating: null, // 4 | 5
   });
 
-  const [sortBy, setSortBy] = useState(null);
-  // "date_asc" | "date_desc" | "rating_desc"
   const filterBtnClass = (active) =>
     `px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200
    ${
@@ -173,32 +171,53 @@ function Student() {
           return true;
         })
       : myTermini;
-  const sortedTermini = sortBy
-    ? [...filteredTermini].sort((a, b) => {
-        const aDate = new Date(`${a.date}T${a.time}`);
-        const bDate = new Date(`${b.date}T${b.time}`);
 
-        if (sortBy === "date_asc") {
-          return aDate - bDate;
-        }
+  const [sortBy, setSortBy] = useState([]);
+  const opposites = {
+    date_asc: "date_desc",
+    date_desc: "date_asc",
+    price_asc: "price_desc",
+    price_desc: "price_asc",
+  };
+  const toggleSort = (key) => {
+    setSortBy((prev) => {
+      // 1. Ako je ovaj kriterij već aktivan, samo ga ugasi
+      if (prev.includes(key)) {
+        return prev.filter((k) => k !== key);
+      }
 
-        if (sortBy === "date_desc") {
-          return bDate - aDate;
-        }
+      // 2. Pronađi suprotnost (npr. ako je key 'date_asc', opposite je 'date_desc')
+      const opposite = opposites[key];
 
-        if (sortBy === "rating_desc") {
-          return (b.teacher_rating ?? 0) - (a.teacher_rating ?? 0);
-        }
-        if (sortBy === "price_asc") {
-          return (a.price ?? 0) - (b.price ?? 0);
-        }
-        if (sortBy === "price_desc") {
-          return (b.price ?? 0) - (a.price ?? 0);
-        }
+      // 3. Makni suprotnost ako postoji i dodaj novi ključ
+      const filtered = opposite ? prev.filter((k) => k !== opposite) : prev;
 
-        return 0;
-      })
-    : filteredTermini;
+      return [...filtered, key];
+    });
+  };
+  const sortedTermini = [...filteredTermini].sort((a, b) => {
+    // Ako nema odabranih kriterija, vrati originalni redoslijed
+    if (sortBy.length === 0) return 0;
+
+    for (const criteria of sortBy) {
+      let res = 0;
+      const aDate = new Date(`${a.date}T${a.time}`);
+      const bDate = new Date(`${b.date}T${b.time}`);
+
+      if (criteria === "date_asc") res = aDate - bDate;
+      else if (criteria === "date_desc") res = bDate - aDate;
+      else if (criteria === "rating_desc")
+        res = (b.teacher_rating ?? 0) - (a.teacher_rating ?? 0);
+      else if (criteria === "price_asc") res = (a.price ?? 0) - (b.price ?? 0);
+      else if (criteria === "price_desc") res = (b.price ?? 0) - (a.price ?? 0);
+
+      // KLJUČ: Ako su stavke različite po ovom kriteriju (res nije 0),
+      // sortiraj ih odmah i ne gledaj dalje.
+      // Ako su identične (res je 0), petlja ide na idući kriterij u nizu sortBy.
+      if (res !== 0) return res;
+    }
+    return 0;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
@@ -272,22 +291,22 @@ function Student() {
           </ul>
         )}
         {showFilters && (
-  <div
-    className="
+          <div
+            className="
       fixed inset-0 z-40 bg-black/40 backdrop-blur-sm
       flex justify-center
       pt-32
     "
-  >
-    {/* overlay click */}
-    <div
-      className="absolute inset-0"
-      onClick={() => setShowFilters(false)}
-    />
+          >
+            {/* overlay click */}
+            <div
+              className="absolute inset-0"
+              onClick={() => setShowFilters(false)}
+            />
 
-    {/* modal */}
-    <div
-      className="
+            {/* modal */}
+            <div
+              className="
         relative
         bg-gradient-to-b from-[#D1F8EF] to-[#A1E3F9]
         w-[90%] max-w-md
@@ -299,11 +318,10 @@ function Student() {
         overflow-y-auto
         self-start
       "
-    >
-
-      <h2 className="text-lg font-semibold mb-4 text-[#3674B5]">
-        Filteri
-      </h2>
+            >
+              <h2 className="text-lg font-semibold mb-4 text-[#3674B5]">
+                Filteri
+              </h2>
               {/* FORMAT */}
               <div className="mb-4">
                 <p className=" font-semibold tracking-wide text-[#3674B5] mb-2">
@@ -414,49 +432,33 @@ function Student() {
               </div>
 
               {/* ACTIONS */}
-              <div className="flex gap-3">
-                <button
-                  onClick={applyFilters}
-                  className="flex-1 bg-[#578FCA] py-2 rounded-lg font-semibold tracking-wide text-[#D1F8EF] mb-2"
-                >
-                  Primijeni
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowFilters(false);
-                    setFilters({
-                      format: null,
-                      subject: [],
-                      days: null,
-                      rating: null,
-                    });
-                  }}
-                  className="flex-1 bg-[#578FCA] py-2 rounded-lg font-semibold tracking-wide text-[#D1F8EF] mb-2"
-                >
-                  Reset
-                </button>
-              </div>
+              <div className="flex gap-3"></div>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2a5a8c] duration-[500ms] hover:scale-105"
+              >
+                OK
+              </button>
             </div>
           </div>
         )}
         {showSort && (
-  <div
-    className="
+          <div
+            className="
       fixed inset-0 z-40 bg-black/40 backdrop-blur-sm
       flex justify-center
       pt-32
     "
-  >
-    {/* overlay click */}
-    <div
-      className="absolute inset-0"
-      onClick={() => setShowSort(false)}
-    />
+          >
+            {/* overlay click */}
+            <div
+              className="absolute inset-0"
+              onClick={() => setShowSort(false)}
+            />
 
-    {/* modal */}
-    <div
-      className="
+            {/* modal */}
+            <div
+              className="
         relative
         bg-gradient-to-b from-[#D1F8EF] to-[#A1E3F9]
         w-[90%] max-w-md
@@ -468,38 +470,45 @@ function Student() {
         overflow-y-auto
         self-start
       "
-    >
-      <h2 className="text-xl font-semibold mb-5 text-[#3674B5]">
-        Sortiranje
-      </h2>
+            >
+              <h2 className="text-xl font-semibold mb-5 text-[#3674B5]">
+                Sortiranje
+              </h2>
 
-      {[
-        ["date_asc", "Najraniji termin"],
-        ["date_desc", "Najkasniji termin"],
-        ["rating_desc", "Najbolja ocjena"],
-        ["price_asc", "Najniža cijena"],
-        ["price_desc", "Najviša cijena"],
-      ].map(([key, label]) => (
-        <button
-          key={key}
-          onClick={() => {
-            setSortBy(key);
-            setShowSort(false);
-          }}
-          className={`w-full text-left px-4 py-3 rounded-lg mb-2
-            ${
-              sortBy === key
-                ? "bg-[#3674B5] text-white"
-                : "bg-white text-[#3674B5]"
-            }`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
-  </div>
-)}
-
+              {[
+                ["date_asc", "Najraniji termin"],
+                ["date_desc", "Najkasniji termin"],
+                ["rating_desc", "Najbolja ocjena"],
+                ["price_asc", "Najniža cijena"],
+                ["price_desc", "Najviša cijena"],
+              ].map(([key, label]) => {
+                const isActive = sortBy.includes(key); // Provjeravamo je li u nizu
+                return (
+                  <button
+                    key={key}
+                    onClick={() => toggleSort(key)} // Koristimo funkciju koja hendla paljenje/gašenje
+                    className={`w-full text-left px-4 py-3 rounded-lg mb-2 transition-colors
+                    ${
+                      isActive
+                        ? "bg-[#3674B5] text-white shadow-md"
+                        : "bg-white text-[#3674B5] hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>{label}</span>
+                    </div>
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => setShowSort(false)}
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2A5A8C] duration-[500ms] hover:scale-105"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
