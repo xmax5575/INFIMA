@@ -49,6 +49,7 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
     instructor_display,
     instructor_id,
     lesson_id,
+    subject
   } = termin || {};
 
   const [showInstructor, setShowInstructor] = useState(false);
@@ -121,6 +122,9 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
         </span>
         <span className="px-2 py-1 rounded-full bg-white/70">
           {format ?? "Format"}
+        </span>
+        <span className="px-2 py-1 rounded-full bg-white/70">
+          {subject}
         </span>
         {max_students != null && (
           <span className="px-2 py-1 rounded-full bg-white/70">
