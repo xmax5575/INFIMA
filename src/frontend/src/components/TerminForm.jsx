@@ -72,7 +72,7 @@ function TerminForm({ onCreated, onClose }) {
       level === "Osnovna" ? "OSNOVNA" : level === "Srednja" ? "SREDNJA" : "";
 
     const payload = {
-      // Subject: Number(subject) || undefined, ako kasnije bude ID.
+      subject: subject,
       duration_min: Number(pDur),
       max_students: Number(pMax),
       format, // "Uživo" | "Online".
@@ -81,6 +81,8 @@ function TerminForm({ onCreated, onClose }) {
       level: levelMapped, // "OSNOVNA" | "SREDNJA".
       // is_available: true,     // default.
     };
+    console.log("Postavljen je termin: ", payload);
+
 
     try {
       const res = await api.post("/api/lessons/", payload, {
