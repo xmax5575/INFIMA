@@ -124,11 +124,6 @@ class GoogleAuthCodeExchangeView(views.APIView):
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
 class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
     
