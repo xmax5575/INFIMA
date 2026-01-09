@@ -37,7 +37,7 @@ function formatTime(t) {
 
 export default function TerminCard({
   termin,
-  onReserve,
+  onReserveOrCancel,
   role,
   canReserve,
   reserved,
@@ -163,7 +163,7 @@ export default function TerminCard({
           <div className="mt-4 flex items-center gap-3">
             {reserved && (
               <button
-                onClick={() => onReserve(termin.lesson_id)}
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
                 className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out"
               >
                 Otkaži
@@ -172,7 +172,7 @@ export default function TerminCard({
 
             {canReserve && !reserved && (
               <button
-                onClick={() => onReserve(termin.lesson_id)}
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
                 className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out"
               >
                 Rezerviraj
