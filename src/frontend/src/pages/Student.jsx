@@ -83,7 +83,7 @@ function Student() {
     loadMine();
   }, [tab]);
 
-  const reserveLesson = async (lesson_id) => {
+  const reserveOrCancelLesson = async (lesson_id) => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     const isReserved = myLessonIds.has(lesson_id);
     const endpoint = isReserved
@@ -159,7 +159,7 @@ function Student() {
                 <TerminCard
                   termin={t}
                   role="student"
-                  onReserve={reserveLesson}
+                  onReserve={reserveOrCancelLesson}
                   canReserve={tab === "all"}
                   reserved={myLessonIds.has(t.lesson_id)}
                 />
