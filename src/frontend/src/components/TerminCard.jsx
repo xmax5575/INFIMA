@@ -55,6 +55,7 @@ export default function TerminCard({
     instructor_display,
     instructor_id,
     lesson_id,
+    subject
   } = termin || {};
 
   const [showInstructor, setShowInstructor] = useState(false);
@@ -92,7 +93,7 @@ export default function TerminCard({
   };
   return (
     <>
-      <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xl">
+      <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3">
           <div className="flex items-center gap-3">
@@ -114,7 +115,7 @@ export default function TerminCard({
             </div>
           </div>
 
-          <div className="bg-white rounded-xl px-2.5 py-2.5 text-sm font-bold ring-1">
+          <div className="bg-white rounded-xl px-3 py-3 text-lg font-bold ring-1">
             {price != null && duration_min
               ? `${(price * duration_min) / 60} €`
               : "—"}
@@ -123,8 +124,11 @@ export default function TerminCard({
 
         {/* TAGOVI */}
         <div className="mt-7 flex flex-wrap gap-2 text-lg justify-start">
-          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1 lowercase first-letter:uppercase">
             {level ?? "Razina"}
+          </span>
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {subject ?? "Predmet"}
           </span>
           <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
             {format ?? "Format"}
@@ -160,7 +164,7 @@ export default function TerminCard({
 
         {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
         {role === "student" && (
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-7 flex items-center gap-3">
             {reserved && (
               <button
                 onClick={() => onReserveOrCancel(termin.lesson_id)}
