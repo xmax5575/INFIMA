@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from django.conf import settings
 import requests
 import jwt
+import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
@@ -572,3 +573,67 @@ class LessonJitsiRoomView(APIView):
             return Response({"room": lesson.jitsi_room})
 
         return Response({"error": "Forbidden"}, status=403)
+    
+
+
+class LessonJaasTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # room mora postojati (instruktor “starta” meeting)
+        if not lesson.jitsi_room:
+            return Response({"error": "Meeting not started yet"}, status=400)
+
+        # instr. smije ako je njegov
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+        # student smije ako ima Attendance
+        elif user.role == User.Role.STUDENT:
+            student = getattr(user, "student", None)
+            if not Attendance.objects.filter(lesson=lesson, student=student).exists():
+                return Response({"error": "Forbidden"}, status=403)
+        else:
+            return Response({"error": "Forbidden"}, status=403)
+
+        room_name = lesson.jitsi_room
+        now = int(time.time())
+
+        payload = {
+            "aud": "jitsi",
+            "iss": "chat",
+            "sub": settings.JAAS_APP_ID,
+            "room": room_name,
+            "exp": now + 60 * 60,
+            "nbf": now - 10,
+            "context": {
+                "user": {
+                    "id": str(user.id),
+                    "name": f"{user.first_name} {user.last_name}".strip() or user.email,
+                    "email": user.email,
+                    # moderator true samo za instruktora (ako želiš)
+                    "moderator": "true" if user.role == User.Role.INSTRUCTOR else "false",
+                }
+            },
+        }
+
+        token = jwt.encode(
+            payload,
+            settings.JAAS_PRIVATE_KEY,
+            algorithm="RS256",
+            headers={"kid": settings.JAAS_KID, "typ": "JWT"},
+        )
+
+        return Response({
+            "appId": settings.JAAS_APP_ID,
+            "roomName": room_name,
+            "jwt": token,
+        })

@@ -234,3 +234,13 @@ EMAIL_HOST_USER = os.getenv("GMAIL_USER")
 EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
 DEFAULT_FROM_EMAIL = f"INFIMA <{EMAIL_HOST_USER}>"
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+JAAS_APP_ID = os.getenv("JAAS_APP_ID")
+JAAS_KID = os.getenv("JAAS_KID")
+
+JAAS_PRIVATE_KEY = (
+    BASE_DIR / "keys" / "jaas_private_key.pem"
+).read_text()

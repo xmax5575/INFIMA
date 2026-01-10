@@ -1,39 +1,39 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api";
-import JitsiMeeting from "../components/JitsiMeeting";
+import JaasMeeting from "../components/JaasMeeting";
 
 export default function LessonCall({ user }) {
   const { lessonId } = useParams();
-  const [room, setRoom] = useState(null);
+  const [meeting, setMeeting] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    api
-      .get(`/api/lessons/${lessonId}/jitsi/`)
-      .then((res) => {
-        setRoom(res.data.room);
-      })
-      .catch((err) => {
-        setError(
-          err.response?.data?.error ??
-          "Ne mogu otvoriti meeting"
-        );
-      });
+    (async () => {
+      try {
+        // 1) dohvati room (tvoja postojeća logika)
+        const r = await api.get(`/api/lessons/${lessonId}/jitsi/`);
+        const room = r.data.room;
+
+        // 2) dohvati JaaS JWT za taj room
+        const t = await api.get(`/api/lessons/${lessonId}/jaas-token/`);
+
+
+        setMeeting(t.data); // {appId, roomName, jwt}
+      } catch (err) {
+        setError(err.response?.data?.error ?? "Ne mogu otvoriti meeting");
+      }
+    })();
   }, [lessonId]);
 
-  if (error) {
-    return <p className="text-red-600">{error}</p>;
-  }
-
-  if (!room) {
-    return <p>Učitavanje meetinga…</p>;
-  }
+  if (error) return <p className="text-red-600">{error}</p>;
+  if (!meeting) return <p>Učitavanje meetinga…</p>;
 
   return (
-    <JitsiMeeting
-      roomName={room}
-      displayName={`${user?.first_name ?? ""} ${user?.last_name ?? ""}`}
+    <JaasMeeting
+      appId={meeting.appId}
+      roomName={meeting.roomName}
+      jwt={meeting.jwt}
     />
   );
 }
