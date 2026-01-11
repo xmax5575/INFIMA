@@ -49,7 +49,7 @@ function parsePreferredRange(str) {
     to: match[3].padStart(5, "0"),
   };
 }
-// helper – izvan komponente
+
 async function uploadStudentAvatar(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
