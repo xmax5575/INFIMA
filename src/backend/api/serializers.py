@@ -172,10 +172,9 @@ class ReviewMiniSerializer(serializers.ModelSerializer):
         fields = ["id", "student_name", "rating", "description"]
 
     def get_student_name(self, obj):
-        if obj.student:
-            first = obj.student.first_name or ""
-            last = obj.student.last_name or ""
-            name = f"{first} {last}".strip()
+        if obj.student and obj.student.student_id:
+            u = obj.student.student_id
+            name = f"{u.first_name} {u.last_name}".strip()
             return name if name else "Anonimno"
         return "Anonimno"
 

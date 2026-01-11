@@ -12,6 +12,8 @@ import Instructor from "./pages/Instructor";
 import Student from "./pages/Student";
 import Profile from "./pages/Profile";
 import LessonCall from "./pages/LessonCall";
+import Payment from "./pages/Payment";
+import Review from "./pages/Review";
 
 function Logout() {
   localStorage.clear();
@@ -95,6 +97,24 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
                   <LessonCall />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/payment/:lessonId"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <Payment />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/review/:lessonId"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <Review />
                 </ProtectedRoute>
               }
             />

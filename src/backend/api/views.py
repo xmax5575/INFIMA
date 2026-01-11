@@ -13,7 +13,7 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
@@ -636,4 +636,112 @@ class LessonJaasTokenView(APIView):
             "appId": settings.JAAS_APP_ID,
             "roomName": room_name,
             "jwt": token,
+        })
+
+class EndLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # instruktor završava meeting
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+            return Response({
+                "redirect_to": "/home/instructor"
+            })
+
+        # student ide na payment
+        if user.role == User.Role.STUDENT:
+            return Response({
+                "redirect_to": f"/payment/{lesson.lesson_id}"
+            })
+
+        return Response({"error": "Invalid role"}, status=400)
+
+class SubmitReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        if user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can review"}, status=403)
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        student = user.student
+        instructor = lesson.instructor_id
+
+        Review.objects.create(
+            instructor=instructor,
+            student=student,
+            rating=request.data.get("rating"),
+            description=request.data.get("description", "")
+        )
+        
+        lesson.status = Lesson.Status.EXPIRED
+        lesson.is_available = False
+        lesson.save(update_fields=["status", "is_available"])
+
+        return Response({
+            "redirect_to": "/home/student"
+        })
+
+import stripe
+from django.conf import settings
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+class ConfirmPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        if user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can pay"}, status=403)
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        amount = lesson.price * 100 if lesson.price else 1000  # centi
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+            customer_email=user.email,
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": f"Instrukcije – {lesson.subject.name if lesson.subject else 'Lekcija'}"
+                    },
+                    "unit_amount": amount,
+                },
+                "quantity": 1,
+            }],
+            success_url=f"{settings.FRONTEND_URL}/review/{lesson.lesson_id}",
+            cancel_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}",
+            metadata={
+                "lesson_id": lesson.lesson_id,
+                "student_id": user.id,
+            }
+        )
+
+        return Response({
+            "checkout_url": session.url
         })

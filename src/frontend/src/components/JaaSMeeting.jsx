@@ -1,15 +1,22 @@
 import { JaaSMeeting } from "@jitsi/react-sdk";
 
-export default function JaasMeeting({ appId, roomName, jwt }) {
+export default function JaasMeeting({ appId, roomName, jwt, onMeetingEnd }) {
   return (
     <div style={{ width: "100%", height: "80vh" }}>
       <JaaSMeeting
         appId={appId}
         roomName={roomName}
         jwt={jwt}
-        getIFrameRef={(node) => (node.style.height = "100%")}
+        getIFrameRef={(node) => {
+          if (node) node.style.height = "100%";
+        }}
+        onReadyToClose={() => {
+          console.log("Jitsi meeting završio");
+          if (onMeetingEnd) {
+            onMeetingEnd();
+          }
+        }}
       />
     </div>
   );
 }
-

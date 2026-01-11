@@ -1,10 +1,11 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api";
 import JaasMeeting from "../components/JaasMeeting";
 
-export default function LessonCall({ user }) {
+export default function LessonCall() {
   const { lessonId } = useParams();
+  const navigate = useNavigate();
   const [meeting, setMeeting] = useState(null);
   const [error, setError] = useState(null);
 
@@ -26,6 +27,26 @@ export default function LessonCall({ user }) {
     })();
   }, [lessonId]);
 
+  const handleMeetingEnd = async () => {
+    try {
+      const res = await api.post(`/api/lessons/${lessonId}/end/`);
+      if (res.data.redirect_to) {
+        navigate(res.data.redirect_to);
+      } else {
+        // fallback po role-u
+        const role = localStorage.getItem("role"); // ili iz JWT-a
+        if (role === "INSTRUCTOR") {
+          navigate("/home/instructor");
+        } else {
+          navigate("/home/student");
+        }
+      }
+    } catch (err) {
+      console.error("Greška pri završetku lekcije", err);
+      navigate("/home"); // fallback
+    }
+  };
+
   if (error) return <p className="text-red-600">{error}</p>;
   if (!meeting) return <p>Učitavanje meetinga…</p>;
 
@@ -34,6 +55,7 @@ export default function LessonCall({ user }) {
       appId={meeting.appId}
       roomName={meeting.roomName}
       jwt={meeting.jwt}
+      onMeetingEnd={handleMeetingEnd}
     />
   );
 }

@@ -28,4 +28,10 @@ urlpatterns = [
     path("lessons/<int:lesson_id>/jitsi/", views.LessonJitsiRoomView.as_view()),
 
     path("lessons/<int:lesson_id>/jaas-token/", views.LessonJaasTokenView.as_view()),
+
+    path("lessons/<int:lesson_id>/end/", views.EndLessonView.as_view(), name="lesson-end"),
+
+    path("payments/<int:lesson_id>/confirm/", views.ConfirmPaymentView.as_view(), name="payment-confirm"),
+
+    path("reviews/<int:lesson_id>/submit/", views.SubmitReviewView.as_view(), name="review-submit"),
 ]
