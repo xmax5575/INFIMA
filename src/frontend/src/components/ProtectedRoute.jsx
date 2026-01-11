@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
-
+import LoadingPage from "../pages/LoadingPage"
 const norm = (v) => (v ? String(v).toLowerCase() : "");
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
@@ -147,7 +147,16 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return () => window.removeEventListener("profileUpdated", onProfileUpdated);
   }, [location.pathname, navigate]);
 
-  if (loading || role === null) return <div>Učitavanje...</div>;
+  useEffect(() => {
+  // loading gotov, ali nema role → redirect
+  if (!loading && role === null) {
+    navigate("/", { replace: true });
+  }
+}, [loading, role, navigate]); 
+if (loading || role === null){
+    return <LoadingPage/>
+  }
+
 
   const pathname = location.pathname;
   const isRolePage = pathname === "/role";

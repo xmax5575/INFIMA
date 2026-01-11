@@ -73,7 +73,10 @@ class Instructor(models.Model):
     price = models.IntegerField()
     rating = models.FloatField(null=True, blank=True)
     subjects = models.ManyToManyField(Subject, blank=True, related_name="instructors")
+    profile_image_url = models.URLField(null=True, blank=True)
     video_url = models.URLField(null=True, blank=True)
+    lat = models.FloatField(null=True, blank=True)
+    lng = models.FloatField(null=True, blank=True)  
     
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
@@ -84,6 +87,7 @@ class Student(models.Model):
     preferred_times = models.JSONField(default=list, blank=True)
     notifications_enabled = models.BooleanField(default=False)
     favorite_instructors = models.ManyToManyField(Instructor, blank=True, related_name="favorited_by")
+    profile_image_url = models.URLField(null=True, blank=True)
 
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
@@ -134,6 +138,10 @@ class Attendance(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
     student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
     attended = models.BooleanField(default=False)  
+    reminder_sent = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("lesson", "student")
 
 # model koji predstavlja plaćanje u bazi podataka
 class Payment(models.Model):

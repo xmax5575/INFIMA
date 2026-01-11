@@ -2,6 +2,7 @@ import React from "react";
 import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import defaultAvatar from "../images/avatar.jpg";
+import GoogleMapEmbed from "./GoogleMapEmbed";
 
 function getFullName(user) {
   return (
@@ -11,7 +12,12 @@ function getFullName(user) {
   );
 }
 
-export default function InstructorCard({ user, onClose, canEdit = false, editTo = "/edit" }) {
+export default function InstructorCard({
+  user,
+  onClose,
+  canEdit = false,
+  editTo = "/edit",
+}) {
   const fullName = getFullName(user);
 
   const bio = user?.bio || "Ovdje ide biografija instruktora.";
@@ -20,7 +26,9 @@ export default function InstructorCard({ user, onClose, canEdit = false, editTo 
   // subjects dolaze kao objekti -> pretvori u array stringova (name)
   const subjectsRaw = user?.subjects ?? [];
   const subjects = Array.isArray(subjectsRaw)
-    ? subjectsRaw.map((s) => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+    ? subjectsRaw
+        .map((s) => (typeof s === "string" ? s : s?.name))
+        .filter(Boolean)
     : [];
 
   const ratingRaw = user?.rating ?? user?.avg_rating ?? "—";
@@ -30,7 +38,8 @@ export default function InstructorCard({ user, onClose, canEdit = false, editTo 
   const priceLabel =
     user?.price_label ?? (user?.price_eur != null ? `${user.price_eur}€` : "—");
 
-  const avatarUrl = user?.avatar || user?.profile_image || null;
+  const avatarUrl = user?.profile_image_url || null;
+  const videoUrl = user?.video_url || null;
 
   // calendar/lessons
   const lessons = Array.isArray(user?.calendar) ? user.calendar : [];
@@ -89,6 +98,15 @@ export default function InstructorCard({ user, onClose, canEdit = false, editTo 
             <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
               <span className="font-bold">Lokacija: </span>
               <span className="font-normal">{location}</span>
+
+              {user.location && (
+                <div className="mt-4 h-56">
+                  <GoogleMapEmbed
+                    location={user.location}
+                    className="h-full w-full"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -106,14 +124,16 @@ export default function InstructorCard({ user, onClose, canEdit = false, editTo 
               <h2 className="text-lg sm:text-xl font-semibold">Područja</h2>
 
               <div className="mt-4 flex flex-wrap gap-2 pr-[88px]">
-                {(subjects.length ? subjects : ["—"]).slice(0, 8).map((s, i) => (
-                  <span
-                    key={`${s}-${i}`}
-                    className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
-                  >
-                    {s}
-                  </span>
-                ))}
+                {(subjects.length ? subjects : ["—"])
+                  .slice(0, 8)
+                  .map((s, i) => (
+                    <span
+                      key={`${s}-${i}`}
+                      className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
+                    >
+                      {s}
+                    </span>
+                  ))}
               </div>
             </div>
 
@@ -175,9 +195,19 @@ export default function InstructorCard({ user, onClose, canEdit = false, editTo 
                 </button>
               </div>
             </div>
+            {videoUrl && (
+                <div className="mt-4 mb-3 flex justify-center">
+                  <video
+                    src={videoUrl}
+                    controls
+                    playsInline
+                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
+                  />
+                </div>
+              )}
           </div>
         </div>
-
+        
         {/* FOOTER: Uredi */}
         {canEdit && (
           <div className="mt-6">

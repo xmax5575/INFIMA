@@ -66,7 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     "debug_toolbar",
-    "api",
+    "api.apps.ApiConfig",
     "rest_framework",
     "corsheaders",
     "django.contrib.sites",
@@ -222,3 +222,15 @@ LOGOUT_REDIRECT_URL = "/"
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") 
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TSL = False
+
+EMAIL_HOST_USER = os.getenv("GMAIL_USER")
+EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+
+DEFAULT_FROM_EMAIL = f"INFIMA <{EMAIL_HOST_USER}>"

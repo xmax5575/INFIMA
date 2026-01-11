@@ -20,4 +20,10 @@ urlpatterns = [
     path("student/<int:pk>/", views.StudentPublicProfileView.as_view(), name="student-detail"),
     
     path('student/me/', views.StudentUpdateView.as_view(), name='student-update'),
+    #endpoint za prikaz studentovih lekcija
+    path("student/lessons/", views.StudentMyLessonsView.as_view(), name="student_my_lessons"),
+    # Endpoint za rezerviranje termina za instrukcije
+    path("lessons/reserve/", views.ReserveLessonView.as_view()),
+    # Endpoint za cancel termmina za instrukcije
+    path("lessons/cancel/", views.CancelLessonView.as_view())
 ]
