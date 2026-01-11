@@ -77,7 +77,6 @@ function Header() {
     try {
       if (user?.role?.toLowerCase() === "instructor") {
         const res = await api.get("/api/instructor/inf/");
-        console.log("GET /api/instructor/inf/ =>", res.data);
         setInstructor(res.data);
       } else {
         setInstructor(null);
