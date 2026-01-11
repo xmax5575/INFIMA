@@ -96,7 +96,8 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                   'location', 
                   'price', 
                   'subjects',
-                  'video_url'
+                  'video_url',
+                  'profile_image_url'
         ]
 
 
@@ -123,7 +124,8 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
             'learning_goals', 
             'preferred_times', 
             'notifications_enabled',
-            'favorite_instructors'
+            'favorite_instructors',
+            'profile_image_url'
         ]
     #validacija school_level
     def validate_school_level(self, value):
@@ -230,6 +232,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             "subjects",
             "price_eur",
             "video_url",
+            "profile_image_url",
             "avg_rating",
             "reviews",
             "calendar",
@@ -286,7 +289,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "learning_goals",
             "preferred_times",
             "notifications_enabled",
-            "favorite_instructors"
+            "favorite_instructors",
+            "profile_image_url"
         ]
 
 
