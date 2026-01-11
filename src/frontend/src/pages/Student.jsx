@@ -180,15 +180,18 @@ function Student() {
   };
   const sortedTermini = [...filteredTermini].sort((a, b) => {
     if (!sortBy) return 0;
+    console.log(a);
 
     const aDate = new Date(`${a.date}T${a.time}`);
     const bDate = new Date(`${b.date}T${b.time}`);
 
-    const priceA = Number(a.price);
-    const priceB = Number(b.price);
+    const priceA = parseFloat(a.price) * a.duration_min/60;
+    const priceB = parseFloat(b.price) * b.duration_min/60;
 
-    const ratingA = Number(a.teacher_rating);
-    const ratingB = Number(b.teacher_rating);
+    console.log("Prices are", priceA, priceB);
+
+    const ratingA = parseFloat(a.teacher_rating);
+    const ratingB = parseFloat(b.teacher_rating);
 
     switch (sortBy) {
       case "date_asc":
