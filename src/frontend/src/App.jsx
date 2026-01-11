@@ -11,6 +11,7 @@ import { ACCESS_TOKEN } from "./constants";
 import Instructor from "./pages/Instructor";
 import Student from "./pages/Student";
 import Profile from "./pages/Profile";
+import Recenzija from "./pages/Recenzija";
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -87,6 +88,8 @@ function App() {
                   <Profile role = "student"/>
               </ProtectedRoute>
             }/>
+            <Route path="/recenzija" element={<Recenzija />} />
+          
         </Routes>
       </BrowserRouter>
     </>

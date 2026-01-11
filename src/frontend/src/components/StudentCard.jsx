@@ -83,7 +83,7 @@ export default function StudentCard({
   const notificationsEnabled =
     u?.notifications_enabled ?? u?.notify_new_slots ?? false;
 
-  const avatarUrl = u?.avatar || u?.profile_image || null;
+  const avatarUrl = u?.profile_image_url || null;
 
   // ✅ knowledge_level: [{subject, level}]
   const subjects = useMemo(() => {

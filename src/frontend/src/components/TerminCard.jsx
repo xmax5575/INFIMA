@@ -35,8 +35,14 @@ function formatTime(t) {
   return `${h}:${m} h`;
 }
 
-export default function TerminCard({ termin, onReserve, role, canReserve, reserved, onClick}) {
-  console.log("Termin je ", termin);
+export default function TerminCard({
+  termin,
+  onReserveOrCancel,
+  role,
+  canReserve,
+  reserved,
+}) {
+  console.log(termin);
   const {
     level,
     format,
@@ -49,6 +55,7 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
     instructor_display,
     instructor_id,
     lesson_id,
+    subject
   } = termin || {};
 
   const [showInstructor, setShowInstructor] = useState(false);
@@ -77,7 +84,6 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
     }
   };
 
-  
   // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
@@ -86,122 +92,123 @@ export default function TerminCard({ termin, onReserve, role, canReserve, reserv
     setShowInstructor((v) => !v);
   };
   return (
-  <>
-    <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xl">
-
-      {/* HEADER */}
-      <div className="flex justify-between items-center gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold">
-            {initials(instructor_display)}
+    <>
+      <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
+        {/* HEADER */}
+        <div className="flex justify-between items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center font-bold text-xl ring-1">
+              {initials(instructor_display)}
+            </div>
+            <div>
+              <div className="text-lg opacity-70">Instruktor</div>
+              {role === "student" ? (
+                <button
+                  className="font-semibold text-lg"
+                  onClick={toggleInstructor}
+                >
+                  {title}
+                </button>
+              ) : (
+                <span className="font-semibold text-lg">{title}</span>
+              )}
+            </div>
           </div>
-          <div>
-            <div className="text-xs opacity-70">Instruktor</div>
-            {role === "student" ? (
-              <button className="font-semibold" onClick={toggleInstructor}>
-                {title}
+
+          <div className="bg-white rounded-xl px-3 py-3 text-lg font-bold ring-1">
+            {price != null && duration_min
+              ? `${(price * duration_min) / 60} €`
+              : "—"}
+          </div>
+        </div>
+
+        {/* TAGOVI */}
+        <div className="mt-7 flex flex-wrap gap-2 text-lg justify-start">
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1 lowercase first-letter:uppercase">
+            {level ?? "Razina"}
+          </span>
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {subject ?? "Predmet"}
+          </span>
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {format ?? "Format"}
+          </span>
+          {max_students != null && (
+            <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+              max {max_students}
+            </span>
+          )}
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {duration_min} min
+          </span>
+        </div>
+
+        {/* DATUM / LOKACIJA */}
+        <div className="mt-7 text-xl underline underline-offset-2 font-bold">
+          <div>{when}</div>
+
+          {location && format !== "Online" && (
+            <div className="flex items-center gap-2 mt-1">
+              <MapPin className="w-7 h-7" />
+              <span>{location}</span>
+            </div>
+          )}
+        </div>
+
+        {/* MAPA */}
+        {location && format !== "Online" && (
+          <div className="mt-7 h-48 w-full rounded-xl overflow-hidden ring-1">
+            <GoogleMapEmbed location={location} />
+          </div>
+        )}
+
+        {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
+        {role === "student" && (
+          <div className="mt-7 flex items-center gap-3">
+            {reserved && (
+              <button
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out"
+              >
+                Otkaži
               </button>
+            )}
+
+            {canReserve && !reserved && (
+              <button
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out"
+              >
+                Rezerviraj
+              </button>
+            )}
+          </div>
+        )}
+      </article>
+
+      {/* MODAL: INSTRUKTOR */}
+      {showInstructor && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"
+          onClick={() => setShowInstructor(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-6xl max-h-[85vh] overflow-y-auto"
+          >
+            {loadingInstructor ? (
+              <div className="bg-[#3674B5] p-6 rounded-xl">
+                <LogoBulbProgress />
+              </div>
             ) : (
-              <span className="font-semibold">{title}</span>
+              <InstructorCard
+                user={instructorProfile}
+                onClose={() => setShowInstructor(false)}
+              />
             )}
           </div>
         </div>
-
-        <div className="bg-white rounded-xl px-3 py-1 text-sm font-bold">
-          {price != null && duration_min
-            ? `${(price * duration_min) / 60} €`
-            : "—"}
-        </div>
-      </div>
-
-      {/* TAGOVI */}
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        <span className="px-2 py-1 rounded-full bg-white/70">
-          {level ?? "Razina"}
-        </span>
-        <span className="px-2 py-1 rounded-full bg-white/70">
-          {format ?? "Format"}
-        </span>
-        {max_students != null && (
-          <span className="px-2 py-1 rounded-full bg-white/70">
-            max {max_students}
-          </span>
-        )}
-        <span className="px-2 py-1 rounded-full bg-white/70">
-          {duration_min} min
-        </span>
-      </div>
-
-      {/* DATUM / LOKACIJA */}
-      <div className="mt-3 text-sm">
-        <div>{when}</div>
-
-        {location && format !== "Online" && (
-          <div className="flex items-center gap-2 mt-1">
-            <MapPin className="w-4 h-4" />
-            <span>{location}</span>
-          </div>
-        )}
-      </div>
-
-      {/* MAPA */}
-      {location && format !== "Online" && (
-        <div className="mt-3 h-48 w-full rounded-xl overflow-hidden">
-          <GoogleMapEmbed location={location} />
-        </div>
       )}
-
-      {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
-      <div className="mt-4 flex items-center gap-3">
-        {reserved && (
-          <span className="font-semibold text-[#3674B5]">
-            Rezervirano
-          </span>
-        )}
-
-        {canReserve && !reserved && (
-          <button
-            onClick={() => onReserve(lesson_id)}
-            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
-          >
-            Rezerviraj
-          </button>
-        )}
-
-        {role !== "student" && (
-          <button
-            onClick={onClick}
-            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
-          >
-            Detalji termina
-          </button>
-        )}
-      </div>
-    </article>
-
-    {/* MODAL: INSTRUKTOR */}
-    {showInstructor && (
-      <div
-        className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"
-        onClick={() => setShowInstructor(false)}
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-6xl max-h-[85vh] overflow-y-auto"
-        >
-          {loadingInstructor ? (
-            <div className="bg-[#3674B5] p-6 rounded-xl"><LogoBulbProgress/></div>
-          ) : (
-            <InstructorCard
-              user={instructorProfile}
-              onClose={() => setShowInstructor(false)}
-            />
-          )}
-        </div>
-      </div>
-    )}
-  </>
-);
-
-
+    </>
+  );
 }
