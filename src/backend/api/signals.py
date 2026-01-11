@@ -39,4 +39,4 @@ def send_reservation_email(sender, instance, created, **kwargs):
             # ali je dobro ispisati u logove radi debugiranja
             print(f"Greška pri slanju emaila: {e}")
 
-    threading.Thread(target=send_emails_task)
+    threading.Thread(target=send_emails_task).start()
