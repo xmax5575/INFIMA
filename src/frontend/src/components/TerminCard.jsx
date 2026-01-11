@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import { MapPin } from "lucide-react";
-import InstructorCard from "./InstructorCard";  // Komponenta koja iscrtava profil instruktora
+import InstructorCard from "./InstructorCard";
 import api from "../api";
+import GoogleMapEmbed from "./GoogleMapEmbed";
+import LogoLoader from "./LogoBulbProgress";
+import LogoBulbProgress from "./LogoBulbProgress";
 
-// Funkcija za dohvaćanje inicijala osobe.
+/* Helperi */
 function initials(name) {
   if (!name) return "IN";
   return name
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
+    .map((p) => p[0].toUpperCase())
     .join("");
 }
 
-// Funkcija za formatiranje datuma.
 function formatDate(iso) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -28,168 +29,186 @@ function formatDate(iso) {
   });
 }
 
-// Funkcija za formatiranje vremena.
 function formatTime(t) {
   if (!t) return "";
   const [h, m] = String(t).split(":");
   return `${h}:${m} h`;
 }
 
-export default function TerminCard({ termin, onClick, role }) {
+export default function TerminCard({
+  termin,
+  onReserveOrCancel,
+  role,
+  canReserve,
+  reserved,
+}) {
   console.log(termin);
   const {
     level,
     format,
     price,
     date,
-    duration_min, 
+    duration_min,
     time,
     max_students,
     location,
     instructor_display,
     instructor_id,
+    lesson_id,
+    subject
   } = termin || {};
 
-  const [showInstructor, setShowInstructor] = useState(false);  // State za prikazivanje profila instruktora
-  const [instructorProfile, setInstructorProfile] = useState(null);  // Spremanje podataka o instruktoru
-  const [loadingInstructor, setLoadingInstructor] = useState(false);  // State za učitavanje podataka instruktora
+  const [showInstructor, setShowInstructor] = useState(false);
+  const [instructorProfile, setInstructorProfile] = useState(null);
+  const [loadingInstructor, setLoadingInstructor] = useState(false);
 
   const title =
     instructor_display ??
-    (instructor_id != null
-      ? `Instruktor #${instructor_id}`
-      : "Nepoznat instruktor");
+    (instructor_id ? `Instruktor #${instructor_id}` : "Instruktor");
 
   const when =
     date || time
       ? `${formatDate(date)}${date && time ? " • " : ""}${formatTime(time)}`
-      : "Datum i vrijeme nisu definirani";
-
-  // Funkcija za dohvat podataka o instruktoru putem ID-a
+      : "—";
 
   const fetchInstructorData = async (id) => {
+    if (!id) return;
     setLoadingInstructor(true);
     try {
-      const response = await api.get(`api/instructor/${id}/`);  // Poziv prema backendu za profil instruktora
-      console.log(response.data);
-      setInstructorProfile(response.data);  // Spremamo podatke instruktora u state
-    } catch (error) {
-      console.error("Greška pri dohvaćanju podataka o instruktoru", error);
+      const res = await api.get(`api/instructor/${id}/`);
+      setInstructorProfile(res.data);
+    } catch (e) {
+      console.error("Greška pri dohvaćanju instruktora", e);
     } finally {
       setLoadingInstructor(false);
     }
   };
 
- //KAD KARLO DOVRSI PREKO ID OVO CE RADIT I VRACAT CE DOBRE PODATKE
-
   // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
-      console.log(instructor_id)
-    fetchInstructorData(instructor_id);  // Ako je instruktor, dohvatiti podatke
+      fetchInstructorData(instructor_id);
     }
-    setShowInstructor(!showInstructor);  // Prebacivanje između prikaza i skrivanja profila
+    setShowInstructor((v) => !v);
   };
-
   return (
     <>
-    <article
-      className="
-        group rounded-2xl border border-white/60 bg-[#D1F8EF] text-[#3674B5]
-        shadow-sm hover:shadow-md transition p-4 md:p-5 max-w-xl select-none
-        hover:-translate-y-[1px] cursor-default
-      "
-    >
-      {/* Header: avatar + ime + cijena. */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-10 h-10 rounded-full bg-white/80 border border-white/70
-              flex items-center justify-center text-sm font-bold"
-            title={title}
-          >
-            {initials(instructor_display)}
+      <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
+        {/* HEADER */}
+        <div className="flex justify-between items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center font-bold text-xl ring-1">
+              {initials(instructor_display)}
+            </div>
+            <div>
+              <div className="text-lg opacity-70">Instruktor</div>
+              {role === "student" ? (
+                <button
+                  className="font-semibold text-lg"
+                  onClick={toggleInstructor}
+                >
+                  {title}
+                </button>
+              ) : (
+                <span className="font-semibold text-lg">{title}</span>
+              )}
+            </div>
           </div>
-          <div className="min-w-0">
-            <div className="text-xs opacity-80">Instruktor</div>
-            {role === "student" ? (
-              <button className="font-semibold truncate" title={title} onClick={toggleInstructor}>
-                {title}
+
+          <div className="bg-white rounded-xl px-3 py-3 text-lg font-bold ring-1">
+            {price != null && duration_min
+              ? `${(price * duration_min) / 60} €`
+              : "—"}
+          </div>
+        </div>
+
+        {/* TAGOVI */}
+        <div className="mt-7 flex flex-wrap gap-2 text-lg justify-start">
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1 lowercase first-letter:uppercase">
+            {level ?? "Razina"}
+          </span>
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {subject ?? "Predmet"}
+          </span>
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {format ?? "Format"}
+          </span>
+          {max_students != null && (
+            <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+              max {max_students}
+            </span>
+          )}
+          <span className="px-5 py-3 rounded-full bg-white/70 ring-1">
+            {duration_min} min
+          </span>
+        </div>
+
+        {/* DATUM / LOKACIJA */}
+        <div className="mt-7 text-xl underline underline-offset-2 font-bold">
+          <div>{when}</div>
+
+          {location && format !== "Online" && (
+            <div className="flex items-center gap-2 mt-1">
+              <MapPin className="w-7 h-7" />
+              <span>{location}</span>
+            </div>
+          )}
+        </div>
+
+        {/* MAPA */}
+        {location && format !== "Online" && (
+          <div className="mt-7 h-48 w-full rounded-xl overflow-hidden ring-1">
+            <GoogleMapEmbed location={location} />
+          </div>
+        )}
+
+        {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
+        {role === "student" && (
+          <div className="mt-7 flex items-center gap-3">
+            {reserved && (
+              <button
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out"
+              >
+                Otkaži
               </button>
+            )}
+
+            {canReserve && !reserved && (
+              <button
+                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out"
+              >
+                Rezerviraj
+              </button>
+            )}
+          </div>
+        )}
+      </article>
+
+      {/* MODAL: INSTRUKTOR */}
+      {showInstructor && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"
+          onClick={() => setShowInstructor(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-6xl max-h-[85vh] overflow-y-auto"
+          >
+            {loadingInstructor ? (
+              <div className="bg-[#3674B5] p-6 rounded-xl">
+                <LogoBulbProgress />
+              </div>
             ) : (
-              <span className="font-semibold truncate" title={title}>
-                {title}
-              </span>
+              <InstructorCard
+                user={instructorProfile}
+                onClose={() => setShowInstructor(false)}
+              />
             )}
           </div>
         </div>
-
-        <div
-          className="shrink-0 rounded-xl bg-white/90 border border-white/70 px-3 py-1
-            text-sm font-bold"
-        >
-          {price != null ? `${price*duration_min/60} €` : "—"}
-        </div>
-      </div>
-
-      {/* Sredina: razina + format + max_students. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-[11px] px-2 py-1 rounded-full bg-[#A1E3F9]/50 border border-white/60">
-          {level ?? "Razina"}
-        </span>
-        <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
-          {format ?? "Format"}
-        </span>
-        {max_students != null && (
-          <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
-            max {max_students}
-          </span>
-          
-        )}
-        <span className="text-[11px] px-2 py-1 rounded-full bg-white/70 border border-white/60">
-          {duration_min ?? duration_min} min
-        </span>
-      </div>
-
-      {/* Donji dio: kada i gdje. */}
-      <div className="mt-3 text-sm flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#3674B5]" />
-          <span className="opacity-90">{when}</span>
-        </div>
-
-        {location ? (
-          <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-[#3674B5]" />
-            <span className="opacity-90">{location}</span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Ako je osoba student dodaj button za rezervaciju, ako je instruktor za detalje */}
-      <div className="mt-4">
-        <button
-          className="
-              rounded-xl bg-[#3674B5] text-white text-sm font-medium
-              px-3 py-2 hover:opacity-90 transition
-            "
-          onClick={onClick}
-        >
-          {role === "student" ? "Rezerviraj" : "Detalji termina"}
-        </button>
-      </div>
-    </article>
-   {showInstructor  && (
-  <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowInstructor(false)}>
-    <div onClick={(e) => e.stopPropagation()} className="w-full max-w-6xl max-h-[85vh] overflow-y-auto">
-      <InstructorCard
-        user={instructorProfile}  // Prosljeđivanje podataka o instruktoru
-        onClose={() => setShowInstructor(false)}  // Zatvaranje profila
-      />
-    </div>
-  </div>
-)}
-</>
-
+      )}
+    </>
   );
 }

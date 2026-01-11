@@ -3,6 +3,37 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
 import defaultAvatar from "../images/avatar.jpg";
+import GoogleMapEmbed from "./GoogleMapEmbed";
+import { supabase } from "../supabaseClient";
+
+async function uploadInstructorAvatar(file) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `instructors/pictures/${fileName}`;
+
+  const { error } = await supabase.storage.from("media").upload(path, file);
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("media").getPublicUrl(path);
+
+  return data.publicUrl;
+}
+async function uploadInstructorVideo(file) {
+  const ext = file.name.split(".").pop(); // mp4, webm…
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `instructors/videos/${fileName}`;
+
+  const { error } = await supabase.storage.from("media").upload(path, file, {
+    cacheControl: "3600",
+  });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("media").getPublicUrl(path);
+
+  return data.publicUrl;
+}
 
 export default function InstructorEditForm() {
   const navigate = useNavigate();
@@ -13,6 +44,10 @@ export default function InstructorEditForm() {
   const [location, setLocation] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [subjectsError, setSubjectsError] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoPreview, setVideoPreview] = useState(null);
 
   const SUBJECT_OPTIONS = ["Matematika", "Fizika", "Informatika"];
 
@@ -30,6 +65,12 @@ export default function InstructorEditForm() {
 
         const infRes = await api.get("/api/instructor/inf/");
         const inf = infRes.data;
+        if (inf.profile_image_url) {
+          setAvatarPreview(inf.profile_image_url);
+        }
+        if (inf.video_url) {
+          setVideoPreview(inf.video_url);
+        }
 
         setBio(inf.bio ?? "");
         setLocation(inf.location ?? "");
@@ -52,6 +93,15 @@ export default function InstructorEditForm() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    let profileImageUrl = null;
+    let videoUrl = null;
+
+    if (avatarFile) {
+      profileImageUrl = await uploadInstructorAvatar(avatarFile);
+    }
+    if (videoFile) {
+      videoUrl = await uploadInstructorVideo(videoFile);
+    }
 
     if (subjects.length === 0) {
       setSubjectsError("Odaberi barem jedno područje.");
@@ -65,6 +115,8 @@ export default function InstructorEditForm() {
         location,
         price: price === "" ? null : Number(price),
         subjects,
+        ...(profileImageUrl && { profile_image_url: profileImageUrl }),
+        ...(videoUrl && { video_url: videoUrl }),
       });
 
       console.debug("POST /api/instructor/me/ succeeded:", res?.data);
@@ -75,7 +127,7 @@ export default function InstructorEditForm() {
         location.trim() !== "" &&
         subjects.length > 0 &&
         Number(price) > 0
-      ){
+      ) {
         localStorage.setItem("profile_saved_instructor", "1");
         window.dispatchEvent(
           new CustomEvent("profileUpdated", {
@@ -98,13 +150,34 @@ export default function InstructorEditForm() {
         <form onSubmit={onSubmit}>
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-3">
-              <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-white/40 sm:h-[240px]">
-                <img
-                  src={defaultAvatar}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              <label htmlFor="avatarUpload" className="cursor-pointer">
+                <div className="relative group w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50">
+                  <img
+                    src={avatarPreview || defaultAvatar}
+                    alt="Avatar"
+                    className="w-56 h-56 rounded-3xl object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[500ms] bg-black/60">
+                    <span className="text-[#E8FCF7] font-bold text-lg text-center uppercase">
+                      {avatarPreview ? "Promijeni sliku" : "Klik za upload"}
+                    </span>
+                  </div>
+                </div>
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="avatarUpload"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+
+                  setAvatarFile(file); // 👈 ovo ide backendu
+                  setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
+                }}
+              />
             </div>
 
             <div className="lg:col-span-9">
@@ -124,6 +197,40 @@ export default function InstructorEditForm() {
                              font-normal outline-none focus:bg-white resize-none"
                 />
               </div>
+              {videoPreview && (
+                <div className="mt-4 mb-3 flex justify-center">
+                  <video
+                    src={videoPreview}
+                    controls
+                    playsInline
+                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
+                  />
+                </div>
+              )}
+              <label className="block mt-4 cursor-pointer">
+                <div className="rounded-xl bg-white/20 p-3 text-center text-[#215993] font-semibold">
+                  {videoPreview ? "Promijeni video" : "Dodaj video o sebi"}
+                </div>
+
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    // opcionalna validacija
+                    if (file.size > 50 * 1024 * 1024) {
+                      alert("Max 50MB");
+                      return;
+                    }
+
+                    setVideoFile(file);
+                    setVideoPreview(URL.createObjectURL(file));
+                  }}
+                />
+              </label>
 
               <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
                 <span className="font-bold">Lokacija: </span>
@@ -135,6 +242,14 @@ export default function InstructorEditForm() {
                   className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5]
                              font-normal outline-none focus:bg-white"
                 />
+                {location && (
+                  <div className="mt-4 h-56">
+                    <GoogleMapEmbed
+                      location={location}
+                      className="h-full w-full"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

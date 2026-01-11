@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -12,10 +12,10 @@ import jwt
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student
+from .models import Lesson, Instructor, Student, Attendance
 from rest_framework import serializers
 from django.utils import timezone
-
+from django.db.models import Count, F
 
 
 User = get_user_model()
@@ -124,11 +124,6 @@ class GoogleAuthCodeExchangeView(views.APIView):
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-class CreateUserView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
 class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -234,7 +229,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         # STUDENT -> vidi samo slobodne lekcije
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")  
+            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED").annotate(occupied=Count("attendance")).filter(occupied__lt=F("max_students"))   
 
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
@@ -291,6 +286,9 @@ class InstructorUpdateView(APIView):
             }
         )
 
+        # zapamti staru lokaciju da znamo je li se promijenila
+        old_location = instructor.location
+
         serializer = InstructorUpdateSerializer(
             instructor,
             data=request.data,
@@ -299,10 +297,34 @@ class InstructorUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        # nova lokacija iz requesta (ako je uopće poslano polje "location")
+        new_location = serializer.validated_data.get("location", old_location)
+
+        # ako imamo novu (drugačiju) lokaciju, probamo ju geokodirati
+        if new_location and new_location != old_location:
+            api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", None)
+            if api_key:
+                try:
+                    resp = requests.get(
+                        "https://maps.googleapis.com/maps/api/geocode/json",
+                        params={"address": new_location, "key": api_key},
+                        timeout=5,
+                    )
+                    data = resp.json()
+                    if data.get("status") == "OK":
+                        loc = data["results"][0]["geometry"]["location"]
+                        instructor.lat = loc.get("lat")
+                        instructor.lng = loc.get("lng")
+                        instructor.save(update_fields=["lat", "lng"])
+                except Exception as e:
+                    # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
+                    print("Geocoding failed:", e)
+
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
+
 
 class MyInstructorProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -416,3 +438,126 @@ class InstructorListView(APIView):
         instructors = Instructor.objects.select_related("instructor_id")
         serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)
+    
+
+class StudentMyLessonsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can access this endpoint."}, status=403)
+
+        student = getattr(request.user, "student", None)
+        if not student:
+            return Response({"error": "Student profil nije pronađen."}, status=404)
+
+        lessons = (
+            Lesson.objects
+            .filter(attendance__student=student).filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")
+            .select_related(
+                "subject",
+                "instructor_id",
+                "instructor_id__instructor_id"
+            )
+            .order_by("-date", "-time")
+            .distinct()
+        )
+
+        serializer = LessonSerializer(lessons, many=True)
+        return Response(serializer.data)
+    
+class ReserveLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response(
+                {"error": "Only students can reserve lessons"},
+                status=403
+            )
+
+        serializer = AttendanceCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        lesson_id = serializer.validated_data["lesson_id"]
+
+        # student
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        # lesson
+        try:
+            lesson = Lesson.objects.get(
+                lesson_id=lesson_id,
+                status="ACTIVE",
+                is_available=True
+            )
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not available"}, status=404)
+
+        # već prijavljen?
+        if Attendance.objects.filter(lesson=lesson, student=student).exists():
+            return Response(
+                {"error": "Already reserved"},
+                status=409
+            )
+
+        # kapacitet
+        current_count = Attendance.objects.filter(lesson=lesson).count()
+        if current_count >= lesson.max_students:
+            return Response(
+                {"error": "Lesson is full"},
+                status=400
+            )
+
+        # upis
+        attendance = Attendance.objects.create(
+            lesson=lesson,
+            student=student
+        )
+
+        return Response(
+            {
+                "message": "Lesson reserved successfully",
+                "lesson_id": lesson.lesson_id
+            },
+            status=201
+        )
+    
+class CancelLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != User.Role.STUDENT:
+            return Response(
+                {"error": "Only students can cancel lessons"},
+                status=403
+            )
+        
+        serializer = AttendanceCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        lesson_id = serializer.validated_data["lesson_id"]
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        attendance = Attendance.objects.filter(lesson_id=lesson_id, student=student)
+
+        if not attendance.exists():
+            return Response(
+                {"error": "Reservation not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        attendance.delete()
+
+        return Response(
+            {"message": "Lesson reservation cancelled successfully",
+             "lesson_id": lesson_id},
+            status=status.HTTP_200_OK
+        )
