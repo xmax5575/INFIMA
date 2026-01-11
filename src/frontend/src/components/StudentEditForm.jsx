@@ -5,6 +5,8 @@ import api from "../api";
 import defaultAvatar from "../images/avatar.jpg";
 import { Heart } from "lucide-react";
 import InstructorCard from "../components/InstructorCard";
+import { supabase } from "../supabaseClient";
+
 // Dani
 const DAYS = [
   "Ponedjeljak",
@@ -46,6 +48,20 @@ function parsePreferredRange(str) {
     from: match[2].padStart(5, "0"),
     to: match[3].padStart(5, "0"),
   };
+}
+// helper – izvan komponente
+async function uploadStudentAvatar(file) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `students/pictures/${fileName}`;
+
+  const { error } = await supabase.storage.from("media").upload(path, file);
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("media").getPublicUrl(path);
+
+  return data.publicUrl;
 }
 
 export default function StudentEditPage() {
@@ -203,6 +219,10 @@ export default function StudentEditPage() {
         ) {
           setSchoolLevel(data.school_level);
         }
+        // 👇 AKO backend vraća profile_image_url
+        if (data.profile_image_url) {
+          setAvatarPreview(data.profile_image_url);
+        }
 
         // ✅ notifikacije
         setNotificationsEnabled(
@@ -357,6 +377,12 @@ export default function StudentEditPage() {
     setLoading(true);
     console.log(timeSlots);
     try {
+      let profileImageUrl = null;
+
+      if (avatarFile) {
+        profileImageUrl = await uploadStudentAvatar(avatarFile);
+      }
+
       const preferred_times = timeSlots
         .filter((s) => s.day && s.from && s.to)
         .filter((s) => {
@@ -393,6 +419,7 @@ export default function StudentEditPage() {
         knowledge_level,
         notifications_enabled: notificationsEnabled,
         favorite_instructors: favoriteIds,
+        ...(profileImageUrl && { profile_image_url: profileImageUrl }),
       });
       console.log(avatarFile);
 
