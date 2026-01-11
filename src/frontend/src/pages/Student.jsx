@@ -109,18 +109,17 @@ function Student() {
       : `api/lessons/reserve/`;
 
     try {
-      const res = await fetch(`${API_BASE_URL}/${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const res = await api.post(
+        `${API_BASE_URL}/${endpoint}`,
+        {
+          lesson_id: lesson_id,
         },
-        body: JSON.stringify({ lesson_id }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Neuspješna rezervacija");
-      }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (isReserved) {
         setMyTermini((prev) => prev.filter((t) => t.lesson_id !== lesson_id));
@@ -185,8 +184,8 @@ function Student() {
     const aDate = new Date(`${a.date}T${a.time}`);
     const bDate = new Date(`${b.date}T${b.time}`);
 
-    const priceA = parseFloat(a.price) * a.duration_min/60;
-    const priceB = parseFloat(b.price) * b.duration_min/60;
+    const priceA = (parseFloat(a.price) * a.duration_min) / 60;
+    const priceB = (parseFloat(b.price) * b.duration_min) / 60;
 
     console.log("Prices are", priceA, priceB);
 
