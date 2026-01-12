@@ -42,6 +42,7 @@ export default function TerminCard({
   role,
   canReserve,
   reserved,
+  onClick, // Added to props as it's used in the JSX below
 }) {
   console.log(termin);
   const {
@@ -91,13 +92,13 @@ export default function TerminCard({
     }
   };
 
-  // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
       fetchInstructorData(instructor_id);
     }
     setShowInstructor((v) => !v);
   };
+
   return (
     <>
       <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
@@ -169,12 +170,12 @@ export default function TerminCard({
           </div>
         )}
 
-        {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
+        {/* ACTIONS */}
         {role === "student" && (
           <div className="mt-7 flex items-center gap-3">
             {reserved && (
               <button
-                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                onClick={() => onReserveOrCancel(lesson_id)}
                 className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out"
               >
                 Otkaži
@@ -183,7 +184,7 @@ export default function TerminCard({
 
             {canReserve && !reserved && (
               <button
-                onClick={() => onReserveOrCancel(termin.lesson_id)}
+                onClick={() => onReserveOrCancel(lesson_id)}
                 className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out"
               >
                 Rezerviraj
@@ -191,43 +192,37 @@ export default function TerminCard({
             )}
           </div>
         )}
-        {/* STUDENT – ULAZ U MEETING */}
-        {role === "student" && reserved && (
+
+        {role === "student" && reserved && format === "Online" && (
           <button
             onClick={goToMeeting}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl"
+            className="px-4 py-2 bg-green-600 text-white rounded-xl mt-4"
           >
             Uđi u meeting
           </button>
         )}
-        {/* INSTRUKTOR – START MEETING */}
+
         {role === "instructor" && (
           <button
             onClick={goToMeeting}
-            className="px-4 py-2 bg-green-700 text-white rounded-xl"
+            className="px-4 py-2 bg-green-700 text-white rounded-xl mt-4"
           >
             Pokreni meeting
           </button>
         )}
 
-        {/* DETALJI */}
         {role !== "student" && (
           <button
             onClick={onClick}
-            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl"
+            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl mt-4 ml-2"
           >
             Detalji termina
           </button>
         )}
-      </div>
-    </article>
+      </article>
 
-    {/* MODAL: INSTRUKTOR */}
-    {showInstructor && (
-      <div
-        className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"
-        onClick={() => setShowInstructor(false)}
-      >
+      {/* MODAL: INSTRUKTOR */}
+      {showInstructor && (
         <div
           className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"
           onClick={() => setShowInstructor(false)}
