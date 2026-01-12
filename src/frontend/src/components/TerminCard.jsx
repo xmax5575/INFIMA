@@ -3,7 +3,6 @@ import { MapPin } from "lucide-react";
 import InstructorCard from "./InstructorCard";
 import api from "../api";
 import GoogleMapEmbed from "./GoogleMapEmbed";
-import LogoLoader from "./LogoBulbProgress";
 import LogoBulbProgress from "./LogoBulbProgress";
 import { useNavigate } from "react-router-dom";
 
@@ -44,7 +43,6 @@ export default function TerminCard({
   reserved,
   onClick, // Added to props as it's used in the JSX below
 }) {
-  console.log(termin);
   const {
     level,
     format,
@@ -86,7 +84,6 @@ export default function TerminCard({
       const res = await api.get(`api/instructor/${id}/`);
       setInstructorProfile(res.data);
     } catch (e) {
-      console.error("Greška pri dohvaćanju instruktora", e);
     } finally {
       setLoadingInstructor(false);
     }

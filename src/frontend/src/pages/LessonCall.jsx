@@ -19,7 +19,6 @@ export default function LessonCall() {
         // 2) dohvati JaaS JWT za taj room
         const t = await api.get(`/api/lessons/${lessonId}/jaas-token/`);
 
-
         setMeeting(t.data); // {appId, roomName, jwt}
       } catch (err) {
         setError(err.response?.data?.error ?? "Ne mogu otvoriti meeting");
@@ -42,7 +41,6 @@ export default function LessonCall() {
         }
       }
     } catch (err) {
-      console.error("Greška pri završetku lekcije", err);
       navigate("/home"); // fallback
     }
   };

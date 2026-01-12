@@ -108,7 +108,6 @@ export default function StudentEditPage() {
 
   // termini: [{ day, from:"HH:MM", to:"HH:MM" }]
   const [timeSlots, setTimeSlots] = useState([DEFAULT_SLOT]);
-  console.log(timeSlots);
   // ---------- modal helpers ----------
   const closeInstructorModal = () => {
     setIsInstructorModalOpen(false);
@@ -157,7 +156,6 @@ export default function StudentEditPage() {
         );
       }
     } catch (err) {
-      console.error(err);
       setInstructorDetailError("Ne mogu dohvatiti detalje instruktora.");
     } finally {
       setInstructorDetailLoading(false);
@@ -200,7 +198,6 @@ export default function StudentEditPage() {
         // ✅ koristi student endpoint
         const res = await api.get("/api/student/inf/");
         const data = res.data || {};
-        console.log(data);
         // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
         const full_name =
           data.full_name ||
@@ -294,11 +291,7 @@ export default function StudentEditPage() {
           : [];
 
         setFavoriteIds(favIds);
-      } catch (err) {
-        console.error("Ne mogu dohvatiti profil:", err);
-        console.error("STATUS:", err?.response?.status);
-        console.error("DATA:", err?.response?.data);
-      }
+      } catch (err) {}
     };
 
     fetchProfile();
@@ -321,7 +314,6 @@ export default function StudentEditPage() {
 
         setInstructors(list);
       } catch (err) {
-        console.error(err);
         setInstructorsError("Ne mogu dohvatiti instruktore.");
       } finally {
         setInstructorsLoading(false);
@@ -375,7 +367,6 @@ export default function StudentEditPage() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log(timeSlots);
     try {
       let profileImageUrl = null;
 
@@ -401,16 +392,6 @@ export default function StudentEditPage() {
         level: subjectLevels[subject] || null,
       })).filter((x) => x.level);
 
-      console.log({
-        school_level: schoolLevel || null,
-        grade: Number(formData.grade) || null,
-        learning_goals: formData.learning_goals,
-        preferred_times,
-        knowledge_level,
-        notifications_enabled: notificationsEnabled,
-        favorite_instructors: favoriteIds,
-      });
-
       await api.post("/api/student/me/", {
         school_level: schoolLevel || null,
         grade: Number(formData.grade) || null,
@@ -421,7 +402,6 @@ export default function StudentEditPage() {
         favorite_instructors: favoriteIds,
         ...(profileImageUrl && { profile_image_url: profileImageUrl }),
       });
-      console.log(avatarFile);
 
       if (
         schoolLevel &&
@@ -442,12 +422,6 @@ export default function StudentEditPage() {
 
       navigate("/home/student");
     } catch (err) {
-      console.error("STATUS:", err?.response?.status);
-      console.error("DATA:", err?.response?.data);
-      console.error("ERR:", err);
-      alert("Greška pri spremanju.");
-      console.error(err);
-      alert("Greška pri spremanju.");
     } finally {
       setLoading(false);
     }
