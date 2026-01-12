@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api";
-import JaasMeeting from "../components/JaasMeeting";
+import JaasMeeting from "../components/JaaSMeeting";
 
 export default function LessonCall() {
   const { lessonId } = useParams();
