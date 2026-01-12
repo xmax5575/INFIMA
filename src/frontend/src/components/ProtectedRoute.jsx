@@ -18,15 +18,16 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   useEffect(() => {
     let alive = true;
-
     const loadUserData = async () => {
       if (!token) {
         if (!alive) return;
         setRole(null);
         setIsProfileComplete(false);
         setLoading(false);
-        return;
+        return; 
       }
+
+    const roleRes = await api.get("/api/user/role/");
 
       try {
         // 1) rola

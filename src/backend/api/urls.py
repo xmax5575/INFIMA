@@ -26,4 +26,18 @@ urlpatterns = [
     path("lessons/reserve/", views.ReserveLessonView.as_view()),
     # Endpoint za cancel termmina za instrukcije
     path("lessons/cancel/", views.CancelLessonView.as_view())
+    
+    path("lessons/<int:lesson_id>/jitsi/", views.LessonJitsiRoomView.as_view()),
+
+    path("lessons/<int:lesson_id>/jaas-token/", views.LessonJaasTokenView.as_view()),
+
+    path("lessons/<int:lesson_id>/end/", views.EndLessonView.as_view(), name="lesson-end"),
+
+    path("payments/<int:lesson_id>/confirm/", views.ConfirmPaymentView.as_view(), name="payment-confirm"),
+
+    path("reviews/<int:lesson_id>/submit/", views.SubmitReviewView.as_view(), name="review-submit"),
+    # Endpoint za dohvacanje recenzija logiranog instruktora
+    path("instructor/reviews/my/",views.MyInstructorReviewsView.as_view(), name="my-instructor-reviews" ),
+    # Endpoint za dohvacanje recenzija po instruktor id
+    path("instructor/reviews/<int:pk>/", views.InstructorReviewsView.as_view(), name="instructor-reviews"),
 ]
