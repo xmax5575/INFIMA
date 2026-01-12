@@ -248,6 +248,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 JAAS_APP_ID = os.getenv("JAAS_APP_ID")
 JAAS_KID = os.getenv("JAAS_KID")
 
-JAAS_PRIVATE_KEY = (
-    BASE_DIR / "keys" / "jaas_private_key.pem"
-).read_text()
+if DEBUG:
+    JAAS_PRIVATE_KEY = (
+        BASE_DIR / "keys" / "jaas_private_key_dev.pem"
+    ).read_text()
+else:
+    PATH = os.getenv("JAAS_PRIVATE_KEY_PATH")
+    if PATH:
+        JAAS_PRIVATE_KEY = PATH.read_text()
