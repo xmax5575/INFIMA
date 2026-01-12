@@ -66,10 +66,7 @@ function Form({ route, method }) {
           navigate("/login");
         }
       }
-    } catch (err) {
-      console.error(err);
-      alert("Greška prilikom prijave ili registracije.");
-    }
+    } catch (err) {}
   };
 
   return (

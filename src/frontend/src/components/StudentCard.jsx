@@ -54,8 +54,6 @@ export default function StudentCard({
       } catch (e) {
         if (!alive) return;
         setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
-        console.error("STATUS:", e?.response?.status);
-        console.error("DATA:", e?.response?.data);
       } finally {
         if (alive) setLoading(false);
       }
@@ -69,13 +67,13 @@ export default function StudentCard({
   const u = student;
 
   const fullName = useMemo(() => getFullName(u), [u]);
-  const schoolLevel = u?.school_level?? null;
+  const schoolLevel = u?.school_level ?? null;
   const schoolLabel =
-  schoolLevel === "osnovna"
-    ? "Osnovna škola"
-    : schoolLevel === "srednja"
-    ? "Srednja škola"
-    : "";
+    schoolLevel === "osnovna"
+      ? "Osnovna škola"
+      : schoolLevel === "srednja"
+      ? "Srednja škola"
+      : "";
 
   const grade =
     u?.grade ?? u?.school_grade ?? u?.semester ?? u?.class_label ?? "—";
@@ -131,7 +129,8 @@ export default function StudentCard({
     if (!Array.isArray(raw)) return [];
     return raw
       .map((x) => {
-        if (typeof x === "number") return { id: x, full_name: `Instruktor #${x}` };
+        if (typeof x === "number")
+          return { id: x, full_name: `Instruktor #${x}` };
         return {
           id: x?.instructor_id ?? x?.id,
           full_name:
@@ -187,7 +186,8 @@ export default function StudentCard({
 
                 {/* Badge */}
                 <div className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white/70 border border-white/60 px-4 py-3 text-[#215993] font-bold">
-                  Obavijesti: {notificationsEnabled ? "UKLJUČENE" : "ISKLJUČENE"}
+                  Obavijesti:{" "}
+                  {notificationsEnabled ? "UKLJUČENE" : "ISKLJUČENE"}
                 </div>
               </div>
 
@@ -196,28 +196,30 @@ export default function StudentCard({
                   {fullName}
                 </h1>
                 <div className="mt-6">
-                      <div className="text-base sm:text-lg font-bold text-[#3674B5]/90">
-                        Ciljevi učenja
-                      </div>
+                  <div className="text-base sm:text-lg font-bold text-[#3674B5]/90">
+                    Ciljevi učenja
+                  </div>
 
-                      {goals.length ? (
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm sm:text-base text-[#3674B5]/90">
-                          {goals.slice(0, 12).map((g, i) => (
-                            <li key={i}>{g}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="mt-2 text-sm sm:text-base text-[#D1F8EF]/80">
-                          Učenik još nije definirao ciljeve učenja.
-                        </p>
-                      )}
-                    </div>
+                  {goals.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm sm:text-base text-[#3674B5]/90">
+                      {goals.slice(0, 12).map((g, i) => (
+                        <li key={i}>{g}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm sm:text-base text-[#D1F8EF]/80">
+                      Učenik još nije definirao ciljeve učenja.
+                    </p>
+                  )}
+                </div>
 
                 <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/60 px-4 py-1 text-sm font-semibold text-[#215993] border border-white/70 shadow-sm">
-    {schoolLabel && <span>{schoolLabel}</span>}
-    {schoolLabel && grade && <span className="opacity-50">•</span>}
-    {grade && <span>{grade}. razred</span>}
-  </div>
+                  {schoolLabel && <span>{schoolLabel}</span>}
+                  {schoolLabel && grade && (
+                    <span className="opacity-50">•</span>
+                  )}
+                  {grade && <span>{grade}. razred</span>}
+                </div>
               </div>
             </div>
 
@@ -240,7 +242,9 @@ export default function StudentCard({
                         key={`${s.name}-${i}`}
                         className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm sm:text-base"
                       >
-                        {s.level ? `${s.name} • ${levelLabel(s.level)}` : s.name}
+                        {s.level
+                          ? `${s.name} • ${levelLabel(s.level)}`
+                          : s.name}
                       </span>
                     ))}
                   </div>
@@ -305,8 +309,6 @@ export default function StudentCard({
                         </span>
                       )}
                     </div>
-
-                    
                   </div>
                 </div>
               </div>

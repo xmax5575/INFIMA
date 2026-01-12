@@ -69,10 +69,8 @@ export default function InstructorCard({
         setLoadingReviews(true);
 
         const res = await api.get(`/api/instructor/reviews/${instructor_id}/`);
-        console.log("Ovo su recenzije lucije kuzminski", res.data);
         setReviews(res.data);
       } catch (e) {
-        console.error("Reviews error:", e);
       } finally {
         setLoadingReviews(false);
       }
@@ -276,18 +274,18 @@ export default function InstructorCard({
               </div>
             </div>
             {videoUrl && (
-                <div className="mt-4 mb-3 flex justify-center">
-                  <video
-                    src={videoUrl}
-                    controls
-                    playsInline
-                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
-                  />
-                </div>
-              )}
+              <div className="mt-4 mb-3 flex justify-center">
+                <video
+                  src={videoUrl}
+                  controls
+                  playsInline
+                  className="w-full max-w-md rounded-2xl border border-white/40 shadow"
+                />
+              </div>
+            )}
           </div>
         </div>
-        
+
         {/* FOOTER: Uredi */}
         {canEdit && (
           <div className="mt-6">

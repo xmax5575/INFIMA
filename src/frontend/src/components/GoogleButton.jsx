@@ -19,7 +19,6 @@ function GoogleButton({ method }) {
         // Uspješan odgovor s backenda - spremamo JWT tokene u localStorage.
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        alert("Google prijava uspješna!");
 
         // Provjera uloge korisnika i navigate na potrebnu stranicu ovisno o ulozi.
         const roleResponse = await api.get("/api/user/role/", {
@@ -27,18 +26,13 @@ function GoogleButton({ method }) {
           withCredentials: true,
         });
         const role = roleResponse.data.role;
-        console.log("Google login — korisnička uloga:", role);
         if (role) {
           navigate(`/home/${role.toLowerCase()}`);
         } else {
           navigate("/role");
         }
-      } catch (err) {
-        console.error(err);
-        alert("Greška prilikom Google prijave/registracije: ", err);
-      }
+      } catch (err) {}
     },
-    onError: () => console.log("LOGIN FAILED"),
   });
   return (
     <button

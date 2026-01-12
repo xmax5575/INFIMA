@@ -11,7 +11,6 @@ export default function JaasMeeting({ appId, roomName, jwt, onMeetingEnd }) {
           if (node) node.style.height = "100%";
         }}
         onReadyToClose={() => {
-          console.log("Jitsi meeting završio");
           if (onMeetingEnd) {
             onMeetingEnd();
           }

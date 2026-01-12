@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api";
-import { ACCESS_TOKEN } from "../constants"; 
+import { ACCESS_TOKEN } from "../constants";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
@@ -55,13 +55,7 @@ function Role() {
         // Instruktori moraju na Edit zbog biografije
         navigate(`/profile/instructor/edit`, { replace: true });
       }
-    } catch (err) {
-      console.error(
-        "Greška pri postavljanju uloge:",
-        err?.response?.data || err
-      );
-      alert("Došlo je do pogreške prilikom postavljanja uloge.");
-    }
+    } catch (err) {}
   };
 
   return (
