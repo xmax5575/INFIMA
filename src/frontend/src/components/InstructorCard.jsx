@@ -43,7 +43,8 @@ export default function InstructorCard({
   const priceLabel =
     user?.price_label ?? (user?.price_eur != null ? `${user.price_eur}€` : "—");
 
-  const avatarUrl = user?.avatar || user?.profile_image || null;
+  const avatarUrl = user?.profile_image_url || null;
+  const videoUrl = user?.video_url || null;
 
   // calendar/lessons
   const lessons = Array.isArray(user?.calendar) ? user.calendar : [];
@@ -274,9 +275,19 @@ export default function InstructorCard({
                 </button>
               </div>
             </div>
+            {videoUrl && (
+                <div className="mt-4 mb-3 flex justify-center">
+                  <video
+                    src={videoUrl}
+                    controls
+                    playsInline
+                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
+                  />
+                </div>
+              )}
           </div>
         </div>
-
+        
         {/* FOOTER: Uredi */}
         {canEdit && (
           <div className="mt-6">

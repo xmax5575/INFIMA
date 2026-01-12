@@ -34,6 +34,17 @@ class LessonSerializer(serializers.ModelSerializer):
     instructor_display = serializers.SerializerMethodField(read_only=True)
     location = serializers.CharField(source="instructor_id.location", read_only=True)
     price = serializers.IntegerField(source="instructor_id.price", read_only=True)
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=Subject.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    subject_name = serializers.CharField(
+        source="subject.name",
+        read_only=True
+    )
 
     class Meta:
         model = Lesson
@@ -85,7 +96,8 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                   'location', 
                   'price', 
                   'subjects',
-                  'video_url'
+                  'video_url',
+                  'profile_image_url'
         ]
 
 
@@ -112,7 +124,8 @@ class StudentUpdateSerializer(serializers.ModelSerializer):
             'learning_goals', 
             'preferred_times', 
             'notifications_enabled',
-            'favorite_instructors'
+            'favorite_instructors',
+            'profile_image_url'
         ]
     #validacija school_level
     def validate_school_level(self, value):
@@ -218,6 +231,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             "subjects",
             "price_eur",
             "video_url",
+            "profile_image_url",
             "avg_rating",
             "reviews",
             "calendar",
@@ -274,7 +288,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "learning_goals",
             "preferred_times",
             "notifications_enabled",
-            "favorite_instructors"
+            "favorite_instructors",
+            "profile_image_url"
         ]
 
 

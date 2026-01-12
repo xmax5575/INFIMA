@@ -5,6 +5,7 @@ import api from "../api";
 import defaultAvatar from "../images/avatar.jpg";
 import { Heart } from "lucide-react";
 import InstructorCard from "../components/InstructorCard";
+import { supabase } from "../supabaseClient";
 
 // Dani
 const DAYS = [
@@ -27,7 +28,6 @@ const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
 const LEVELS = ["loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"];
 const DEFAULT_SLOT = { day: "Ponedjeljak", from: "08:00", to: "09:00" };
 
-
 // "HH:MM" -> minute
 const toMinutes = (t) => {
   if (!t) return null;
@@ -48,6 +48,20 @@ function parsePreferredRange(str) {
     from: match[2].padStart(5, "0"),
     to: match[3].padStart(5, "0"),
   };
+}
+
+async function uploadStudentAvatar(file) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `students/pictures/${fileName}`;
+
+  const { error } = await supabase.storage.from("media").upload(path, file);
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("media").getPublicUrl(path);
+
+  return data.publicUrl;
 }
 
 export default function StudentEditPage() {
@@ -93,8 +107,8 @@ export default function StudentEditPage() {
   }));
 
   // termini: [{ day, from:"HH:MM", to:"HH:MM" }]
-  const [timeSlots, setTimeSlots] = useState([ DEFAULT_SLOT]);
-console.log(timeSlots);
+  const [timeSlots, setTimeSlots] = useState([DEFAULT_SLOT]);
+  console.log(timeSlots);
   // ---------- modal helpers ----------
   const closeInstructorModal = () => {
     setIsInstructorModalOpen(false);
@@ -102,6 +116,8 @@ console.log(timeSlots);
     setInstructorDetailLoading(false);
     setInstructorDetailError("");
   };
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
 
   const openInstructorModal = async (ins) => {
     const id = ins?.id;
@@ -203,6 +219,10 @@ console.log(timeSlots);
         ) {
           setSchoolLevel(data.school_level);
         }
+        // 👇 AKO backend vraća profile_image_url
+        if (data.profile_image_url) {
+          setAvatarPreview(data.profile_image_url);
+        }
 
         // ✅ notifikacije
         setNotificationsEnabled(
@@ -236,9 +256,7 @@ console.log(timeSlots);
           })
           .filter(Boolean);
 
-        setTimeSlots(
-          parsedSlots.length ? parsedSlots : [DEFAULT_SLOT]
-        );
+        setTimeSlots(parsedSlots.length ? parsedSlots : [DEFAULT_SLOT]);
 
         // ✅ knowledge_level: [{subject, level}]
         const kl = Array.isArray(data.knowledge_level)
@@ -359,6 +377,12 @@ console.log(timeSlots);
     setLoading(true);
     console.log(timeSlots);
     try {
+      let profileImageUrl = null;
+
+      if (avatarFile) {
+        profileImageUrl = await uploadStudentAvatar(avatarFile);
+      }
+
       const preferred_times = timeSlots
         .filter((s) => s.day && s.from && s.to)
         .filter((s) => {
@@ -395,7 +419,9 @@ console.log(timeSlots);
         knowledge_level,
         notifications_enabled: notificationsEnabled,
         favorite_instructors: favoriteIds,
+        ...(profileImageUrl && { profile_image_url: profileImageUrl }),
       });
+      console.log(avatarFile);
 
       if (
         schoolLevel &&
@@ -405,8 +431,7 @@ console.log(timeSlots);
         knowledge_level.Fizika !== "" &&
         knowledge_level.Informatika !== "" &&
         preferred_times.length > 0
-      )
-      {
+      ) {
         localStorage.setItem("profile_saved_student", "1");
         window.dispatchEvent(
           new CustomEvent("profileUpdated", {
@@ -437,13 +462,34 @@ console.log(timeSlots);
           <div className="flex flex-col md:flex-row gap-8">
             {/* Avatar / škola ispod */}
             <div className="w-full md:w-1/3 flex flex-col items-center">
-              <div className="w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50 shadow-md">
-                <img
-                  src={defaultAvatar}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
-              </div>
+              <label htmlFor="avatarUpload" className="cursor-pointer">
+                <div className="relative group w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50">
+                  <img
+                    src={avatarPreview || defaultAvatar}
+                    alt="Avatar"
+                    className="w-56 h-56 rounded-3xl object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[500ms] bg-black/60">
+                    <span className="text-[#E8FCF7] font-bold text-lg text-center uppercase">
+                      {avatarPreview ? "Promijeni sliku" : "Klik za upload"}
+                    </span>
+                  </div>
+                </div>
+              </label>
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="avatarUpload"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+
+                  setAvatarFile(file); // 👈 ovo ide backendu
+                  setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
+                }}
+              />
 
               {/* Škola + Razred kartica */}
               <div className="w-full max-w-[224px] mt-6 rounded-2xl bg-white/50 border border-white/60 p-4 shadow-sm">
@@ -708,7 +754,6 @@ console.log(timeSlots);
                     aria-pressed={notificationsEnabled}
                     aria-label="Uključi/Isključi obavijesti"
                   >
-
                     {/* Klizač (thumb) */}
                     <span
                       className={
