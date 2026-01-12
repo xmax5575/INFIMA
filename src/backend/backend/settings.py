@@ -255,4 +255,4 @@ if DEBUG:
 else:
     PATH = os.getenv("JAAS_PRIVATE_KEY_PATH")
     if PATH:
-        JAAS_PRIVATE_KEY = PATH.read_text()
+        JAAS_PRIVATE_KEY = Path(PATH).read_text()
