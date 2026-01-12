@@ -250,7 +250,7 @@ JAAS_KID = os.getenv("JAAS_KID")
 
 if DEBUG:
     JAAS_PRIVATE_KEY = (
-        BASE_DIR / "keys" / "jaas_private_key_dev.pem"
+        BASE_DIR / "keys" / "jaas_private_key.pem"
     ).read_text()
 else:
     PATH = os.getenv("JAAS_PRIVATE_KEY_PATH")
