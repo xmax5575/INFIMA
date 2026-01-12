@@ -185,10 +185,9 @@ class ReviewMiniSerializer(serializers.ModelSerializer):
         fields = ["id", "student_name", "rating", "description"]
 
     def get_student_name(self, obj):
-        if obj.student:
-            first = obj.student.first_name or ""
-            last = obj.student.last_name or ""
-            name = f"{first} {last}".strip()
+        if obj.student and obj.student.student_id:
+            u = obj.student.student_id
+            name = f"{u.first_name} {u.last_name}".strip()
             return name if name else "Anonimno"
         return "Anonimno"
 
@@ -305,3 +304,19 @@ class InstructorListSerializer(serializers.ModelSerializer):
 
 class AttendanceCreateSerializer(serializers.Serializer):
     lesson_id = serializers.IntegerField()
+
+
+class InstructorReviewSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source="student.student_id_id", read_only=True)
+    student_first_name = serializers.CharField(source="student.student_id.first_name", read_only=True)
+    student_last_name = serializers.CharField(source="student.student_id.last_name", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "rating",
+            "description",
+            "student_id",
+            "student_first_name",
+            "student_last_name",
+        ]

@@ -5,6 +5,7 @@ import api from "../api";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import LogoLoader from "./LogoBulbProgress";
 import LogoBulbProgress from "./LogoBulbProgress";
+import { useNavigate } from "react-router-dom";
 
 /* Helperi */
 function initials(name) {
@@ -41,6 +42,7 @@ export default function TerminCard({
   role,
   canReserve,
   reserved,
+  onClick, // Added to props as it's used in the JSX below
 }) {
   console.log(termin);
   const {
@@ -55,8 +57,14 @@ export default function TerminCard({
     instructor_display,
     instructor_id,
     lesson_id,
-    subject
+    subject,
   } = termin || {};
+
+  const navigate = useNavigate();
+
+  const goToMeeting = () => {
+    navigate(`/lesson/${lesson_id}/call`);
+  };
 
   const [showInstructor, setShowInstructor] = useState(false);
   const [instructorProfile, setInstructorProfile] = useState(null);
@@ -84,13 +92,13 @@ export default function TerminCard({
     }
   };
 
-  // Toggle funkcija za prikazivanje instruktora
   const toggleInstructor = () => {
     if (!showInstructor && instructor_id) {
       fetchInstructorData(instructor_id);
     }
     setShowInstructor((v) => !v);
   };
+
   return (
     <>
       <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
@@ -123,7 +131,7 @@ export default function TerminCard({
         </div>
 
         {/* TAGOVI */}
-        <div className="mt-7 flex flex-wrap gap-2 text-lg justify-start">
+        <div className="mt-5 flex flex-wrap gap-2 text-lg justify-start">
           <span className="px-5 py-3 rounded-full bg-white/70 ring-1 lowercase first-letter:uppercase">
             {level ?? "Razina"}
           </span>
@@ -144,7 +152,7 @@ export default function TerminCard({
         </div>
 
         {/* DATUM / LOKACIJA */}
-        <div className="mt-7 text-xl underline underline-offset-2 font-bold">
+        <div className="mt-5 text-xl underline underline-offset-2 font-bold">
           <div>{when}</div>
 
           {location && format !== "Online" && (
@@ -157,18 +165,18 @@ export default function TerminCard({
 
         {/* MAPA */}
         {location && format !== "Online" && (
-          <div className="mt-7 h-48 w-full rounded-xl overflow-hidden ring-1">
+          <div className="mt-5 h-48 w-full rounded-xl overflow-hidden ring-1">
             <GoogleMapEmbed location={location} />
           </div>
         )}
 
-        {/* ACTIONS – OVDJE SE KORISTI lesson_id */}
+        {/* ACTIONS */}
         {role === "student" && (
-          <div className="mt-7 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3">
             {reserved && (
               <button
-                onClick={() => onReserveOrCancel(termin.lesson_id)}
-                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out"
+                onClick={() => onReserveOrCancel(lesson_id)}
+                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out ring-1"
               >
                 Otkaži
               </button>
@@ -176,13 +184,41 @@ export default function TerminCard({
 
             {canReserve && !reserved && (
               <button
-                onClick={() => onReserveOrCancel(termin.lesson_id)}
-                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out"
+                onClick={() => onReserveOrCancel(lesson_id)}
+                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out ring-1"
               >
                 Rezerviraj
               </button>
             )}
+
+            {/* Premješteno unutar istog flex div-a */}
+            {reserved && format === "Online" && (
+              <button
+                onClick={goToMeeting}
+                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+              >
+                Uđi u meeting
+              </button>
+            )}
           </div>
+        )}
+
+        {role === "instructor" && (
+          <button
+            onClick={goToMeeting}
+            className="px-4 py-2 bg-green-700 text-white rounded-xl mt-4"
+          >
+            Pokreni meeting
+          </button>
+        )}
+
+        {role !== "student" && (
+          <button
+            onClick={onClick}
+            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl mt-4 ml-2"
+          >
+            Detalji termina
+          </button>
         )}
       </article>
 

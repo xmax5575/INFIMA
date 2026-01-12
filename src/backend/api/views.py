@@ -2,17 +2,18 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.conf import settings
 import requests
 import jwt
+import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
@@ -561,3 +562,262 @@ class CancelLessonView(APIView):
              "lesson_id": lesson_id},
             status=status.HTTP_200_OK
         )
+
+class LessonJitsiRoomView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # 👨‍🏫 INSTRUKTOR
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+            if not lesson.jitsi_room:
+                lesson.jitsi_room = f"infima-{lesson.lesson_id}-{uuid.uuid4().hex[:8]}"
+                lesson.save(update_fields=["jitsi_room"])
+
+            return Response({"room": lesson.jitsi_room})
+
+        # 👨‍🎓 STUDENT
+        if user.role == User.Role.STUDENT:
+            student = getattr(user, "student", None)
+
+            if not Attendance.objects.filter(
+                lesson=lesson,
+                student=student
+            ).exists():
+                return Response({"error": "Forbidden"}, status=403)
+
+            if not lesson.jitsi_room:
+                return Response(
+                    {"error": "Meeting not started yet"},
+                    status=400
+                )
+
+            return Response({"room": lesson.jitsi_room})
+
+        return Response({"error": "Forbidden"}, status=403)
+    
+
+
+class LessonJaasTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # room mora postojati (instruktor “starta” meeting)
+        if not lesson.jitsi_room:
+            return Response({"error": "Meeting not started yet"}, status=400)
+
+        # instr. smije ako je njegov
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+        # student smije ako ima Attendance
+        elif user.role == User.Role.STUDENT:
+            student = getattr(user, "student", None)
+            if not Attendance.objects.filter(lesson=lesson, student=student).exists():
+                return Response({"error": "Forbidden"}, status=403)
+        else:
+            return Response({"error": "Forbidden"}, status=403)
+
+        room_name = lesson.jitsi_room
+        now = int(time.time())
+
+        payload = {
+            "aud": "jitsi",
+            "iss": "chat",
+            "sub": settings.JAAS_APP_ID,
+            "room": room_name,
+            "exp": now + 60 * 60,
+            "nbf": now - 10,
+            "context": {
+                "user": {
+                    "id": str(user.id),
+                    "name": f"{user.first_name} {user.last_name}".strip() or user.email,
+                    "email": user.email,
+                    # moderator true samo za instruktora (ako želiš)
+                    "moderator": "true" if user.role == User.Role.INSTRUCTOR else "false",
+                }
+            },
+        }
+
+        token = jwt.encode(
+            payload,
+            settings.JAAS_PRIVATE_KEY,
+            algorithm="RS256",
+            headers={"kid": settings.JAAS_KID, "typ": "JWT"},
+        )
+
+        return Response({
+            "appId": settings.JAAS_APP_ID,
+            "roomName": room_name,
+            "jwt": token,
+        })
+
+class EndLessonView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # instruktor završava meeting
+        if user.role == User.Role.INSTRUCTOR:
+            if lesson.instructor_id.instructor_id != user:
+                return Response({"error": "Forbidden"}, status=403)
+
+            return Response({
+                "redirect_to": "/home/instructor"
+            })
+
+        # student ide na payment
+        if user.role == User.Role.STUDENT:
+            return Response({
+                "redirect_to": f"/payment/{lesson.lesson_id}"
+            })
+
+        return Response({"error": "Invalid role"}, status=400)
+
+class SubmitReviewView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        if user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can review"}, status=403)
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        student = user.student
+        instructor = lesson.instructor_id
+
+        Review.objects.create(
+            instructor=instructor,
+            student=student,
+            rating=request.data.get("rating"),
+            description=request.data.get("description", "")
+        )
+        
+        lesson.status = Lesson.Status.EXPIRED
+        lesson.is_available = False
+        lesson.save(update_fields=["status", "is_available"])
+
+        return Response({
+            "redirect_to": "/home/student"
+        })
+
+import stripe
+from django.conf import settings
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+class ConfirmPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        if user.role != User.Role.STUDENT:
+            return Response({"error": "Only students can pay"}, status=403)
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        amount = lesson.price * 100 if lesson.price else 1000  # centi
+
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            mode="payment",
+            customer_email=user.email,
+            line_items=[{
+                "price_data": {
+                    "currency": "eur",
+                    "product_data": {
+                        "name": f"Instrukcije – {lesson.subject.name if lesson.subject else 'Lekcija'}"
+                    },
+                    "unit_amount": amount,
+                },
+                "quantity": 1,
+            }],
+            success_url=f"{settings.FRONTEND_URL}/review/{lesson.lesson_id}",
+            cancel_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}",
+            metadata={
+                "lesson_id": lesson.lesson_id,
+                "student_id": user.id,
+            }
+        )
+
+        return Response({
+            "checkout_url": session.url
+        })
+
+class MyInstructorReviewsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # provjera da je user instruktor
+        try:
+            instructor = Instructor.objects.get(instructor_id=user)
+        except Instructor.DoesNotExist:
+            return Response(
+                {"error": "Instruktor profil nije pronađen."},
+                status=404
+            )
+
+        reviews = (
+            Review.objects
+            .filter(instructor=instructor)
+            .select_related("student", "student__student_id")
+            .order_by("-id")
+        )
+
+        serializer = InstructorReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+    
+class InstructorReviewsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+
+        try:
+            Instructor.objects.get(instructor_id=pk)
+        except Instructor.DoesNotExist:
+            return Response({"error": "Instruktor nije pronađen."}, status=404)
+
+        reviews = (
+            Review.objects
+            .filter(instructor_id=pk)
+            .select_related("student", "student__student_id")
+            .order_by("-id")
+        )
+
+        serializer = InstructorReviewSerializer(reviews, many=True, context={"request": request})
+        return Response(serializer.data)
