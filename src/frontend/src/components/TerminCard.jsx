@@ -208,15 +208,6 @@ export default function TerminCard({
             Pokreni meeting
           </button>
         )}
-
-        {role !== "student" && (
-          <button
-            onClick={onClick}
-            className="px-4 py-2 bg-[#3674B5] text-white rounded-xl mt-4 ml-2"
-          >
-            Detalji termina
-          </button>
-        )}
       </article>
 
       {/* MODAL: INSTRUKTOR */}
