@@ -289,3 +289,19 @@ class InstructorListSerializer(serializers.ModelSerializer):
 
 class AttendanceCreateSerializer(serializers.Serializer):
     lesson_id = serializers.IntegerField()
+
+
+class InstructorReviewSerializer(serializers.ModelSerializer):
+    student_id = serializers.IntegerField(source="student.student_id_id", read_only=True)
+    student_first_name = serializers.CharField(source="student.student_id.first_name", read_only=True)
+    student_last_name = serializers.CharField(source="student.student_id.last_name", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = [
+            "rating",
+            "description",
+            "student_id",
+            "student_first_name",
+            "student_last_name",
+        ]

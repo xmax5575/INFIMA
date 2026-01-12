@@ -34,4 +34,8 @@ urlpatterns = [
     path("payments/<int:lesson_id>/confirm/", views.ConfirmPaymentView.as_view(), name="payment-confirm"),
 
     path("reviews/<int:lesson_id>/submit/", views.SubmitReviewView.as_view(), name="review-submit"),
+    # Endpoint za dohvacanje recenzija logiranog instruktora
+    path("instructor/reviews/my/",views.MyInstructorReviewsView.as_view(), name="my-instructor-reviews" ),
+    # Endpoint za dohvacanje recenzija po instruktor id
+    path("instructor/reviews/<int:pk>/", views.InstructorReviewsView.as_view(), name="instructor-reviews"),
 ]
