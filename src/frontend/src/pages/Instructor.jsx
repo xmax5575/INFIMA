@@ -47,12 +47,10 @@ function Instructor() {
         // Ako odgovor s backenda nije dobar ispiši grešku
         if (!res.ok) {
           const txt = await res.text();
-          console.error("Greška:", res.status, txt);
           setErr(`Greška ${res.status}`);
           return;
         }
         const data = await res.json();
-        console.log("Sve lekcije:", data);
 
         // Filter termina samo od prijavljenog instruktora
         const mine =
@@ -61,11 +59,8 @@ function Instructor() {
                 (l) => String(l.instructor_id) === String(user.instructor_id)
               )
             : data; // dok profil ne stigne, možeš privremeno prikazati sve ili prazno
-
-        console.log("Moji termini:", mine);
         setTermini(mine);
       } catch (e) {
-        console.error("Network/parse error:", e);
         setErr("Mrežna greška");
       } finally {
         setLoading(false);
@@ -86,13 +81,7 @@ function Instructor() {
         <ul className="mt-4 space-y-3">
           {termini.map((t) => (
             <li key={t.lesson_id ?? t.id}>
-              <TerminCard
-                termin={t}
-                onClick={() => {
-                  console.log("Otvoren termin:", t);
-                }}
-                role="instructor"
-              />
+              <TerminCard termin={t} role="instructor" />
             </li>
           ))}
 

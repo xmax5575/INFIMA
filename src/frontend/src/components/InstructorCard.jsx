@@ -3,6 +3,8 @@ import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import defaultAvatar from "../images/avatar.jpg";
 import GoogleMapEmbed from "./GoogleMapEmbed";
+import api from "../api";
+import { useState, useEffect } from "react";
 
 function getFullName(user) {
   return (
@@ -22,6 +24,9 @@ export default function InstructorCard({
 
   const bio = user?.bio || "Ovdje ide biografija instruktora.";
   const location = user?.location || "—";
+  const instructor_id = user?.id || null;
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
 
   // subjects dolaze kao objekti -> pretvori u array stringova (name)
   const subjectsRaw = user?.subjects ?? [];
@@ -31,7 +36,7 @@ export default function InstructorCard({
         .filter(Boolean)
     : [];
 
-  const ratingRaw = user?.rating ?? user?.avg_rating ?? "—";
+  const ratingRaw = user?.avg_rating ?? "-";
   const rating = String(ratingRaw).replace(".", ",");
 
   // cijena kod tebe: price_eur
@@ -55,6 +60,43 @@ export default function InstructorCard({
         : "Uživo";
 
     return `${d} ${t} • ${place}`;
+  };
+  useEffect(() => {
+    if (!instructor_id) return;
+
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+
+        const res = await api.get(`/api/instructor/reviews/${instructor_id}/`);
+        setReviews(res.data);
+      } catch (e) {
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    fetchReviews();
+  }, [instructor_id]);
+
+  const renderStars = (rating) => {
+    const maxStars = 5;
+    const rounded = Math.round(rating);
+
+    return (
+      <div className="flex gap-0.5">
+        {Array.from({ length: maxStars }).map((_, i) => (
+          <Star
+            key={i}
+            className={`h-4 w-4 ${
+              i < rounded
+                ? "text-[#3674B5] fill-[#3674B5]"
+                : "text-[#3674B5]/30"
+            }`}
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -138,24 +180,60 @@ export default function InstructorCard({
             </div>
 
             {/* Recenzije */}
-            <div className="mt-5 rounded-2xl bg-white p-5">
-              <div className="flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
-                  <Star className="h-6 w-6 text-[#D1F8EF] fill-[#D1F8EF]" />
-                </div>
-
-                <div className="text-[#3674B5] text-3xl font-semibold">
-                  {rating}
-                </div>
-
-                <div className="text-[#3674B5] text-lg sm:text-xl font-semibold">
-                  Recenzije
+            <div className="mt-5 rounded-2xl bg-white p-0 h-[240px] flex flex-col overflow-hidden">
+              {/* HEADER – FIXED */}
+              <div className="sticky top-0 z-10 bg-white px-5 pt-5 pb-4 border-b border-[#3674B5]/10">
+                <div className="flex items-center gap-3">
+                  <div className="text-[#3674B5] text-3xl font-semibold">
+                    {rating}
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
+                    <Star className="h-6 w-6 text-[#D1F8EF] fill-[#D1F8EF]" />
+                  </div>
                 </div>
               </div>
 
-              <p className="mt-3 text-[#3674B5]/60 text-sm sm:text-base">
-                (Kasnije će ovdje biti popis korisničkih recenzija)
-              </p>
+              {/* BODY – SCROLL */}
+              <div className="flex-1 overflow-y-auto px-5 pb-5">
+                {loadingReviews && (
+                  <p className="mt-3 text-[#3674B5]/60 text-sm">
+                    Učitavanje recenzija...
+                  </p>
+                )}
+
+                {!loadingReviews && reviews.length === 0 && (
+                  <p className="mt-3 text-[#3674B5]/60 text-sm">
+                    Još nema recenzija
+                  </p>
+                )}
+
+                {!loadingReviews && reviews.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {reviews.slice(0, 5).map((r, index) => (
+                      <div
+                        key={index}
+                        className="rounded-xl border border-[#3674B5]/10 p-4 bg-white"
+                      >
+                        {/* GORNJI RED */}
+                        <div className="flex items-center justify-between">
+                          {renderStars(r.rating)}
+
+                          <span className="text-sm font-semibold text-[#3674B5]">
+                            {r.student_first_name || "Korisnik"}
+                          </span>
+                        </div>
+
+                        {/* OPIS */}
+                        {r.description && (
+                          <p className="mt-2 text-sm text-[#3674B5]/80 leading-snug">
+                            {r.description}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -196,18 +274,18 @@ export default function InstructorCard({
               </div>
             </div>
             {videoUrl && (
-                <div className="mt-4 mb-3 flex justify-center">
-                  <video
-                    src={videoUrl}
-                    controls
-                    playsInline
-                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
-                  />
-                </div>
-              )}
+              <div className="mt-4 mb-3 flex justify-center">
+                <video
+                  src={videoUrl}
+                  controls
+                  playsInline
+                  className="w-full max-w-md rounded-2xl border border-white/40 shadow"
+                />
+              </div>
+            )}
           </div>
         </div>
-        
+
         {/* FOOTER: Uredi */}
         {canEdit && (
           <div className="mt-6">

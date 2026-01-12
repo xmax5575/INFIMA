@@ -48,7 +48,6 @@ function Student() {
         // Ako ne možemo dohvatiti termine postavi error poruku.
         if (!res.ok) {
           const txt = await res.text();
-          console.error("Greška /api/lessons/:", res.status, txt);
           if (res.status === 401) {
             setErr("Nisi prijavljen/a (401). Ulogiraj se pa pokušaj ponovno.");
           } else {
@@ -62,15 +61,9 @@ function Student() {
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
 
-        // DEBUG: pokaži kako izgleda jedan zapis
-        if (list.length) {
-          console.log("Primjer lekcije:", list[0]);
-          console.log("Ključevi:", Object.keys(list[0] || {}));
-        }
         // Spremi listu termina.
         setTermini(list);
       } catch (e) {
-        console.error("Network/parse error:", e);
         setErr("Mrežna greška. Provjeri backend ili konekciju.");
         setTermini([]);
       } finally {
@@ -93,9 +86,7 @@ function Student() {
 
         const data = await res.json();
         setMyTermini(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
     };
 
     loadMine();
@@ -123,23 +114,17 @@ function Student() {
 
       if (isReserved) {
         setMyTermini((prev) => prev.filter((t) => t.lesson_id !== lesson_id));
-        alert("Rezervacija otkazana");
       } else {
         const reservedTermin = termini.find((t) => t.lesson_id === lesson_id);
         setMyTermini((prev) =>
           reservedTermin ? [...prev, reservedTermin] : prev
         );
-        alert("Termin uspješno rezerviran ✅");
       }
-    } catch (err) {
-      console.error(err);
-      alert("Greška pri rezervaciji ❌");
-    }
+    } catch (err) {}
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
   const applyFilters = () => {
-    console.log("Primijenjeni filteri:", filters);
     setShowFilters(false);
   };
 
@@ -179,15 +164,12 @@ function Student() {
   };
   const sortedTermini = [...filteredTermini].sort((a, b) => {
     if (!sortBy) return 0;
-    console.log(a);
 
     const aDate = new Date(`${a.date}T${a.time}`);
     const bDate = new Date(`${b.date}T${b.time}`);
 
     const priceA = (parseFloat(a.price) * a.duration_min) / 60;
     const priceB = (parseFloat(b.price) * b.duration_min) / 60;
-
-    console.log("Prices are", priceA, priceB);
 
     const ratingA = parseFloat(a.teacher_rating);
     const ratingB = parseFloat(b.teacher_rating);

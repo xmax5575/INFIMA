@@ -13,7 +13,6 @@ function TerminForm({ onCreated, onClose }) {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [validationError, setValidationError] = useState(null);
-  
 
   // Provjeramo je li korisnik prijavljen i ako je dohvaćamo podatke o njemu
   useEffect(() => {
@@ -82,8 +81,6 @@ function TerminForm({ onCreated, onClose }) {
       level: levelMapped, // "OSNOVNA" | "SREDNJA".
       // is_available: true,     // default.
     };
-    console.log("Postavljen je termin: ", payload);
-
 
     try {
       const res = await api.post("/api/lessons/", payload, {

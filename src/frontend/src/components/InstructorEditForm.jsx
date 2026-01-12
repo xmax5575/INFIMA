@@ -80,12 +80,7 @@ export default function InstructorEditForm() {
           ? inf.subjects.map((s) => s.name).filter(Boolean)
           : [];
         setSubjects(subjectNames);
-      } catch (err) {
-        console.error(
-          "Greška pri dohvaćanju za edit:",
-          err?.response?.data || err
-        );
-      }
+      } catch (err) {}
     };
 
     load();
@@ -137,9 +132,7 @@ export default function InstructorEditForm() {
       }
 
       navigate("/home/instructor");
-    } catch (err) {
-      console.error("Greška pri spremanju:", err?.response?.data || err);
-    }
+    } catch (err) {}
   };
 
   const handleCancel = () => navigate("/home/instructor");
@@ -222,7 +215,6 @@ export default function InstructorEditForm() {
 
                     // opcionalna validacija
                     if (file.size > 50 * 1024 * 1024) {
-                      alert("Max 50MB");
                       return;
                     }
 

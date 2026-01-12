@@ -46,7 +46,12 @@ function Header() {
       const token = localStorage.getItem(ACCESS_TOKEN);
       const looksLikeJwt = token && token.split(".").length === 3;
 
-      if (!token || token === "null" || token === "undefined" || !looksLikeJwt) {
+      if (
+        !token ||
+        token === "null" ||
+        token === "undefined" ||
+        !looksLikeJwt
+      ) {
         setUser(null);
         setInstructor(null);
         return;
@@ -82,11 +87,6 @@ function Header() {
         setInstructor(null);
       }
     } catch (err) {
-      console.log(
-        "GET /api/instructor/inf/ error:",
-        err?.response?.status,
-        err?.response?.data || err
-      );
       setInstructor(null);
     } finally {
       setShowProfile(true);
@@ -179,7 +179,7 @@ function Header() {
                 // merge: user (ime/role) + instructor (bio/price/subjects...)
                 user={{ ...user, ...(instructor || {}) }}
                 canEdit={true}
-                editTo = {`/profile/${user.role.toLowerCase()}/edit`}
+                editTo={`/profile/${user.role.toLowerCase()}/edit`}
                 onClose={() => setShowProfile(false)}
               />
             ) : (
