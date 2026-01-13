@@ -256,3 +256,6 @@ else:
     PATH = os.getenv("JAAS_PRIVATE_KEY_PATH")
     if PATH:
         JAAS_PRIVATE_KEY = Path(PATH).read_text()
+
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL")
