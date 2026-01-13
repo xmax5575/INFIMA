@@ -44,4 +44,6 @@ urlpatterns = [
     path("termin/delete/<int:lesson_id>/", views.LessonDeleteView.as_view(), name="termin-delete"),
 
     path("instructor/questions/upload/", views.InstructorQuestionUploadView.as_view(), name="instructor-question-upload"),
+
+    path("student/quiz/<str:subject_name>/", views.StudentQuizView.as_view(), name="student-quiz"),
 ]
