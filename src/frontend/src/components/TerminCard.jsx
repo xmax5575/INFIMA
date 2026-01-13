@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Trash2 } from "lucide-react";
 import InstructorCard from "./InstructorCard";
 import api from "../api";
 import GoogleMapEmbed from "./GoogleMapEmbed";
@@ -41,7 +41,7 @@ export default function TerminCard({
   role,
   canReserve,
   reserved,
-  onClick, // Added to props as it's used in the JSX below
+  onTerminDelete,
 }) {
   const {
     level,
@@ -100,9 +100,9 @@ export default function TerminCard({
 
   return (
     <>
-      <article className={`rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[300ms] ease-in-out cursor-pointer
-        ${reserved ? "ring-[5px] ring-[#3674B5] ring-inset" : "ring-0"}
-        `}>
+      <article
+        className={`group rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[350ms] ease-in-out`}
+      >
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3">
           <div className="flex items-center gap-3">
@@ -172,44 +172,56 @@ export default function TerminCard({
         )}
 
         {/* ACTIONS */}
-        {role === "student" && ((reserved && format === "Online") || !expired) && (
-          <div className="mt-5 flex items-center gap-3">
-            {reserved && !expired && (
-              <button
-                onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Otkaži
-              </button>
-            )}
+        {role === "student" &&
+          ((reserved && format === "Online") || !expired) && (
+            <div className="mt-5 flex items-center gap-3">
+              {reserved && !expired && (
+                <button
+                  onClick={() => onReserveOrCancel(lesson_id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[350ms] ease-in-out ring-1"
+                >
+                  Otkaži
+                </button>
+              )}
 
-            {canReserve && !reserved && !expired && (
-              <button
-                onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Rezerviraj
-              </button>
-            )}
+              {canReserve && !reserved && !expired && (
+                <button
+                  onClick={() => onReserveOrCancel(lesson_id)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[350ms] ease-in-out ring-1"
+                >
+                  Rezerviraj
+                </button>
+              )}
 
-            {/* Premješteno unutar istog flex div-a */}
-            {reserved && format === "Online" && (
-              <button
-                onClick={goToMeeting}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Uđi u meeting
-              </button>
-            )}
-          </div>
-        )}
+              {/* Premješteno unutar istog flex div-a */}
+              {reserved && format === "Online" && (
+                <button
+                  onClick={goToMeeting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[350ms] ease-in-out ring-1"
+                >
+                  Uđi u meeting
+                </button>
+              )}
+            </div>
+          )}
 
         {role === "instructor" && format === "Online" && (
           <button
             onClick={goToMeeting}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1 mt-5"
+            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[350ms] ease-in-out ring-1 mt-5"
           >
             Pokreni meeting
+          </button>
+        )}
+
+        {/* DELETE IKONA ZA INSTRUKTORA */}
+        {role === "instructor" && (
+          <button
+            onClick={() => onTerminDelete(lesson_id)}
+            className="px-3 py-3 absolute bottom-3 right-5 text-red-600 hover:bg-red-200 rounded-full 
+            transition-all duration-[350ms] ease-in-out opacity-0 group-hover:opacity-100"
+          >
+            <Trash2 className="w-7 h-7" />
           </button>
         )}
       </article>

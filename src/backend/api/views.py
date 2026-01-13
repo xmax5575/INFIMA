@@ -246,6 +246,20 @@ class LessonListCreateView(generics.ListCreateAPIView):
             raise serializers.ValidationError("Instructor profil nije pronađen za ovog korisnika.")
         serializer.save(instructor_id=instructor)
 
+class LessonDeleteView(generics.DestroyAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'lesson_id'
+
+    def get_queryset(self):
+        user = self.request.user
+        # Osiguravamo da instruktor može obrisati samo svoje lekcije
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+        if user.is_superuser:
+            return Lesson.objects.all()
+        return Lesson.objects.none()
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LessonSerializer
