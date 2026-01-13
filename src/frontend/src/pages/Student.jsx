@@ -131,6 +131,17 @@ function Student() {
   const filteredTermini =
     tab === "all"
       ? termini.filter((t) => {
+          const now = new Date();
+          const lessonDateTime = new Date(`${t.date}T${t.time}`);
+          const isMyLesson = myLessonIds.has(t.lesson_id);
+
+          if (isMyLesson) {
+            const limit = new Date(lessonDateTime.getTime() + 15 * 60000);
+            if (now > limit) return false;
+          } else {
+            if (now > lessonDateTime) return false;
+          }
+          
           if (filters.format && t.format !== filters.format) return false;
 
           /*KAD FABO NAPRAVI OVO CE RADIT*/

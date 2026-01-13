@@ -17,6 +17,7 @@ from .models import Lesson, Instructor, Student, Attendance, Review, Payment
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
+from datetime import timedelta
 
 
 User = get_user_model()
@@ -24,15 +25,18 @@ User = get_user_model()
 def expire_lessons():
     now = timezone.localtime()
     today = now.date()
-    now_time = now.time()
+
+    threshold_date_time = now - timedelta(minutes=15)
+    threshold_time = threshold_date_time.time()
+    threshold_date = threshold_date_time.date()
 
     expired_lessons = Lesson.objects.filter(
         status="ACTIVE",  
-        date__lt=today,  
+        date__lt=threshold_date,  
     ) | Lesson.objects.filter(
         status="ACTIVE",  
         date=today,  
-        time__lt=now_time  
+        time__lt=threshold_time
     )
     
     expired_lessons.update(status="EXPIRED", is_available=False)
