@@ -88,7 +88,7 @@ export default function QuizBuilder() {
       questions,
     };
 
-    console.log("SPREMANJE KVIZA:", payload);
+    console.log("SPREMANJE PITANJA:", payload);
   };
 
   const updateQuestion = (id, updated) => {
@@ -106,6 +106,8 @@ export default function QuizBuilder() {
       <h1 className="text-center text-3xl font-semibold text-[#215993]">
         Dodaj pitanja
       </h1>
+      <h2 className="text-center text-[#215993]">Pomozite učenicima da bolje nauče gradivo i dodajte pitanja u bazu</h2>
+      
       <div className="w-full max-w-sm mx-auto rounded-2xl bg-white/70 p-6 space-y-3 flex flex-col items-center">
         <label className="block text-sm font-semibold text-[#3674B5]">
           Predmet
