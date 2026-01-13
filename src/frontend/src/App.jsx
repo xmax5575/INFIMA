@@ -123,10 +123,6 @@ function App() {
               }
             />
 
-            <Route path="/quiz" element={
-              <ProtectedRoute allowedRoles={["INSTRUCTOR"]}><QuizBuilder /></ProtectedRoute>
-              }
-               />
 
         </Routes>
       </BrowserRouter>
