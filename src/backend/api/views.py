@@ -61,8 +61,6 @@ from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests, jwt, uuid
-
-from django.contrib.auth.models import User
 from api.models import Instructor
 
 
