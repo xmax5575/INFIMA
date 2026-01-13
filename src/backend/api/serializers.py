@@ -380,3 +380,24 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class QuestionBulkSerializer(serializers.Serializer):
     questions = QuestionSerializer(many=True)
+
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        read_only=True
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "subject",
+            "school_level",
+            "grade",
+            "difficulty",
+            "type",
+            "text",
+            "points",
+            "options",
+            "correct_answer",
+        ]

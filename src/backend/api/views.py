@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -853,3 +853,49 @@ class InstructorQuestionUploadView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+
+# preslikavanje knowledge_level -> difficulty
+KNOWLEDGE_TO_DIFFICULTY = {
+    "loša": "jako lagano",
+    "dovoljna": "lagano",
+    "dobra": "srednje",
+    "vrlo_dobra": "teško",
+    "odlična": "jako teško",
+}
+
+class StudentQuizView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, subject_name: str):
+        if request.user.role != "STUDENT":
+            return Response({"error": "Only students can access this endpoint"}, status=403)
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        grade = student.grade
+        school_level = student.school_level
+
+        # filtriramo knowledge_level za taj predmet
+        questions_to_return = []
+        for kl in student.knowledge_level:
+            if kl.get("subject").lower() != subject_name.lower():
+                continue  # preskoči ako nije traženi predmet
+
+            level = kl.get("level")
+            difficulty = KNOWLEDGE_TO_DIFFICULTY.get(level.lower())
+            if not difficulty:
+                continue
+
+            subject_questions = Question.objects.filter(
+                subject__name__iexact=subject_name,
+                grade=grade,
+                school_level=school_level,
+                difficulty=difficulty
+            )
+            questions_to_return.extend(subject_questions)
+
+        serializer = StudentQuestionSerializer(questions_to_return, many=True)
+        return Response(serializer.data)
