@@ -12,7 +12,8 @@ export default function RecenzijaForm() {
   const navigate = useNavigate();
 
 
-  const submitReview = async () => {
+  const submitReview = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
@@ -22,7 +23,7 @@ export default function RecenzijaForm() {
         description ,
       });
 
-      navigate(res.data.redirect_to); 
+      navigate("/home/student"); 
     } catch (err) {
       setError("Neuspjelo slanje recenzije.");
     } finally {
@@ -90,6 +91,7 @@ export default function RecenzijaForm() {
           type="submit"
           disabled={!rating || loading}
           className="w-full rounded-xl bg-[#215993] px-4 py-3 font-semibold text-[#D1F8EF] hover:brightness-110 disabled:opacity-40"
+        
             
         >
           {loading ? "Spremanje..." : "Pošalji recenziju"}
