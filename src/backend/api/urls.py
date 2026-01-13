@@ -40,4 +40,6 @@ urlpatterns = [
     path("instructor/reviews/my/",views.MyInstructorReviewsView.as_view(), name="my-instructor-reviews" ),
     # Endpoint za dohvacanje recenzija po instruktor id
     path("instructor/reviews/<int:pk>/", views.InstructorReviewsView.as_view(), name="instructor-reviews"),
+
+    path("instructor/questions/upload/", views.InstructorQuestionUploadView.as_view(), name="instructor-question-upload"),
 ]

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from datetime import date, datetime
+from django.utils import timezone
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
@@ -152,11 +153,22 @@ class Payment(models.Model):
 
 # model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):
-    author = models.ForeignKey(Instructor, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-    difficulty = models.TextField()  
+    class QuestionType(models.TextChoices):
+        TRUE_FALSE = "true_false", "True / False"
+        MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
+        SHORT_ANSWER = "short_answer", "Short answer"
+
+    author = models.ForeignKey(Instructor, on_delete=models.CASCADE, related_name="questions") # strani ključ
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE) # strani ključ
+    school_level = models.CharField(max_length=20)
+    grade = models.IntegerField()
+    difficulty = models.CharField(max_length=50)
+    type = models.CharField(max_length=30, choices=QuestionType.choices)
     text = models.TextField()
-    answer = models.TextField()
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    points = models.IntegerField(default=1)
+    options = models.JSONField(default=list, blank=True)  
+    correct_answer = models.JSONField(default=list)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 # model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):

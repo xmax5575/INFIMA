@@ -13,7 +13,7 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
@@ -821,3 +821,35 @@ class InstructorReviewsView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True, context={"request": request})
         return Response(serializer.data)
+
+class InstructorQuestionUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != "INSTRUCTOR":
+            return Response(
+                {"error": "Only instructors can upload questions"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        instructor = Instructor.objects.get(instructor_id=request.user)
+
+        serializer = serializers.QuestionBulkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created = []
+        for q in serializer.validated_data["questions"]:
+            question = Question.objects.create(
+                author=instructor,
+                **q
+            )
+            created.append(question.id)
+
+        return Response(
+            {
+                "message": "Questions uploaded successfully",
+                "count": len(created),
+                "question_ids": created
+            },
+            status=status.HTTP_201_CREATED
+        )
