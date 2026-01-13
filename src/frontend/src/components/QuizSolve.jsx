@@ -4,12 +4,14 @@ export default function QuizSolve({ questions }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
+  
 
   const currentQuestion = questions[currentIndex];
 
   if (!questions || questions.length === 0) {
     return <p>Nema pitanja.</p>;
   }
+  
 
   const saveAnswer = (value) => {
     setAnswers((prev) => ({

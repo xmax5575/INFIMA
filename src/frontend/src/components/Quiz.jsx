@@ -8,6 +8,12 @@ export default function Quiz({subject}) {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const pickRandomQuestions = (questions, count = 3) => {
+  return [...questions]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, count);
+};
+
   useEffect(() => {
   const loadQuizzes = async () => {
     setLoading(true);
@@ -16,8 +22,9 @@ export default function Quiz({subject}) {
       const res = await api.get(
         `/api/student/quiz/${encodeURIComponent(subject)}/`
       );
-      console.log("quizzes: ", res.data);
-      setQuizzes(Array.isArray(res.data) ? res.data : []);
+      console.log("quizzes random: ", pickRandomQuestions(res.data));
+      const random = pickRandomQuestions(res.data);
+      setQuizzes(Array.isArray(random) ? random : []);
     } catch (e) {
       setError("Ne mogu dohvatiti kvizove.");
     } finally {
