@@ -4,6 +4,7 @@ import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 import LogoBulbLoader from "../components/LogoBulbProgress";
+import Quiz from "../components/Quiz";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -15,7 +16,12 @@ function Student() {
   const [myTermini, setMyTermini] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+<<<<<<< HEAD
   const [currentTime, setCurrentTime] = useState(new Date());
+=======
+  const [selectedSubject, setSelectedSubject] = useState(null);
+
+>>>>>>> e73999be (Add quiz to home/student)
 
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
@@ -167,7 +173,7 @@ function Student() {
             const diff = (lessonDateTime - now) / (1000 * 60 * 60 * 24);
 
             if (diff < 0) return false;
-            if (diff > filters.days) return false; 
+            if (diff > filters.days) return false;
           }
 
           /*TU TREBA DOC NEKAKO DO RATINGA*/
@@ -231,6 +237,14 @@ function Student() {
           >
             Moji termini
           </button>
+          <button
+            onClick={() => setTab("quiz")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "quiz" ? "text-white" : "text-white/70"}`}
+          >
+            Moji kvizovi
+          </button>
         </div>
         <div className="mt-4 px-4 flex gap-3">
           {tab === "all" && (
@@ -262,7 +276,25 @@ function Student() {
             <LogoBulbLoader />
           </div>
         )}
-        {!loading && !err && (
+        {tab === "quiz"  && !loading &&(
+          <div className="mt-6 grid grid-cols-3 gap-4 px-4 pb-6">
+    {["Matematika", "Fizika", "Informatika"].map((subject) => (
+      <button
+        key={subject}
+        onClick={() => setSelectedSubject(subject)}
+        className="rounded-xl bg-white p-4 font-semibold text-[#215993]
+                   hover:scale-105 transition "
+      >
+        {subject}
+      </button>
+    ))}
+  </div>
+        )}
+        {tab === "quiz" && selectedSubject && (
+          <Quiz subject={selectedSubject}/>
+
+        )}
+        {!loading && !err && (tab === "all" || tab ==="mine") &&(
           <ul className="mt-6 space-y-3">
             {sortedTermini.map((t) => (
               <li key={t.lesson_id}>
