@@ -96,9 +96,13 @@ export default function TerminCard({
     setShowInstructor((v) => !v);
   };
 
+  const expired = new Date(`${date}T${time}`) < new Date();
+
   return (
     <>
-      <article className="rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl">
+      <article className={`rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[300ms] ease-in-out cursor-pointer
+        ${reserved ? "ring-[5px] ring-[#3674B5] ring-inset" : "ring-0"}
+        `}>
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3">
           <div className="flex items-center gap-3">
@@ -168,21 +172,21 @@ export default function TerminCard({
         )}
 
         {/* ACTIONS */}
-        {role === "student" && (
+        {role === "student" && ((reserved && format === "Online") || !expired) && (
           <div className="mt-5 flex items-center gap-3">
-            {reserved && (
+            {reserved && !expired && (
               <button
                 onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:bg-[#B91C1C] hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[500ms] ease-in-out ring-1"
               >
                 Otkaži
               </button>
             )}
 
-            {canReserve && !reserved && (
+            {canReserve && !reserved && !expired && (
               <button
                 onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:bg-[#1E3A8A] hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[500ms] ease-in-out ring-1"
               >
                 Rezerviraj
               </button>
@@ -192,7 +196,7 @@ export default function TerminCard({
             {reserved && format === "Online" && (
               <button
                 onClick={goToMeeting}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1"
               >
                 Uđi u meeting
               </button>
@@ -200,10 +204,10 @@ export default function TerminCard({
           </div>
         )}
 
-        {role === "instructor" && (
+        {role === "instructor" && format === "Online" && (
           <button
             onClick={goToMeeting}
-            className="px-4 py-2 bg-green-700 text-white rounded-xl mt-4"
+            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1 mt-5"
           >
             Pokreni meeting
           </button>
