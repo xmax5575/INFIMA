@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import TerminForm from "../components/TerminForm";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
+import api from "../api";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -13,10 +14,19 @@ function Instructor() {
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
   const [accessToken, setAccessToken] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Učitaj token korisnika.
   useEffect(() => {
     setAccessToken(localStorage.getItem(ACCESS_TOKEN));
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // Osvježava svaku minutu
+
+    return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
   }, []);
 
   // Učitaj profil kad imamo accessToken - zbog instructor_id-a.
@@ -69,6 +79,29 @@ function Instructor() {
     load();
   }, [accessToken, user?.instructor_id]);
 
+  const visibleTermini = termini.filter((t) => {
+    const lessonDateTime = new Date(`${t.date}T${t.time}`);
+    const limit = new Date(lessonDateTime.getTime() + 15 * 60 * 1000)
+    return currentTime <= limit;
+  });
+
+  const deleteTermin = async (lesson_id) => {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    try {
+      const res = await api.delete(
+        `${API_BASE_URL}/api/termin/delete/${lesson_id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setTermini((prevTermins) =>
+        prevTermins.filter((t) => t.lesson_id !== lesson_id)
+      );
+    } catch (err) {}
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
       <Header />
@@ -79,13 +112,17 @@ function Instructor() {
         {loading && <div className="mt-3 text-white/90">Učitavam…</div>}
         {/* Za svaki termin napravi TerminCard u kojem se šalju potrebne informacije/podatci */}
         <ul className="mt-4 space-y-3">
-          {termini.map((t) => (
+          {visibleTermini.map((t) => (
             <li key={t.lesson_id ?? t.id}>
-              <TerminCard termin={t} role="instructor" />
+              <TerminCard
+                termin={t}
+                role="instructor"
+                onTerminDelete={deleteTermin}
+              />
             </li>
           ))}
 
-          {!loading && termini.length === 0 && !err && (
+          {!loading && visibleTermini.length === 0 && !err && (
             <li className="text-white/90">Nema termina za ovog instruktora.</li>
           )}
         </ul>

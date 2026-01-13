@@ -15,6 +15,7 @@ function Student() {
   const [myTermini, setMyTermini] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
@@ -22,6 +23,14 @@ function Student() {
     days: null, // 7 | 14
     rating: null, // 4 | 5
   });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // Osvježava svaku minutu
+
+    return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
+  }, []);
 
   const filterBtnClass = (active) =>
     `px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200
@@ -124,24 +133,23 @@ function Student() {
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
-  const applyFilters = () => {
-    setShowFilters(false);
-  };
+
+  const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
+    const isMyLesson = myLessonIds.has(t.lesson_id);
+    const lessonDateTime = new Date(`${t.date}T${t.time}`);
+
+    const limit = isMyLesson
+      ? new Date(lessonDateTime.getTime() + 15 * 60 * 1000)
+      : lessonDateTime;
+
+    if (currentTime > limit) return false;
+
+    return true;
+  });
 
   const filteredTermini =
     tab === "all"
-      ? termini.filter((t) => {
-          const now = new Date();
-          const lessonDateTime = new Date(`${t.date}T${t.time}`);
-          const isMyLesson = myLessonIds.has(t.lesson_id);
-
-          if (isMyLesson) {
-            const limit = new Date(lessonDateTime.getTime() + 15 * 60000);
-            if (now > limit) return false;
-          } else {
-            if (now > lessonDateTime) return false;
-          }
-          
+      ? visibleTermini.filter((t) => {
           if (filters.format && t.format !== filters.format) return false;
 
           /*KAD FABO NAPRAVI OVO CE RADIT*/
@@ -167,7 +175,7 @@ function Student() {
 
           return true;
         })
-      : myTermini;
+      : visibleTermini;
 
   const [sortBy, setSortBy] = useState(null); // "date_asc" | "date_desc" | "rating_desc" | "price_asc" | "price_desc"
   const toggleSort = (key) => {
@@ -262,12 +270,13 @@ function Student() {
                   termin={t}
                   role="student"
                   onReserveOrCancel={reserveOrCancelLesson}
+                  onTerminDelete={null}
                   canReserve={tab === "all"}
                   reserved={myLessonIds.has(t.lesson_id)}
                 />
               </li>
             ))}
-            {(tab === "all" ? termini : myTermini).length === 0 && (
+            {(tab === "all" ? visibleTermini : myTermini).length === 0 && (
               <li className="text-white/90">Nema termina za ovaj prikaz.</li>
             )}
           </ul>

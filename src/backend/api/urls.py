@@ -40,4 +40,6 @@ urlpatterns = [
     path("instructor/reviews/my/",views.MyInstructorReviewsView.as_view(), name="my-instructor-reviews" ),
     # Endpoint za dohvacanje recenzija po instruktor id
     path("instructor/reviews/<int:pk>/", views.InstructorReviewsView.as_view(), name="instructor-reviews"),
+    # Endpoint za brisanje termina
+    path("termin/delete/<int:lesson_id>/", views.LessonDeleteView.as_view(), name="termin-delete"),
 ]
