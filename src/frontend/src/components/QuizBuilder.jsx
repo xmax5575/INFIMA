@@ -121,6 +121,11 @@ export default function QuizBuilder() {
     try {
       const res = await api.post("/api/instructor/questions/upload/", payload);
       console.log("Uspješno spremljeno:", res.data);
+      setSubject("");
+  setSchool("");
+  setGrade("");
+  setQuestions([]);
+  setError(null);
     } catch (error) {
       console.error(error);
       setError(error.response?.data?.message || "Greška pri spremanju pitanja");
