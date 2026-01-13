@@ -117,11 +117,6 @@ export default function InstructorCard({
 
   return (
     <>
-      {/* DEBUG TEST – moraš vidjeti ovo */}
-      <div style={{ background: "red", padding: "20px", textAlign: "center" }}>
-        TEST INSTRUCTOR CARD
-      </div>
-
       <div className="w-full">
         <div className="relative mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-5 sm:p-7">
           {/* Close */}
