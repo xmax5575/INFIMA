@@ -177,7 +177,7 @@ export default function TerminCard({
             {reserved && !expired && (
               <button
                 onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-[#DC2626] text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[500ms] ease-in-out ring-1"
               >
                 Otkaži
               </button>
@@ -186,7 +186,7 @@ export default function TerminCard({
             {canReserve && !reserved && !expired && (
               <button
                 onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-[#3674B5] text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[500ms] ease-in-out ring-1"
               >
                 Rezerviraj
               </button>
@@ -196,7 +196,7 @@ export default function TerminCard({
             {reserved && format === "Online" && (
               <button
                 onClick={goToMeeting}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1"
               >
                 Uđi u meeting
               </button>
@@ -207,7 +207,7 @@ export default function TerminCard({
         {role === "instructor" && format === "Online" && (
           <button
             onClick={goToMeeting}
-            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:scale-105 duration-[500ms] ease-in-out ring-1"
+            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1 mt-5"
           >
             Pokreni meeting
           </button>
