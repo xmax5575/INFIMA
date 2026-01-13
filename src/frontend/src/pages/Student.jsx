@@ -166,12 +166,12 @@ function Student() {
 
             const diff = (lessonDateTime - now) / (1000 * 60 * 60 * 24);
 
-            if (diff < 0) return false; // prošli termini ❌
-            if (diff > filters.days) return false; // predaleko u budućnosti ❌
+            if (diff < 0) return false;
+            if (diff > filters.days) return false; 
           }
 
-          /*OVDJE DODAT OCJENE*/
-          /*if (filters.rating && t.teacher_rating < filters.rating) return false;*/
+          /*TU TREBA DOC NEKAKO DO RATINGA*/
+          /*if (filters.rating && t.avg_rating < filters.rating) return false;*/
 
           return true;
         })

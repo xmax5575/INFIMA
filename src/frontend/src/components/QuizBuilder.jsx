@@ -1,12 +1,13 @@
 import { useState } from "react";
 import QuestionEditor from "./QuestionEditor";
+import api from "../api";
 
 const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
-const SCHOOLS = ["Osnovna škola", "Srednja škola"];
+const SCHOOLS = ["Osnovna", "Srednja"];
 
 const GRADES = {
-  "Osnovna škola": ["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8."],
-  "Srednja škola": ["1.", "2.", "3.", "4."],
+  Osnovna: ["1", "2", "3", "4", "5", "6", "7", "8"],
+  Srednja: ["1", "2", "3", "4"],
 };
 
 export default function QuizBuilder() {
@@ -68,7 +69,7 @@ export default function QuizBuilder() {
     return null;
   };
 
-  const saveQuiz = () => {
+  const saveQuiz = async () => {
     const errorMessage = validateQuiz();
     if (errorMessage) {
       setError(errorMessage);
@@ -78,13 +79,52 @@ export default function QuizBuilder() {
     setError(null);
 
     const payload = {
-      subject,
-      school,
-      grade,
-      questions,
+      questions: questions.map((q) => {
+        const baseQuestion = {
+          subject,
+          school_level: school.toLowerCase(), // "srednja" | "osnovna"
+          grade: Number(grade),
+          difficulty: q.difficulty, // ostaje "jako lagano"
+          type: q.type,
+          text: q.text,
+        };
+
+        if (q.type === "multiple_choice") {
+          return {
+            ...baseQuestion,
+            options: q.options.map((o) => o.text),
+            correct_answer: q.options.find((o) => o.id === q.correctAnswer)
+              ?.text,
+          };
+        }
+
+        if (q.type === "short_answer") {
+          return {
+            ...baseQuestion,
+            correct_answer: q.correctAnswer,
+          };
+        }
+
+        if (q.type === "true_false") {
+          return {
+            ...baseQuestion,
+            correct_answer: q.correctAnswer, // true / false
+          };
+        }
+
+        return baseQuestion;
+      }),
     };
 
-    console.log("SPREMANJE PITANJA:", payload);
+    console.log("PAYLOAD ZA BACKEND:", payload);
+
+    try {
+      const res = await api.post("/api/instructor/questions/upload/", payload);
+      console.log("Uspješno spremljeno:", res.data);
+    } catch (error) {
+      console.error(error);
+      setError(error.response?.data?.message || "Greška pri spremanju pitanja");
+    }
   };
 
   const updateQuestion = (id, updated) => {
@@ -166,9 +206,7 @@ export default function QuizBuilder() {
 
         {/* Škola */}
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <label className="text-sm font-semibold text-[#3674B5]">
-            Škola
-          </label>
+          <label className="text-sm font-semibold text-[#3674B5]">Škola</label>
           <select
             value={school}
             onChange={(e) => {
@@ -197,9 +235,7 @@ export default function QuizBuilder() {
 
         {/* Razred */}
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <label className="text-sm font-semibold text-[#3674B5]">
-            Razred
-          </label>
+          <label className="text-sm font-semibold text-[#3674B5]">Razred</label>
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
@@ -220,7 +256,7 @@ export default function QuizBuilder() {
             {school &&
               GRADES[school].map((g) => (
                 <option key={g} value={g}>
-                  {g}
+                  {g}.
                 </option>
               ))}
           </select>
@@ -245,9 +281,7 @@ export default function QuizBuilder() {
       </button>
 
       {error && (
-        <p className="text-sm text-red-600 font-medium text-center">
-          {error}
-        </p>
+        <p className="text-sm text-red-600 font-medium text-center">{error}</p>
       )}
 
       <button
