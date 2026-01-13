@@ -211,7 +211,6 @@ class CalendarLessonSerializer(serializers.ModelSerializer):
     def get_subject_name(self, obj):
         return obj.subject.name if obj.subject else None
 
-
 class MyInstructorProfileSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id_id", read_only=True)
     full_name = serializers.SerializerMethodField()
@@ -220,6 +219,8 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
     calendar = serializers.SerializerMethodField()
     subjects = SubjectMiniSerializer(many=True, read_only=True)
     price_eur = serializers.IntegerField(source="price", read_only=True)
+
+    google_calendar_email = serializers.EmailField(read_only=True)
 
     class Meta:
         model = Instructor
@@ -235,7 +236,9 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             "avg_rating",
             "reviews",
             "calendar",
+            "google_calendar_email",  
         ]
+
 
     def get_full_name(self, obj):
         u = obj.instructor_id
@@ -292,7 +295,13 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "profile_image_url"
         ]
 
-
+class InstructorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Instructor
+        fields = [
+            # ostala polja
+            "google_calendar_email",
+        ]
 class InstructorListSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id.id", read_only=True)
     first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)

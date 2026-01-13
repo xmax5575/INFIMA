@@ -46,7 +46,7 @@ export default function TerminCard({
   const {
     level,
     format,
-    price,
+    price, // može biti null ili 0
     date,
     duration_min,
     time,
@@ -54,9 +54,12 @@ export default function TerminCard({
     location,
     instructor_display,
     instructor_id,
+    instructor,
     lesson_id,
     subject,
   } = termin || {};
+
+  const effectivePrice = price != null ? price : instructor?.price_eur ?? 0;
 
   const navigate = useNavigate();
 
@@ -100,9 +103,11 @@ export default function TerminCard({
 
   return (
     <>
-      <article className={`rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[300ms] ease-in-out cursor-pointer
+      <article
+        className={`rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[300ms] ease-in-out cursor-pointer
         ${reserved ? "ring-[5px] ring-[#3674B5] ring-inset" : "ring-0"}
-        `}>
+        `}
+      >
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3">
           <div className="flex items-center gap-3">
@@ -172,37 +177,38 @@ export default function TerminCard({
         )}
 
         {/* ACTIONS */}
-        {role === "student" && ((reserved && format === "Online") || !expired) && (
-          <div className="mt-5 flex items-center gap-3">
-            {reserved && !expired && (
-              <button
-                onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Otkaži
-              </button>
-            )}
+        {role === "student" &&
+          ((reserved && format === "Online") || !expired) && (
+            <div className="mt-5 flex items-center gap-3">
+              {reserved && !expired && (
+                <button
+                  onClick={() => onReserveOrCancel(lesson_id)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-800 duration-[500ms] ease-in-out ring-1"
+                >
+                  Otkaži
+                </button>
+              )}
 
-            {canReserve && !reserved && !expired && (
-              <button
-                onClick={() => onReserveOrCancel(lesson_id)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Rezerviraj
-              </button>
-            )}
+              {canReserve && !reserved && !expired && (
+                <button
+                  onClick={() => onReserveOrCancel(lesson_id)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-800 duration-[500ms] ease-in-out ring-1"
+                >
+                  Rezerviraj
+                </button>
+              )}
 
-            {/* Premješteno unutar istog flex div-a */}
-            {reserved && format === "Online" && (
-              <button
-                onClick={goToMeeting}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1"
-              >
-                Uđi u meeting
-              </button>
-            )}
-          </div>
-        )}
+              {/* Premješteno unutar istog flex div-a */}
+              {reserved && format === "Online" && (
+                <button
+                  onClick={goToMeeting}
+                  className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-800 duration-[500ms] ease-in-out ring-1"
+                >
+                  Uđi u meeting
+                </button>
+              )}
+            </div>
+          )}
 
         {role === "instructor" && format === "Online" && (
           <button

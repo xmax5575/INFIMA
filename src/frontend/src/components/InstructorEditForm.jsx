@@ -108,7 +108,7 @@ export default function InstructorEditForm() {
       const res = await api.post("/api/instructor/me/", {
         bio,
         location,
-        price: price === "" ? null : Number(price),
+        price_eur: price === "" ? null : Number(price),
         subjects,
         ...(profileImageUrl && { profile_image_url: profileImageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
