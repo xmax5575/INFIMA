@@ -78,6 +78,8 @@ class Instructor(models.Model):
     video_url = models.URLField(null=True, blank=True)
     lat = models.FloatField(null=True, blank=True)
     lng = models.FloatField(null=True, blank=True)  
+    google_calendar_email = models.EmailField(null=True, blank=True)
+    google_refresh_token = models.TextField(null=True, blank=True)
     
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
@@ -114,6 +116,7 @@ class Lesson(models.Model):
     price = models.IntegerField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     time = models.TimeField(null=True, blank=True)
+    google_event_id = models.CharField(max_length=255, null=True, blank=True)
     
     level = models.CharField(
         max_length=20,

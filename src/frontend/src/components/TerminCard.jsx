@@ -46,7 +46,7 @@ export default function TerminCard({
   const {
     level,
     format,
-    price,
+    price, // može biti null ili 0
     date,
     duration_min,
     time,
@@ -54,9 +54,12 @@ export default function TerminCard({
     location,
     instructor_display,
     instructor_id,
+    instructor,
     lesson_id,
     subject,
   } = termin || {};
+
+  const effectivePrice = price != null ? price : instructor?.price_eur ?? 0;
 
   const navigate = useNavigate();
 
