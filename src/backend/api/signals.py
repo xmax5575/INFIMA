@@ -1,12 +1,14 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.conf import settings
 from api.models import Attendance
+from api.utils.mail import send_email
 import threading
+import time
+
 
 @receiver(post_save, sender=Attendance)
 def send_reservation_email(sender, instance, created, **kwargs):
+
     if not created:
         return
 
@@ -16,27 +18,38 @@ def send_reservation_email(sender, instance, created, **kwargs):
 
     def send_emails_task():
         try:
-            # STUDENT MAIL
-            send_mail(
-                "Rezervacija termina potvrđena",
-                f"Rezervirali ste termin {lesson.subject} {lesson.date} u {lesson.time}.",
-                settings.DEFAULT_FROM_EMAIL,
-                [student.student_id.email],
-                fail_silently=False,
+            # 📧 MAIL STUDENTU
+            send_email(
+                to_email=student.student_id.email,
+                subject="Rezervacija termina potvrđena",
+                content=(
+                    f"Pozdrav {student.student_id.first_name},\n\n"
+                    f"Uspješno ste rezervirali termin.\n\n"
+                    f"Predmet: {lesson.subject}\n"
+                    f"Datum: {lesson.date}\n"
+                    f"Vrijeme: {lesson.time}\n\n"
+                    f"Vidimo se!\n"
+                    f"Infima Instrukcije"
+                ),
             )
 
-            # INSTRUKTOR MAIL
-            send_mail(
-                "Novi rezervirani termin",
-                f"Student {student.student_id.first_name} {student.student_id.last_name} "
-                f"rezervirao je termin {lesson.subject} {lesson.date} u {lesson.time}.",
-                settings.DEFAULT_FROM_EMAIL,
-                [instructor.instructor_id.email],
-                fail_silently=False,
+            # ⏱️ MALI DELAY (KLJUČNO)
+            time.sleep(3)
+
+            # 📧 MAIL INSTRUKTORU
+            send_email(
+                to_email=instructor.instructor_id.email,
+                subject="Novi rezervirani termin",
+                content=(
+                    f"Student {student.student_id.first_name} {student.student_id.last_name} "
+                    f"rezervirao je novi termin.\n\n"
+                    f"Predmet: {lesson.subject}\n"
+                    f"Datum: {lesson.date}\n"
+                    f"Vrijeme: {lesson.time}\n"
+                ),
             )
+
         except Exception as e:
-            # Budući da je u threadu, greška neće srušiti aplikaciju, 
-            # ali je dobro ispisati u logove radi debugiranja
-            print(f"Greška pri slanju emaila: {e}")
+            print(">>> SENDGRID ERROR:", e)
 
     threading.Thread(target=send_emails_task).start()

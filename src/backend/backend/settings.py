@@ -230,7 +230,7 @@ STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
 # Frontend (za Stripe redirecte)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
+'''
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 465
@@ -239,8 +239,17 @@ EMAIL_USE_TLS = False
 
 EMAIL_HOST_USER = os.getenv("GMAIL_USER")
 EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+'''
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
 
-DEFAULT_FROM_EMAIL = f"INFIMA <{EMAIL_HOST_USER}>"
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    "SENDGRID_FROM_EMAIL",
+    "INFIMA <no-reply@infima.app>"
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -256,3 +265,6 @@ else:
     PATH = os.getenv("JAAS_PRIVATE_KEY_PATH")
     if PATH:
         JAAS_PRIVATE_KEY = Path(PATH).read_text()
+
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL")
