@@ -914,3 +914,13 @@ class StudentQuizView(APIView):
 
         serializer = StudentQuestionSerializer(questions_to_return, many=True)
         return Response(serializer.data)
+
+from api.utils1 import send_24h_lesson_reminders
+
+class ReminderCronView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        send_24h_lesson_reminders()
+        return Response({"status": "ok"})
