@@ -169,7 +169,6 @@ class Question(models.Model):
     points = models.IntegerField(default=1)
     options = models.JSONField(default=list, blank=True)  
     correct_answer = models.JSONField(default=list)
-    created_at = models.DateTimeField(auto_now_add=True)
 
 # model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):
