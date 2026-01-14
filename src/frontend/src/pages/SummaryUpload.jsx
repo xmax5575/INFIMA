@@ -2,6 +2,24 @@ import React, { useState } from "react";
 import { Upload, FileText } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
+import { supabase } from "../supabaseClient";
+async function uploadLessonSummary(file, lessonId) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `summary/${lessonId}/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from("media")
+    .upload(path, file);
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from("media")
+    .getPublicUrl(path);
+
+  return data.publicUrl;
+}
 
 export default function SummaryUpload() {
   const { lessonId } = useParams();
@@ -10,6 +28,10 @@ export default function SummaryUpload() {
   const [file, setFile] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const generateFileName = (file) => {
+  const ext = file.name.split(".").pop();
+  return `summary-${Date.now()}.${ext}`;
+};
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -31,36 +53,35 @@ export default function SummaryUpload() {
   };
 
   const submitSummary = async (e) => {
-    e.preventDefault();
-    /*if (!file) {
-      setError("Molimo odaberite dokument.");
-      return;
-    }
+  e.preventDefault();
 
-    setLoading(true);
-    setError(null);
+  if (!file) {
+    setError("Molimo odaberite dokument.");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("summary", file);
+  setLoading(true);
+  setError(null);
 
-    try {
-      await api.post(
-        `/api/lessons/${lessonId}/summary/upload`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+  try {
+    // ⬅️ ISTO KAO upload avatara
+    const summaryUrl = await uploadLessonSummary(file, lessonId);
 
-      navigate("/home/instructor");
-    } catch (err) {
-      setError("Neuspješan upload sažetka.");
-    } finally {
-      setLoading(false);
-    }*/
-  };
+    // ⬅️ backend dobije samo URL
+    await api.post(`/api/lesson/${lessonId}/summary/`, {
+      file_url: summaryUrl,
+    });
+
+    navigate(`/summary/${lessonId}`);
+  } catch (err) {
+    console.error("Backend response:", err.response?.data || err);
+    setError("Greška pri uploadu sažetka.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
      <div className="min-h-screen bg-[#215993] flex items-center justify-center px-4">
