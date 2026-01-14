@@ -964,11 +964,19 @@ class LessonSummaryView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        try:
+            lesson = Lesson.objects.get(pk=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response(
+                {"error": "Lesson not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
         serializer = SummarySerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(
                 author=instructor,
-                lesson_id=lesson_id
+                lesson=lesson   
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
