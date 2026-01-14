@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -929,7 +929,3 @@ class InstructorQuestionsListView(APIView):
 
         serializer = StudentQuestionSerializer(questions, many=True)
         return Response(serializer.data)
-        user = self.request.user
-        if user.role == 'INSTRUCTOR':
-            return Question.objects.filter(author__instructor_id=user)
-        return Question.objects.none()
