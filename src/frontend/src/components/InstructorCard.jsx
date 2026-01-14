@@ -130,29 +130,14 @@ export default function InstructorCard({
             </button>
           )}
 
-          {/* GOOGLE CALENDAR CONNECT – FORCED VISIBLE */}
-          <button
-            onClick={() => connectCalendar()}
-            className="mt-4 w-full rounded-xl bg-white px-4 py-3 text-[#3674B5] font-semibold hover:bg-white/90"
-          >
-            Poveži Google kalendar
-          </button>
+          
 
           {/* TOP */}
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
             {/* Avatar */}
-            <div className="lg:col-span-3">
-              <div className="h-[180px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080] sm:h-[210px]">
-                <img
-                  src={avatarUrl || defaultAvatar}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
 
             {/* Text */}
-            <div className="lg:col-span-9">
+            <div className="lg:col-span-12">
               <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
                 {fullName}
               </h1>
@@ -161,22 +146,38 @@ export default function InstructorCard({
                 <span className="font-bold">Biografija: </span>
                 <span className="font-normal">{bio}</span>
               </div>
-
-              <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
+              <div className="mt-3 text-[#3674B5] text-base sm:text-lg leading-snug pb-4">
                 <span className="font-bold">Lokacija: </span>
-                <span className="font-normal">{location}</span>
-
-                {user?.location && (
-                  <div className="mt-4 h-56">
-                    <GoogleMapEmbed
-                      location={user.location}
-                      className="h-full w-full"
-                    />
-                  </div>
-                )}
+                  <span className="font-normal">{location}</span>
               </div>
+              <div className="w-full lg:col-span-3 flex flex-row items-start gap-4">
+  {/* SLIKA */}
+  <div className="h-[210px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080]">
+    <img
+      src={avatarUrl || defaultAvatar}
+      alt="Avatar"
+      className="h-full w-full object-cover"
+    />
+  </div>
+
+  {/* MAPA */}
+  <div className="h-[210px] flex-1 overflow-hidden rounded-2xl">
+    <GoogleMapEmbed
+      location={user.location}
+      className="h-full w-full"
+    />
+  </div>
+</div>
+
             </div>
           </div>
+          {/* GOOGLE CALENDAR CONNECT – FORCED VISIBLE */}
+          <button
+            onClick={() => connectCalendar()}
+            className="mt-4 w-full rounded-xl bg-white px-4 py-3 text-[#3674B5] font-semibold hover:bg-white/90"
+          >
+            Poveži Google kalendar
+          </button>
 
           {/* MAIN */}
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
