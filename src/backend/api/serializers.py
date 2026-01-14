@@ -2,7 +2,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-from .models import Instructor, Lesson, Review, Subject, Student
+from .models import Instructor, Lesson, Review, Subject, Student, Question
 
 User = get_user_model()
 
@@ -319,4 +319,85 @@ class InstructorReviewSerializer(serializers.ModelSerializer):
             "student_id",
             "student_first_name",
             "student_last_name",
+        ]
+
+class QuestionSerializer(serializers.ModelSerializer):
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=Subject.objects.all()
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "subject",
+            "school_level",
+            "grade",
+            "difficulty",
+            "type",
+            "text",
+            "points",
+            "options",
+            "correct_answer",
+        ]
+
+    def validate(self, data):
+        qtype = data.get("type")
+        options = data.get("options", [])
+        answer = data.get("correct_answer")
+
+        if qtype == "true_false":
+            if answer is None or not isinstance(answer, bool):
+                raise serializers.ValidationError(
+                    "True/False question requires boolean correct_answer"
+                )
+
+        elif qtype == "multiple_choice":
+            if not options or not isinstance(options, list):
+                raise serializers.ValidationError(
+                    "Multiple choice requires options list"
+                )
+            if answer is None:
+                raise serializers.ValidationError(
+                    "Multiple choice requires correct_answer"
+                )
+            if answer not in options:
+                raise serializers.ValidationError(
+                    "correct_answer must be one of options"
+                )
+
+        elif qtype == "short_answer":
+            if answer is None or not isinstance(answer, str) or not answer.strip():
+                raise serializers.ValidationError(
+                    "Short answer requires text correct_answer"
+                )
+
+        else:
+            raise serializers.ValidationError("Unknown question type")
+
+        return data
+
+class QuestionBulkSerializer(serializers.Serializer):
+    questions = QuestionSerializer(many=True)
+
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        read_only=True
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "subject",
+            "school_level",
+            "grade",
+            "difficulty",
+            "type",
+            "text",
+            "points",
+            "options",
+            "correct_answer",
         ]

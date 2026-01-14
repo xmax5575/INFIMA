@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -13,7 +13,7 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
@@ -118,14 +118,11 @@ class GoogleAuthCodeExchangeView(views.APIView):
 
         except requests.exceptions.RequestException as e:
             # Handle network errors, connection problems, or Google's API errors
-            print(f"Google token exchange failed: {e}")
             return Response({"error": "External authentication failed."}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as e:
-            print(f"JWT decode error: {e}")
             return Response({"error": "Invalid token received."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             # Catch all other exceptions (e.g., database issues)
-            print(f"Internal error during authentication: {e}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -337,7 +334,7 @@ class InstructorUpdateView(APIView):
                         instructor.save(update_fields=["lat", "lng"])
                 except Exception as e:
                     # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
-                    print("Geocoding failed:", e)
+                    None
 
         return Response(
             serializer.data,
@@ -838,4 +835,82 @@ class InstructorReviewsView(APIView):
         )
 
         serializer = InstructorReviewSerializer(reviews, many=True, context={"request": request})
+        return Response(serializer.data)
+
+class InstructorQuestionUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != "INSTRUCTOR":
+            return Response(
+                {"error": "Only instructors can upload questions"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        instructor = Instructor.objects.get(instructor_id=request.user)
+
+        serializer = QuestionBulkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created = []
+        for q in serializer.validated_data["questions"]:
+            question = Question.objects.create(
+                author=instructor,
+                **q
+            )
+            created.append(question.id)
+
+        return Response(
+            {
+                "message": "Questions uploaded successfully",
+                "count": len(created),
+                "question_ids": created
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+# preslikavanje knowledge_level -> difficulty
+KNOWLEDGE_TO_DIFFICULTY = {
+    "loša": "jako lagano",
+    "dovoljna": "lagano",
+    "dobra": "srednje",
+    "vrlo_dobra": "teško",
+    "odlična": "jako teško",
+}
+
+class StudentQuizView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, subject_name: str):
+        if request.user.role != "STUDENT":
+            return Response({"error": "Only students can access this endpoint"}, status=403)
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        grade = student.grade
+        school_level = student.school_level
+
+        # filtriramo knowledge_level za taj predmet
+        questions_to_return = []
+        for kl in student.knowledge_level:
+            if kl.get("subject").lower() != subject_name.lower():
+                continue  # preskoči ako nije traženi predmet
+
+            level = kl.get("level")
+            difficulty = KNOWLEDGE_TO_DIFFICULTY.get(level.lower())
+            if not difficulty:
+                continue
+
+            subject_questions = Question.objects.filter(
+                subject__name__iexact=subject_name,
+                grade=grade,
+                school_level=school_level,
+                difficulty=difficulty
+            )
+            questions_to_return.extend(subject_questions)
+
+        serializer = StudentQuestionSerializer(questions_to_return, many=True)
         return Response(serializer.data)

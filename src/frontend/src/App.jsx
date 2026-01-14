@@ -15,6 +15,7 @@ import Recenzija from "./pages/Recenzija";
 import LessonCall from "./pages/LessonCall";
 import Payment from "./pages/Payment";
 import Review from "./pages/Review";
+import QuizBuilder from "./components/QuizBuilder";
 
 function Logout() {
   localStorage.clear();
@@ -121,6 +122,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
 
         </Routes>
       </BrowserRouter>
