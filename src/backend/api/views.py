@@ -937,18 +937,6 @@ class InstructorQuestionsListView(APIView):
 class LessonSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, lesson_id):
-        try:
-            summary = Summary.objects.get(lesson_id=lesson_id)
-        except Summary.DoesNotExist:
-            return Response(
-                {"detail": "Summary not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        serializer = SummarySerializer(summary)
-        return Response(serializer.data)
-
     def post(self, request, lesson_id):
         if request.user.role != "INSTRUCTOR":
             return Response(
@@ -981,3 +969,28 @@ class LessonSummaryView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class StudentSummariesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != "STUDENT":
+            return Response(
+                {"error": "Only students can access summaries"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        summaries = Summary.objects.filter(
+            lesson__attendance__student=student
+        ).select_related("lesson")
+
+        serializer = SummarySerializer(summaries, many=True)
+        return Response(serializer.data)
