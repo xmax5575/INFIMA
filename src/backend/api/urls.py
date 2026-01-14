@@ -52,4 +52,6 @@ urlpatterns = [
     path("question/delete/<int:id>/", views.QuestionDeleteView.as_view(), name="instructor-question-delete"),
     path("google/calendar/connect/", views.GoogleCalendarConnectView.as_view(),name="google-calendar-connect"),
 
+    path("lesson/<int:lesson_id>/summary/", views.LessonSummaryView.as_view(), name="lesson-summary"),
+
 ]

@@ -2,7 +2,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-from .models import Instructor, Lesson, Review, Subject, Student, Question
+from .models import Instructor, Lesson, Review, Subject, Student, Question, Summary
 
 User = get_user_model()
 
@@ -410,3 +410,13 @@ class StudentQuestionSerializer(serializers.ModelSerializer):
             "options",
             "correct_answer",
         ]
+
+class SummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Summary
+        fields = [
+            "id",
+            "lesson",
+            "file_url",
+        ]
+        read_only_fields = ["id", "lesson"]
