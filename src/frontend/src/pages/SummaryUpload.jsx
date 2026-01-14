@@ -72,7 +72,7 @@ export default function SummaryUpload() {
       file_url: summaryUrl,
     });
 
-    navigate(`/summary/${lessonId}`);
+    navigate(`/home/instructor`);
   } catch (err) {
     console.error("Backend response:", err.response?.data || err);
     setError("Greška pri uploadu sažetka.");
