@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.db.models import Count, F
 from datetime import timedelta
 from api.utils import create_google_calendar_event
-
+from api.utils import sync_existing_lessons_to_google
 
 
 User = get_user_model()
@@ -896,5 +896,6 @@ class GoogleCalendarConnectView(APIView):
         instructor.google_refresh_token = refresh_token
         instructor.google_calendar_email = request.user.email
         instructor.save(update_fields=["google_refresh_token", "google_calendar_email"])
+        sync_existing_lessons_to_google(instructor)
 
         return Response({"status": "calendar_connected"})
