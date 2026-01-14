@@ -27,23 +27,23 @@ export default function LessonCall() {
   }, [lessonId]);
 
   const handleMeetingEnd = async () => {
-    try {
-      const res = await api.post(`/api/lessons/${lessonId}/end/`);
-      if (res.data.redirect_to) {
-        navigate(res.data.redirect_to);
-      } else {
-        // fallback po role-u
-        const role = localStorage.getItem("role"); // ili iz JWT-a
-        if (role === "INSTRUCTOR") {
-          navigate("/home/instructor");
-        } else {
-          navigate("/home/student");
-        }
-      }
-    } catch (err) {
-      navigate("/home"); // fallback
+  try {
+    await api.post(`/api/lessons/${lessonId}/end/`);
+
+    const roleRes = await api.get("/api/user/role");
+    const role = roleRes.data?.role;
+
+    if (role === "INSTRUCTOR") {
+      navigate(`/summary/${lessonId}`);
+    } else {
+      navigate(`/review/${lessonId}`);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    navigate("/");
+  }
+};
+
 
   if (error) return <p className="text-red-600">{error}</p>;
   if (!meeting) return <p>Učitavanje meetinga…</p>;
