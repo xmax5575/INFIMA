@@ -137,7 +137,7 @@ function Instructor() {
             <ul className="mt-4 space-y-3">
               {visibleTermini.map((t) => (
                 <li key={t.lesson_id ?? t.id}>
-                  <TerminCard termin={t} role="instructor" />
+                  <TerminCard termin={t} role="instructor" onTerminDelete={deleteTermin}/>
                 </li>
               ))}
 
