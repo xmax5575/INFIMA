@@ -929,3 +929,17 @@ class InstructorQuestionsListView(APIView):
 
         serializer = StudentQuestionSerializer(questions, many=True)
         return Response(serializer.data)
+    
+class QuestionDeleteView(generics.DestroyAPIView):
+    queryset = Question.objects.all()
+    serializer_class = StudentQuestionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            return Question.objects.filter(author__instructor_id=user)
+        if user.is_superuser:
+            return Question.objects.all()
+        return Question.objects.none()

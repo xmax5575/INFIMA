@@ -48,4 +48,6 @@ urlpatterns = [
     path("student/quiz/<str:subject_name>/", views.StudentQuizView.as_view(), name="student-quiz"),
     # Endpoint za dohvacanje instruktorovih pitanja
     path("instructor/questions/my/", views.InstructorQuestionsListView.as_view(), name="my-instructor-questions"),
+    # Endpoint za brisanje pitanja
+    path("question/delete/<int:id>/", views.QuestionDeleteView.as_view(), name="instructor-question-delete"),
 ]

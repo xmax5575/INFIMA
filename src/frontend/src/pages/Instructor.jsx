@@ -8,6 +8,7 @@ import QuizBuilder from "../components/QuizBuilder";
 import ShortAnswerDisplay from "../components/ShortAnswerDisplay";
 import TrueFalseDisplay from "../components/TrueFalseDisplay";
 import MultipleChoiceDisplay from "../components/MultipleChoiceDisplay";
+import { Trash2 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -23,21 +24,24 @@ function Instructor() {
   const [questions, setQuestions] = useState([]);
   // Učitaj instruktorova pitanja
   const loadQuestions = async () => {
-      setLoading(true);
-      setErr(null);
-      try {
-        const res = await api.get(`${API_BASE_URL}/api/instructor/questions/my/`, {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await api.get(
+        `${API_BASE_URL}/api/instructor/questions/my/`,
+        {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        });
-        setQuestions(res.data);
-      } catch (e) {
-        setErr("Greška prilikom učitavanja pitanja");
-      } finally {
-        setLoading(false);
-      }
-    };
+        }
+      );
+      setQuestions(res.data);
+    } catch (e) {
+      setErr("Greška prilikom učitavanja pitanja");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (tab !== "pitanja") return;
@@ -145,6 +149,17 @@ function Instructor() {
     }
   };
 
+  const deleteQuestion = async (id) => {
+    try {
+      await api.delete(`${API_BASE_URL}/api/question/delete/${id}/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setQuestions(questions.filter((q) => q.id !== id));
+    } catch (error) {}
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
       <Header />
@@ -154,7 +169,7 @@ function Instructor() {
           <button
             onClick={() => setTab("termini")}
             className={`text-2xl font-semibold hover:scale-110
-    transition-transform duration-[300ms]
+    transition-transform duration-[350ms]
       ${tab === "termini" ? "text-white" : "text-white/70"}`}
           >
             Moji termini
@@ -163,7 +178,7 @@ function Instructor() {
           <button
             onClick={() => setTab("pitanja")}
             className={`text-2xl font-semibold hover:scale-110
-    transition-transform duration-[300ms]
+    transition-transform duration-[350ms]
       ${tab === "pitanja" ? "text-white" : "text-white/70"}`}
           >
             Moja pitanja
@@ -234,20 +249,33 @@ function Instructor() {
       )}
       {tab === "pitanja" && (
         <div className="pb-20">
-          <QuizBuilder onCreated={(q) => setQuestions([q, ...questions])} loadQuestions={loadQuestions} />
+          <QuizBuilder
+            onCreated={(q) => setQuestions([q, ...questions])}
+            loadQuestions={loadQuestions}
+          />
           <div className="mt-12 space-y-6 flex flex-col items-center justify-center">
             {loading && <p className="text-white/70">Učitavam...</p>}
             {questions.map((q) => (
               <div
                 key={q.id}
-                className="w-full max-w-4xl bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
+                className="group hover:scale-[1.01] ease-in-out duration-[350ms] w-full max-w-4xl bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
               >
                 <div className="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-[#D1F8EF]">
                   <span>
-                    {q.subject || "Opće"} {"\u00A0"} • {"\u00A0"} {q.difficulty} {"\u00A0"} • {"\u00A0"}   {q.grade}. razred
+                    {q.subject || "Opće"} {"\u00A0"} • {"\u00A0"} {q.difficulty}{" "}
+                    {"\u00A0"} • {"\u00A0"} {q.grade}. razred
                   </span>
                 </div>
+
                 {renderQuestion(q)}
+
+                <button
+                  onClick={() => deleteQuestion(q.id)}
+                  className="absolute top-3 right-3 p-3 text-red-400 hover:bg-red-400/20 rounded-full 
+                 transition-all duration-[350ms] ease-in-out opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-6 h-6" />
+                </button>
               </div>
             ))}
           </div>
