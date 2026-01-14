@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from api.models import Attendance
-
+import time
 
 def send_24h_lesson_reminders():
     now = timezone.now()  # UTC
@@ -49,7 +49,7 @@ def send_24h_lesson_reminders():
                         [att.student.student_id.email],
                         fail_silently=False,
                     )
-
+                    time.sleep(2)
                     send_mail(
                         "Podsjetnik: termin sutra",
                         f"Sutra imaš termin sa studentom "
@@ -59,12 +59,12 @@ def send_24h_lesson_reminders():
                         [lesson.instructor_id.instructor_id.email],
                         fail_silently=False,
                     )
-
+                    time.sleep(2)
                     att.reminder_sent = True
                     att.save(update_fields=["reminder_sent"])
 
                 except Exception as e:
-                    None
+                    print("EMAIL ERRORbbb:", e)
 
         # ===== 1H REMINDER =====
         if not att.reminder_1h_sent:
@@ -78,7 +78,7 @@ def send_24h_lesson_reminders():
                         [att.student.student_id.email],
                         fail_silently=False,
                     )
-
+                    time.sleep(2)
                     send_mail(
                         "Podsjetnik: termin za 1 sat",
                         f"Za 1 sat imaš termin sa studentom "
@@ -88,9 +88,9 @@ def send_24h_lesson_reminders():
                         [lesson.instructor_id.instructor_id.email],
                         fail_silently=False,
                     )
-
+                    time.sleep(2)
                     att.reminder_1h_sent = True
                     att.save(update_fields=["reminder_1h_sent"])
 
                 except Exception as e:
-                    None
+                    print("EMAIL ERRORbbb:", e)

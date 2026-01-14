@@ -246,11 +246,9 @@ SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 
 SENDGRID_SANDBOX_MODE_IN_DEBUG = False
 
-DEFAULT_FROM_EMAIL = os.getenv(
-    "SENDGRID_FROM_EMAIL",
-    "INFIMA <no-reply@infima.app>"
-)
-
+# OVO MORA BITI TOČNO OVAKO (bez razmaka i malim slovima)
+DEFAULT_FROM_EMAIL = 'infima.instrukcije@gmail.com'
+SERVER_EMAIL = 'infima.instrukcije@gmail.com'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 

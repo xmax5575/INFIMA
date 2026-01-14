@@ -1,19 +1,19 @@
-import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from django.core.mail import send_mail
 from django.conf import settings
-
+import logging
+import time
+logger = logging.getLogger(__name__)
 
 def send_email(to_email: str, subject: str, content: str):
-    message = Mail(
-        from_email=settings.SENDGRID_FROM_EMAIL,
-        to_emails=to_email,
-        subject=subject,
-        plain_text_content=content,
-    )
-
     try:
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-        sg.send(message)
+        send_mail(
+            subject=subject,
+            message=content,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[to_email],
+            fail_silently=False,
+        )
+        time.sleep(2)
     except Exception as e:
-        None
+        # 🔥 mail je failed, ali APP NASTAVLJA RADITI
+        logger.error("EMAIL FAILED (ignored): %s", e)
