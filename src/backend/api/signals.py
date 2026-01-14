@@ -8,7 +8,6 @@ import time
 
 @receiver(post_save, sender=Attendance)
 def send_reservation_email(sender, instance, created, **kwargs):
-    print(">>> SIGNAL OKINUO, created =", created)
 
     if not created:
         return
@@ -18,7 +17,6 @@ def send_reservation_email(sender, instance, created, **kwargs):
     instructor = lesson.instructor_id
 
     def send_emails_task():
-        print(">>> SENDGRID THREAD STARTED <<<")
         try:
             # 📧 MAIL STUDENTU
             send_email(
