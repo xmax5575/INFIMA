@@ -5,6 +5,10 @@ import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 import QuizBuilder from "../components/QuizBuilder";
+import ShortAnswerDisplay from "../components/ShortAnswerDisplay";
+import TrueFalseDisplay from "../components/TrueFalseDisplay";
+import MultipleChoiceDisplay from "../components/MultipleChoiceDisplay";
+import { Trash2 } from "lucide-react";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -17,6 +21,32 @@ function Instructor() {
   const [accessToken, setAccessToken] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [tab, setTab] = useState("termini");
+  const [questions, setQuestions] = useState([]);
+  // Učitaj instruktorova pitanja
+  const loadQuestions = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const res = await api.get(
+        `${API_BASE_URL}/api/instructor/questions/my/`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      setQuestions(res.data);
+    } catch (e) {
+      setErr("Greška prilikom učitavanja pitanja");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== "pitanja") return;
+    loadQuestions();
+  }, [tab]);
 
   // Učitaj token korisnika.
   useEffect(() => {
@@ -83,7 +113,7 @@ function Instructor() {
 
   const visibleTermini = termini.filter((t) => {
     const lessonDateTime = new Date(`${t.date}T${t.time}`);
-    const limit = new Date(lessonDateTime.getTime() + 15 * 60 * 1000)
+    const limit = new Date(lessonDateTime.getTime() + 15 * 60 * 1000);
     return currentTime <= limit;
   });
 
@@ -104,16 +134,42 @@ function Instructor() {
     } catch (err) {}
   };
 
+  const renderQuestion = (q) => {
+    const commonProps = { text: q.text, correctAnswer: q.correct_answer };
+
+    switch (q.type) {
+      case "short_answer":
+        return <ShortAnswerDisplay {...commonProps} />;
+      case "true_false":
+        return <TrueFalseDisplay {...commonProps} />;
+      case "multiple_choice":
+        return <MultipleChoiceDisplay {...commonProps} options={q.options} />;
+      default:
+        return <p className="text-red-400">Nepoznat tip pitanja</p>;
+    }
+  };
+
+  const deleteQuestion = async (id) => {
+    try {
+      await api.delete(`${API_BASE_URL}/api/question/delete/${id}/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      setQuestions(questions.filter((q) => q.id !== id));
+    } catch (error) {}
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] font-[Outfit] flex flex-col pt-24">
       <Header />
 
       <div className="max-w-2xl w-full mx-auto px-4">
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-6 mb-6">
           <button
             onClick={() => setTab("termini")}
             className={`text-2xl font-semibold hover:scale-110
-    transition-transform duration-[300ms]
+    transition-transform duration-[350ms]
       ${tab === "termini" ? "text-white" : "text-white/70"}`}
           >
             Moji termini
@@ -122,10 +178,10 @@ function Instructor() {
           <button
             onClick={() => setTab("pitanja")}
             className={`text-2xl font-semibold hover:scale-110
-    transition-transform duration-[300ms]
+    transition-transform duration-[350ms]
       ${tab === "pitanja" ? "text-white" : "text-white/70"}`}
           >
-            Dodaj pitanja
+            Moja pitanja
           </button>
         </div>
 
@@ -137,7 +193,11 @@ function Instructor() {
             <ul className="mt-4 space-y-3">
               {visibleTermini.map((t) => (
                 <li key={t.lesson_id ?? t.id}>
-                  <TerminCard termin={t} role="instructor" onTerminDelete={deleteTermin}/>
+                  <TerminCard
+                    termin={t}
+                    role="instructor"
+                    onTerminDelete={deleteTermin}
+                  />
                 </li>
               ))}
 
@@ -188,7 +248,38 @@ function Instructor() {
         </>
       )}
       {tab === "pitanja" && (
-        <QuizBuilder/>
+        <div className="pb-20">
+          <QuizBuilder
+            onCreated={(q) => setQuestions([q, ...questions])}
+            loadQuestions={loadQuestions}
+          />
+          <div className="mt-12 space-y-6 flex flex-col items-center justify-center">
+            {loading && <p className="text-white/70">Učitavam...</p>}
+            {questions.map((q) => (
+              <div
+                key={q.id}
+                className="group hover:scale-[1.01] ease-in-out duration-[350ms] w-full max-w-4xl bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
+              >
+                <div className="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-[#D1F8EF]">
+                  <span>
+                    {q.subject || "Opće"} {"\u00A0"} • {"\u00A0"} {q.difficulty}{" "}
+                    {"\u00A0"} • {"\u00A0"} {q.grade}. razred
+                  </span>
+                </div>
+
+                {renderQuestion(q)}
+
+                <button
+                  onClick={() => deleteQuestion(q.id)}
+                  className="absolute top-3 right-3 p-3 text-red-400 hover:bg-red-400/20 rounded-full 
+                 transition-all duration-[350ms] ease-in-out opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-6 h-6" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -455,7 +455,7 @@ function Student() {
               <div className="flex gap-3"></div>
               <button
                 onClick={() => setShowFilters(false)}
-                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2a5a8c] duration-[500ms] hover:scale-105"
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2a5a8c] duration-[350ms] hover:scale-105"
               >
                 OK
               </button>
@@ -522,7 +522,7 @@ function Student() {
               })}
               <button
                 onClick={() => setShowSort(false)}
-                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2A5A8C] duration-[500ms] hover:scale-105"
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2A5A8C] duration-[350ms] hover:scale-105"
               >
                 OK
               </button>

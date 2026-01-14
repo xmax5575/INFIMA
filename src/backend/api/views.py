@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -914,3 +914,32 @@ class StudentQuizView(APIView):
 
         serializer = StudentQuestionSerializer(questions_to_return, many=True)
         return Response(serializer.data)
+    
+class InstructorQuestionsListView(APIView):
+    queryset = Question.objects.all()
+    serializer_class = StudentQuestionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            questions = Question.objects.filter(author__instructor_id=user)
+        else:
+            questions = Question.objects.none()
+
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
+    
+class QuestionDeleteView(generics.DestroyAPIView):
+    queryset = Question.objects.all()
+    serializer_class = StudentQuestionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            return Question.objects.filter(author__instructor_id=user)
+        if user.is_superuser:
+            return Question.objects.all()
+        return Question.objects.none()
