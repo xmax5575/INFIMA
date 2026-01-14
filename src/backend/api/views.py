@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer
+from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer, QuestionBulkSerializer, StudentQuestionSerializer, SummarySerializer
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -13,7 +13,7 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
@@ -933,3 +933,43 @@ class InstructorQuestionsListView(APIView):
         if user.role == 'INSTRUCTOR':
             return Question.objects.filter(author__instructor_id=user)
         return Question.objects.none()
+    
+class LessonSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        try:
+            summary = Summary.objects.get(lesson_id=lesson_id)
+        except Summary.DoesNotExist:
+            return Response(
+                {"detail": "Summary not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = SummarySerializer(summary)
+        return Response(serializer.data)
+
+    def post(self, request, lesson_id):
+        if request.user.role != "INSTRUCTOR":
+            return Response(
+                {"error": "Only instructors can upload summaries"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            instructor = Instructor.objects.get(instructor_id=request.user)
+        except Instructor.DoesNotExist:
+            return Response(
+                {"error": "Instructor profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = SummarySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                author=instructor,
+                lesson_id=lesson_id
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

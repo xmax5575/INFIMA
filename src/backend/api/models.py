@@ -169,11 +169,9 @@ class Question(models.Model):
     points = models.IntegerField(default=1)
     options = models.JSONField(default=list, blank=True)  
     correct_answer = models.JSONField(default=list)
-    created_at = models.DateTimeField(auto_now_add=True)
 
 # model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="summary") # strani ključ
     author = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
-    notes = models.TextField(null=True, blank=True)
-    homework = models.TextField(null=True, blank=True)
+    file_url = models.URLField()
