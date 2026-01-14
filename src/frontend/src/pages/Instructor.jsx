@@ -17,6 +17,33 @@ function Instructor() {
   const [accessToken, setAccessToken] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [tab, setTab] = useState("termini");
+  const [questions, setQuestions] = useState([]);
+  // Učitaj instruktorova pitanja
+  useEffect(() => {
+    if (tab !== "pitanja" || !accessToken || !user?.instructor_id) return;
+    const loadAllQuestions = async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        const res = api.get(`${API_BASE_URL}/api/instructor/questions/my/`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        const data = await res.json();
+        const mine = data.filter(
+          (q) => String(q.author) === String(user.instructor_id)
+        );
+        setQuestions(mine);
+      } catch (e) {
+        setErr("Greška prilikom učitavanja pitanja");
+      } finally {
+        setLoading(false);
+      }
+
+      loadAllQuestions();
+    };
+  }, [tab, accessToken, user?.instructor_id]);
 
   // Učitaj token korisnika.
   useEffect(() => {
@@ -83,7 +110,7 @@ function Instructor() {
 
   const visibleTermini = termini.filter((t) => {
     const lessonDateTime = new Date(`${t.date}T${t.time}`);
-    const limit = new Date(lessonDateTime.getTime() + 15 * 60 * 1000)
+    const limit = new Date(lessonDateTime.getTime() + 15 * 60 * 1000);
     return currentTime <= limit;
   });
 
@@ -102,6 +129,21 @@ function Instructor() {
         prevTermins.filter((t) => t.lesson_id !== lesson_id)
       );
     } catch (err) {}
+  };
+
+  const renderQuestion = (q) => {
+    const commonProps = { text: q.text, correctAnswer: q.correct_answer };
+
+    switch (q.type) {
+      case "short_answer":
+        return <ShortAnswerDisplay {...commonProps} />;
+      case "true_false":
+        return <TrueFalseDisplay {...commonProps} />;
+      case "multiple_choice":
+        return <MultipleChoiceDisplay {...commonProps} options={q.options} />;
+      default:
+        return <p className="text-red-400">Nepoznat tip pitanja</p>;
+    }
   };
 
   return (
@@ -125,7 +167,7 @@ function Instructor() {
     transition-transform duration-[300ms]
       ${tab === "pitanja" ? "text-white" : "text-white/70"}`}
           >
-            Dodaj pitanja
+            Moja pitanja
           </button>
         </div>
 
@@ -137,7 +179,11 @@ function Instructor() {
             <ul className="mt-4 space-y-3">
               {visibleTermini.map((t) => (
                 <li key={t.lesson_id ?? t.id}>
-                  <TerminCard termin={t} role="instructor" onTerminDelete={deleteTermin}/>
+                  <TerminCard
+                    termin={t}
+                    role="instructor"
+                    onTerminDelete={deleteTermin}
+                  />
                 </li>
               ))}
 
@@ -188,7 +234,34 @@ function Instructor() {
         </>
       )}
       {tab === "pitanja" && (
-        <QuizBuilder/>
+        <div className="pb-20">
+          <QuizBuilder onCreated={(q) => setQuestions([q, ...questions])} />
+          <div className="mt-12 space-y-6">
+            {loading && <p className="text-white/70">Učitavam...</p>}
+            {questions.map((q) => (
+              <div
+                key={q.id}
+                className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
+              >
+                <div className="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-[#D1F8EF]">
+                  <span>
+                    {q.subject_name || "Opće"} • {q.grade}. razred
+                  </span>
+                  <span>{q.points} bod(ova)</span>
+                </div>
+                {renderQuestion(q)}
+                <div className="mt-5 pt-4 border-t border-white/5 flex justify-end">
+                  <button
+                    onClick={() => deleteQuestion(q.id)}
+                    className="text-white/30 hover:text-red-400 text-xs transition-colors"
+                  >
+                    Obriši pitanje
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
