@@ -28,6 +28,7 @@ export default function InstructorCard({
   const instructor_id = user?.id || null;
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   // subjects dolaze kao objekti -> pretvori u array stringova (name)
   const subjectsRaw = user?.subjects ?? [];
@@ -58,10 +59,8 @@ export default function InstructorCard({
         await api.post("/api/google/calendar/connect/", {
           code: codeResponse.code,
         });
-        alert("Google Calendar uspješno povezan!");
-      } catch (e) {
-        alert("Greška pri povezivanju Google Calendar-a");
-      }
+        setCalendarConnected(true);
+      } catch (e) {}
     },
   });
 
@@ -130,8 +129,6 @@ export default function InstructorCard({
             </button>
           )}
 
-          
-
           {/* TOP */}
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
             {/* Avatar */}
@@ -148,27 +145,26 @@ export default function InstructorCard({
               </div>
               <div className="mt-3 text-[#3674B5] text-base sm:text-lg leading-snug pb-4">
                 <span className="font-bold">Lokacija: </span>
-                  <span className="font-normal">{location}</span>
+                <span className="font-normal">{location}</span>
               </div>
               <div className="w-full lg:col-span-3 flex flex-row items-start gap-4">
-  {/* SLIKA */}
-  <div className="h-[210px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080]">
-    <img
-      src={avatarUrl || defaultAvatar}
-      alt="Avatar"
-      className="h-full w-full object-cover"
-    />
-  </div>
+                {/* SLIKA */}
+                <div className="h-[210px] w-full max-w-[220px] overflow-hidden rounded-2xl bg-[#808080]">
+                  <img
+                    src={avatarUrl || defaultAvatar}
+                    alt="Avatar"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
 
-  {/* MAPA */}
-  <div className="h-[210px] flex-1 overflow-hidden rounded-2xl">
-    <GoogleMapEmbed
-      location={user.location}
-      className="h-full w-full"
-    />
-  </div>
-</div>
-
+                {/* MAPA */}
+                <div className="h-[210px] flex-1 overflow-hidden rounded-2xl">
+                  <GoogleMapEmbed
+                    location={user.location}
+                    className="h-full w-full"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           {/* GOOGLE CALENDAR CONNECT – FORCED VISIBLE */}
