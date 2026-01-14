@@ -244,7 +244,7 @@ function Instructor() {
               >
                 <div className="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-[#D1F8EF]">
                   <span>
-                    {q.subject_name || "Opće"} • {q.grade}. razred
+                    {q.subject_name || "Opće"} • {q.difficulty} • {q.grade}. razred
                   </span>
                 </div>
                 {renderQuestion(q)}
