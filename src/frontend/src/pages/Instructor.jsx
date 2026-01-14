@@ -22,9 +22,7 @@ function Instructor() {
   const [tab, setTab] = useState("termini");
   const [questions, setQuestions] = useState([]);
   // Učitaj instruktorova pitanja
-  useEffect(() => {
-    if (tab !== "pitanja") return;
-    const loadQuestions = async () => {
+  const loadQuestions = async () => {
       setLoading(true);
       setErr(null);
       try {
@@ -41,6 +39,8 @@ function Instructor() {
       }
     };
 
+  useEffect(() => {
+    if (tab !== "pitanja") return;
     loadQuestions();
   }, [tab]);
 
@@ -150,7 +150,7 @@ function Instructor() {
       <Header />
 
       <div className="max-w-2xl w-full mx-auto px-4">
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-6 mb-6">
           <button
             onClick={() => setTab("termini")}
             className={`text-2xl font-semibold hover:scale-110
@@ -234,7 +234,7 @@ function Instructor() {
       )}
       {tab === "pitanja" && (
         <div className="pb-20">
-          <QuizBuilder onCreated={(q) => setQuestions([q, ...questions])} />
+          <QuizBuilder onCreated={(q) => setQuestions([q, ...questions])} loadQuestions={loadQuestions} />
           <div className="mt-12 space-y-6 flex flex-col items-center justify-center">
             {loading && <p className="text-white/70">Učitavam...</p>}
             {questions.map((q) => (

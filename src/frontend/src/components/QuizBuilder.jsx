@@ -10,7 +10,7 @@ const GRADES = {
   Srednja: ["1", "2", "3", "4"],
 };
 
-export default function QuizBuilder() {
+export default function QuizBuilder({ onCreated, loadQuestions }) {
   const [subject, setSubject] = useState("");
   const [school, setSchool] = useState("");
   const [grade, setGrade] = useState("");
@@ -116,18 +116,18 @@ export default function QuizBuilder() {
       }),
     };
 
-    console.log("PAYLOAD ZA BACKEND:", payload);
-
     try {
       const res = await api.post("/api/instructor/questions/upload/", payload);
-      console.log("Uspješno spremljeno:", res.data);
       setSubject("");
-  setSchool("");
-  setGrade("");
-  setQuestions([]);
-  setError(null);
+      setSchool("");
+      setGrade("");
+      setQuestions([]);
+      setError(null);
+
+      if (loadQuestions) {
+        loadQuestions();
+      }
     } catch (error) {
-      console.error(error);
       setError(error.response?.data?.message || "Greška pri spremanju pitanja");
     }
   };
