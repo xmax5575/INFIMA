@@ -207,9 +207,6 @@ export default function InstructorCard({
             {/* RIGHT – Kalendar */}
             <div className="lg:col-span-7">
               <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
-                <div className="text-lg sm:text-xl font-semibold text-center">
-                  Kalendar
-                </div>
                 {/* RIGHT: Google Calendar */}
                 <div className="lg:col-span-7">
                   <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">

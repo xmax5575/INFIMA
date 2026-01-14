@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
-from api.models import Attendance
+from api.models import Attendance, Lesson
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
@@ -99,3 +99,17 @@ def create_google_calendar_event(instructor, lesson):
 
     lesson.google_event_id = created["id"]
     lesson.save(update_fields=["google_event_id"])
+
+def sync_existing_lessons_to_google(instructor):
+    if not instructor.google_refresh_token:
+        return
+
+    lessons = Lesson.objects.filter(
+        instructor_id=instructor,
+        google_event_id__isnull=True,
+        status="ACTIVE",
+        date__gte=timezone.now().date(),
+    )
+
+    for lesson in lessons:
+        create_google_calendar_event(instructor, lesson)
