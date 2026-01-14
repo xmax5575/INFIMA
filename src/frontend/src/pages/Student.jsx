@@ -16,12 +16,9 @@ function Student() {
   const [myTermini, setMyTermini] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-<<<<<<< HEAD
   const [currentTime, setCurrentTime] = useState(new Date());
-=======
   const [selectedSubject, setSelectedSubject] = useState(null);
 
->>>>>>> e73999be (Add quiz to home/student)
 
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
