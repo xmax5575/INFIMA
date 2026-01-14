@@ -118,14 +118,11 @@ class GoogleAuthCodeExchangeView(views.APIView):
 
         except requests.exceptions.RequestException as e:
             # Handle network errors, connection problems, or Google's API errors
-            print(f"Google token exchange failed: {e}")
             return Response({"error": "External authentication failed."}, status=status.HTTP_400_BAD_REQUEST)
         except jwt.exceptions.DecodeError as e:
-            print(f"JWT decode error: {e}")
             return Response({"error": "Invalid token received."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             # Catch all other exceptions (e.g., database issues)
-            print(f"Internal error during authentication: {e}")
             return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
@@ -337,7 +334,7 @@ class InstructorUpdateView(APIView):
                         instructor.save(update_fields=["lat", "lng"])
                 except Exception as e:
                     # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
-                    print("Geocoding failed:", e)
+                    None
 
         return Response(
             serializer.data,

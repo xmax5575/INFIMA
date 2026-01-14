@@ -48,8 +48,8 @@ def send_reservation_email(sender, instance, created, **kwargs):
                     f"Vrijeme: {lesson.time}\n"
                 ),
             )
-
         except Exception as e:
-            print(">>> SENDGRID ERROR:", e)
+            None
+    
 
     threading.Thread(target=send_emails_task).start()

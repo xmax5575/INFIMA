@@ -16,4 +16,4 @@ def send_email(to_email: str, subject: str, content: str):
         sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
         sg.send(message)
     except Exception as e:
-        print("SendGrid error:", e)
+        None

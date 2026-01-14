@@ -5,6 +5,5 @@ class Command(BaseCommand):
     help = "Send lesson reminders 24h before"
 
     def handle(self, *args, **kwargs):
-        print("POZVAN SEND_REMINDERS")
         send_24h_lesson_reminders()
         self.stdout.write("Reminder check done.")

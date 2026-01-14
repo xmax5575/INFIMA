@@ -8,8 +8,6 @@ from api.models import Attendance
 
 
 def send_24h_lesson_reminders():
-    print("POZVAN SEND_REMINDERS")
-
     now = timezone.now()  # UTC
 
     window_24h_start = now + timedelta(hours=23)
@@ -39,10 +37,6 @@ def send_24h_lesson_reminders():
 
         hours_to_lesson = (lesson_utc - now).total_seconds() / 3600
 
-        print("NOW:", now)
-        print("LESSON UTC:", lesson_utc)
-        print("HOURS TO LESSON:", round(hours_to_lesson, 2))
-
         # ===== 24H REMINDER =====
         if not att.reminder_sent:
             if window_24h_start <= lesson_utc <= window_24h_end:
@@ -68,10 +62,9 @@ def send_24h_lesson_reminders():
 
                     att.reminder_sent = True
                     att.save(update_fields=["reminder_sent"])
-                    print(">>> 24H REMINDER POSLAN")
 
                 except Exception as e:
-                    print("MAIL ERROR (24h):", e)
+                    None
 
         # ===== 1H REMINDER =====
         if not att.reminder_1h_sent:
@@ -98,9 +91,6 @@ def send_24h_lesson_reminders():
 
                     att.reminder_1h_sent = True
                     att.save(update_fields=["reminder_1h_sent"])
-                    print(">>> 1H REMINDER POSLAN")
 
                 except Exception as e:
-                    print("MAIL ERROR (1h):", e)
-
-    print(">>> Reminder check done.")
+                    None
