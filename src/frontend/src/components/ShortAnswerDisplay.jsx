@@ -1,4 +1,4 @@
-export const ShortAnswerDisplay = ({ text, correctAnswer }) => (
+const ShortAnswerDisplay = ({ text, correctAnswer }) => (
   <div className="space-y-3">
     <p className="text-white font-medium">{text}</p>
     <div className="p-3 bg-black/20 rounded-xl border border-white/10">
@@ -13,3 +13,5 @@ export const ShortAnswerDisplay = ({ text, correctAnswer }) => (
     </div>
   </div>
 );
+
+export default ShortAnswerDisplay;

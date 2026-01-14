@@ -1,4 +1,4 @@
-export const MultipleChoiceDisplay = ({ text, options, correctAnswer }) => (
+const MultipleChoiceDisplay = ({ text, options, correctAnswer }) => (
   <div className="space-y-3">
     <p className="text-white font-medium">{text}</p>
     <div className="grid gap-2">
@@ -20,3 +20,5 @@ export const MultipleChoiceDisplay = ({ text, options, correctAnswer }) => (
     </div>
   </div>
 );
+
+export default MultipleChoiceDisplay;

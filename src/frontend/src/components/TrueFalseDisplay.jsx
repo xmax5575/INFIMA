@@ -1,4 +1,4 @@
-export const TrueFalseDisplay = ({ text, correctAnswer }) => (
+const TrueFalseDisplay = ({ text, correctAnswer }) => (
   <div className="space-y-3">
     <p className="text-white font-medium">{text}</p>
     <div className="flex gap-2">
@@ -15,3 +15,5 @@ export const TrueFalseDisplay = ({ text, correctAnswer }) => (
     </div>
   </div>
 );
+
+export default TrueFalseDisplay;

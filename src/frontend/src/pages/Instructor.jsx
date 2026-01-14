@@ -5,6 +5,9 @@ import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 import QuizBuilder from "../components/QuizBuilder";
+import ShortAnswerDisplay from "../components/ShortAnswerDisplay";
+import TrueFalseDisplay from "../components/TrueFalseDisplay";
+import MultipleChoiceDisplay from "../components/MultipleChoiceDisplay";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -20,30 +23,26 @@ function Instructor() {
   const [questions, setQuestions] = useState([]);
   // Učitaj instruktorova pitanja
   useEffect(() => {
-    if (tab !== "pitanja" || !accessToken || !user?.instructor_id) return;
-    const loadAllQuestions = async () => {
+    if (tab !== "pitanja") return;
+    const loadQuestions = async () => {
       setLoading(true);
       setErr(null);
       try {
-        const res = api.get(`${API_BASE_URL}/api/instructor/questions/my/`, {
+        const res = await api.get(`${API_BASE_URL}/api/instructor/questions/my/`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        const data = await res.json();
-        const mine = data.filter(
-          (q) => String(q.author) === String(user.instructor_id)
-        );
-        setQuestions(mine);
+        setQuestions(res.data);
       } catch (e) {
         setErr("Greška prilikom učitavanja pitanja");
       } finally {
         setLoading(false);
       }
-
-      loadAllQuestions();
     };
-  }, [tab, accessToken, user?.instructor_id]);
+
+    loadQuestions();
+  }, [tab]);
 
   // Učitaj token korisnika.
   useEffect(() => {
@@ -236,28 +235,19 @@ function Instructor() {
       {tab === "pitanja" && (
         <div className="pb-20">
           <QuizBuilder onCreated={(q) => setQuestions([q, ...questions])} />
-          <div className="mt-12 space-y-6">
+          <div className="mt-12 space-y-6 flex flex-col items-center justify-center">
             {loading && <p className="text-white/70">Učitavam...</p>}
             {questions.map((q) => (
               <div
                 key={q.id}
-                className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
+                className="w-full max-w-4xl bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl"
               >
                 <div className="flex justify-between items-center mb-4 text-[10px] uppercase font-bold text-[#D1F8EF]">
                   <span>
                     {q.subject_name || "Opće"} • {q.grade}. razred
                   </span>
-                  <span>{q.points} bod(ova)</span>
                 </div>
                 {renderQuestion(q)}
-                <div className="mt-5 pt-4 border-t border-white/5 flex justify-end">
-                  <button
-                    onClick={() => deleteQuestion(q.id)}
-                    className="text-white/30 hover:text-red-400 text-xs transition-colors"
-                  >
-                    Obriši pitanje
-                  </button>
-                </div>
               </div>
             ))}
           </div>

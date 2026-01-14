@@ -915,12 +915,20 @@ class StudentQuizView(APIView):
         serializer = StudentQuestionSerializer(questions_to_return, many=True)
         return Response(serializer.data)
     
-class InstructorQuestionsListView(generics.ListAPIView):
+class InstructorQuestionsListView(APIView):
     queryset = Question.objects.all()
     serializer_class = StudentQuestionSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get(self, request):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            questions = Question.objects.filter(author__instructor_id=user)
+        else:
+            questions = Question.objects.none()
+
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
         user = self.request.user
         if user.role == 'INSTRUCTOR':
             return Question.objects.filter(author__instructor_id=user)
