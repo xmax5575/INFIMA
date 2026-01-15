@@ -20,6 +20,10 @@ from django.db.models import Count, F
 from datetime import timedelta
 from api.utils1 import create_google_calendar_event
 from api.utils1 import sync_existing_lessons_to_google
+from api.utils1 import send_24h_lesson_reminders
+from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 User = get_user_model()
@@ -949,6 +953,20 @@ class StudentQuizView(APIView):
 
         serializer = StudentQuestionSerializer(questions_to_return, many=True)
         return Response(serializer.data)
+
+class ReminderCronView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        token = request.headers.get("X-CRON-TOKEN")
+        print(">>> CRON ENDPOINT HIT")
+        print(">>> HEADERS:", dict(request.headers))
+        if token != settings.CRON_SECRET:
+            return Response({"error": "unauthorized"}, status=401)
+
+        send_24h_lesson_reminders()
+        return Response({"status": "ok"})
     
 class InstructorQuestionsListView(APIView):
     queryset = Question.objects.all()
