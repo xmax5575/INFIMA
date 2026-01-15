@@ -919,7 +919,6 @@ from api.utils1 import send_24h_lesson_reminders
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from api.utils1 import send_24h_lesson_reminders
 
 class ReminderCronView(APIView):
     authentication_classes = []
