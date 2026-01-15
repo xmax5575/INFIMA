@@ -18,8 +18,8 @@ from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
 from datetime import timedelta
-from api.utils import create_google_calendar_event
-from api.utils import sync_existing_lessons_to_google
+from api.utils1 import create_google_calendar_event
+from api.utils1 import sync_existing_lessons_to_google
 
 
 User = get_user_model()
