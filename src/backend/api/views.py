@@ -1077,7 +1077,7 @@ class StudentSummariesView(APIView):
 
         summaries = Summary.objects.filter(
             lesson__attendance__student=student
-        ).select_related("lesson")
+        ).select_related("lesson", "lesson__subject")
 
         serializer = SummarySerializer(summaries, many=True)
         return Response(serializer.data)

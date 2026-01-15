@@ -178,3 +178,4 @@ class Summary(models.Model):
     lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="summary") # strani ključ
     author = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
     file_url = models.URLField()
+    file_name = models.CharField(max_length=255) 
