@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from api.utils1 import send_24h_lesson_reminders
+from backend.api.utils2 import send_24h_lesson_reminders
 
 class Command(BaseCommand):
     help = "Send lesson reminders 24h before"
