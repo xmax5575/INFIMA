@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.core.mail import send_mail
 from django.conf import settings
 from api.models import Attendance, Lesson
 from google.oauth2.credentials import Credentials
