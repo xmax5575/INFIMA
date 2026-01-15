@@ -412,11 +412,17 @@ class StudentQuestionSerializer(serializers.ModelSerializer):
         ]
 
 class SummarySerializer(serializers.ModelSerializer):
+    lesson_date = serializers.DateField(source="lesson.date", read_only=True)
+    lesson_subject = serializers.CharField(source="lesson.subject.name", read_only=True)
+
     class Meta:
         model = Summary
         fields = [
             "id",
             "lesson",
             "file_url",
+            "file_name",       
+            "lesson_date",     
+            "lesson_subject", 
         ]
-        read_only_fields = ["id", "lesson"]
+        read_only_fields = ["id", "lesson", "lesson_date", "lesson_subject"]

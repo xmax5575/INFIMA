@@ -5,8 +5,8 @@ import api from "../api";
 import { supabase } from "../supabaseClient";
 async function uploadLessonSummary(file, lessonId) {
   const ext = file.name.split(".").pop();
-  const fileName = `${crypto.randomUUID()}.${ext}`;
-  const path = `summary/${lessonId}/${fileName}`;
+  const storageFileName = `${crypto.randomUUID()}.${ext}`;
+  const path = `summary/${lessonId}/${storageFileName}`;
 
   const { error } = await supabase.storage
     .from("media")
@@ -18,8 +18,13 @@ async function uploadLessonSummary(file, lessonId) {
     .from("media")
     .getPublicUrl(path);
 
-  return data.publicUrl;
+  return {
+    publicUrl: data.publicUrl,
+    originalName: file.name, // ⬅️ OVO
+    storagePath: path,
+  };
 }
+
 
 export default function SummaryUpload() {
   const { lessonId } = useParams();
@@ -64,22 +69,23 @@ export default function SummaryUpload() {
   setError(null);
 
   try {
-    // ⬅️ ISTO KAO upload avatara
-    const summaryUrl = await uploadLessonSummary(file, lessonId);
+    const uploadResult = await uploadLessonSummary(file, lessonId);
 
-    // ⬅️ backend dobije samo URL
     await api.post(`/api/lesson/${lessonId}/summary/`, {
-      file_url: summaryUrl,
+      file_url: uploadResult.publicUrl,
+      file_name: uploadResult.originalName, // ⬅️ BITNO
+      storage_path: uploadResult.storagePath,
     });
 
     navigate(`/home/instructor`);
   } catch (err) {
-    console.error("Backend response:", err.response?.data || err);
+    console.error(err);
     setError("Greška pri uploadu sažetka.");
   } finally {
     setLoading(false);
   }
 };
+
 
 
 
