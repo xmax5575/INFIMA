@@ -10,34 +10,26 @@ async function uploadInstructorAvatar(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = `instructors/pictures/${fileName}`;
-
   const { error } = await supabase.storage.from("media").upload(path, file);
-
   if (error) throw error;
-
   const { data } = supabase.storage.from("media").getPublicUrl(path);
-
   return data.publicUrl;
 }
+
 async function uploadInstructorVideo(file) {
-  const ext = file.name.split(".").pop(); // mp4, webm…
+  const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = `instructors/videos/${fileName}`;
-
-  const { error } = await supabase.storage.from("media").upload(path, file, {
-    cacheControl: "3600",
-  });
-
+  const { error } = await supabase.storage
+    .from("media")
+    .upload(path, file, { cacheControl: "3600" });
   if (error) throw error;
-
   const { data } = supabase.storage.from("media").getPublicUrl(path);
-
   return data.publicUrl;
 }
 
 export default function InstructorEditForm() {
   const navigate = useNavigate();
-
   const [fullName, setFullName] = useState("");
   const [bio, setBio] = useState("");
   const [price, setPrice] = useState("");
@@ -54,35 +46,29 @@ export default function InstructorEditForm() {
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) return;
-
     const load = async () => {
       try {
         const profRes = await api.get("/api/user/profile/");
-        const r = profRes.data;
-        const name =
-          r.full_name ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim();
-        setFullName(name);
-
+        setFullName(
+          profRes.data.full_name ??
+            `${profRes.data.first_name ?? ""} ${
+              profRes.data.last_name ?? ""
+            }`.trim()
+        );
         const infRes = await api.get("/api/instructor/inf/");
         const inf = infRes.data;
-        if (inf.profile_image_url) {
-          setAvatarPreview(inf.profile_image_url);
-        }
-        if (inf.video_url) {
-          setVideoPreview(inf.video_url);
-        }
-
+        if (inf.profile_image_url) setAvatarPreview(inf.profile_image_url);
+        if (inf.video_url) setVideoPreview(inf.video_url);
         setBio(inf.bio ?? "");
         setLocation(inf.location ?? "");
         setPrice(inf.price_eur != null ? String(inf.price_eur) : "");
-
-        const subjectNames = Array.isArray(inf.subjects)
-          ? inf.subjects.map((s) => s.name).filter(Boolean)
-          : [];
-        setSubjects(subjectNames);
+        setSubjects(
+          Array.isArray(inf.subjects)
+            ? inf.subjects.map((s) => s.name).filter(Boolean)
+            : []
+        );
       } catch (err) {}
     };
-
     load();
   }, []);
 
@@ -90,186 +76,87 @@ export default function InstructorEditForm() {
     e.preventDefault();
     let profileImageUrl = null;
     let videoUrl = null;
-
-    if (avatarFile) {
-      profileImageUrl = await uploadInstructorAvatar(avatarFile);
-    }
-    if (videoFile) {
-      videoUrl = await uploadInstructorVideo(videoFile);
-    }
-
+    if (avatarFile) profileImageUrl = await uploadInstructorAvatar(avatarFile);
+    if (videoFile) videoUrl = await uploadInstructorVideo(videoFile);
     if (subjects.length === 0) {
       setSubjectsError("Odaberi barem jedno područje.");
       return;
     }
-    setSubjectsError("");
-
     try {
-      const res = await api.post("/api/instructor/me/", {
+      await api.post("/api/instructor/me/", {
         bio,
         location,
-        price: price === "" ? null : Number(price),
+        price_eur: price === "" ? null : Number(price),
         subjects,
         ...(profileImageUrl && { profile_image_url: profileImageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
       });
-
-      console.debug("POST /api/instructor/me/ succeeded:", res?.data);
-
-      // Kada je profil spremljen, postavi zastavicu u localStorage.
-      if (
-        bio.trim() !== "" &&
-        location.trim() !== "" &&
-        subjects.length > 0 &&
-        Number(price) > 0
-      ) {
-        localStorage.setItem("profile_saved_instructor", "1");
-        window.dispatchEvent(
-          new CustomEvent("profileUpdated", {
-            detail: { role: "instructor", isProfileComplete: true },
-          })
-        );
-      }
-
       navigate("/home/instructor");
     } catch (err) {}
   };
 
-  const handleCancel = () => navigate("/home/instructor");
-
   return (
     <div className="w-full">
-      <div className="relative mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-10 sm:p-7">
-        <form onSubmit={onSubmit}>
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-3">
-              <label htmlFor="avatarUpload" className="cursor-pointer">
-                <div className="relative group w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50">
+      <div className="mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-6 sm:p-10 shadow-sm">
+        <form onSubmit={onSubmit} className="space-y-6">
+          {/* 1. IME (GORNJI LIJEVI KUT) */}
+          <div className="text-left">
+            <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
+              {fullName}
+            </h1>
+          </div>
+
+          {/* 2. BIOGRAFIJA (FULL WIDTH) */}
+          <div className="w-full text-[#3674B5]">
+            <span className="font-bold text-lg">Biografija:</span>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Upiši biografiju..."
+              rows={4}
+              required
+              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5] outline-none focus:bg-white resize-none shadow-sm"
+            />
+          </div>
+
+          {/* 3. REDAK: SLIKA | PODRUČJA | VIDEO */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
+            {/* Slika */}
+            <div className="flex flex-col">
+              <label htmlFor="avatarUpload" className="cursor-pointer h-full">
+                <div className="relative h-56 w-full bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white shadow-sm group">
                   <img
                     src={avatarPreview || defaultAvatar}
                     alt="Avatar"
-                    className="w-56 h-56 rounded-3xl object-cover"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[500ms] bg-black/60">
-                    <span className="text-[#E8FCF7] font-bold text-lg text-center uppercase">
-                      {avatarPreview ? "Promijeni sliku" : "Klik za upload"}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-sm font-bold uppercase text-center px-2">
+                      Promijeni sliku
                     </span>
                   </div>
                 </div>
               </label>
-
               <input
                 type="file"
                 accept="image/*"
-                className="hidden"
                 id="avatarUpload"
+                className="hidden"
                 onChange={(e) => {
                   const file = e.target.files[0];
-                  if (!file) return;
-
-                  setAvatarFile(file); // 👈 ovo ide backendu
-                  setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
+                  if (file) {
+                    setAvatarFile(file);
+                    setAvatarPreview(URL.createObjectURL(file));
+                  }
                 }}
               />
             </div>
 
-            <div className="lg:col-span-9">
-              <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
-                {fullName}
-              </h1>
-
-              <div className="mt-3 text-[#3674B5] text-base sm:text-lg leading-snug">
-                <span className="font-bold">Biografija: </span>
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Upiši biografiju..."
-                  rows={4}
-                  required
-                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5]
-                             font-normal outline-none focus:bg-white resize-none"
-                />
-              </div>
-              {videoPreview && (
-                <div className="mt-4 mb-3 flex justify-center">
-                  <video
-                    src={videoPreview}
-                    controls
-                    playsInline
-                    className="w-full max-w-md rounded-2xl border border-white/40 shadow"
-                  />
-                </div>
-              )}
-              <label className="block mt-4 cursor-pointer">
-                <div className="rounded-xl bg-white/20 p-3 text-center text-[#215993] font-semibold">
-                  {videoPreview ? "Promijeni video" : "Dodaj video o sebi"}
-                </div>
-
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    // opcionalna validacija
-                    if (file.size > 50 * 1024 * 1024) {
-                      return;
-                    }
-
-                    setVideoFile(file);
-                    setVideoPreview(URL.createObjectURL(file));
-                  }}
-                />
-              </label>
-
-              <div className="mt-2 text-[#3674B5]/90 text-base sm:text-lg">
-                <span className="font-bold">Lokacija: </span>
-                <input
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="npr. Zagreb"
-                  required
-                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5]
-                             font-normal outline-none focus:bg-white"
-                />
-                {location && (
-                  <div className="mt-4 h-56">
-                    <GoogleMapEmbed
-                      location={location}
-                      className="h-full w-full"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
-                <div className="absolute right-4 top-4 rounded-full bg-[#3674B5] px-4 py-2 text-lg font-semibold">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      inputMode="numeric"
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder="10"
-                      required
-                      className="w-20 rounded-xl bg-white/15 px-3 py-1 text-[#D1F8EF]
-                                 outline-none placeholder:text-white/60"
-                    />
-                    <span>€ / sat</span>
-                  </div>
-                </div>
-
-                <h2 className="text-lg sm:text-xl font-semibold">Područja</h2>
-
-                <div className="mt-4 flex flex-wrap gap-2 pr-[88px]">
+            {/* Područja i Cijena */}
+            <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF] flex flex-col shadow-sm h-56">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold">Područja</h2>
+                <div className="mt-2 flex flex-wrap gap-2">
                   {SUBJECT_OPTIONS.map((s) => {
                     const active = subjects.includes(s);
                     return (
@@ -283,40 +170,105 @@ export default function InstructorEditForm() {
                               : [...prev, s]
                           )
                         }
-                        className={
-                          "rounded-full px-3 py-1 text-sm sm:text-base transition " +
-                          (active
-                            ? "border border-white/40 bg-white/20 ring-1 ring-[#D1F8EF] shadow-lg shadow-[#D1F8EF]/20"
-                            : "border border-white/25 bg-white/10 hover:bg-white/15")
-                        }
+                        className={`rounded-full px-3 py-1.5 text-sm font-medium border transition ${
+                          active
+                            ? "border-white/40 bg-white/20 ring-1 ring-[#D1F8EF]"
+                            : "border-white/25 bg-white/10 hover:bg-white/15"
+                        }`}
                       >
                         {s}
                       </button>
                     );
                   })}
                 </div>
-
-                {subjectsError && (
-                  <p className="mt-2 text-sm text-red-200">{subjectsError}</p>
-                )}
+              </div>
+              
+              {/* Centrirana Cijena */}
+              <div className="flex items-center justify-center gap-2 bg-white/10 p-2 rounded-xl border border-white/20 mt-auto">
+                <input
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  type="number"
+                  placeholder="10"
+                  required
+                  className="w-12 bg-transparent outline-none text-[#D1F8EF] font-bold text-lg text-center"
+                />
+                <span className="text-sm font-semibold text-[#D1F8EF]">
+                  € / sat
+                </span>
               </div>
             </div>
 
-            <div className="lg:col-span-7">
-              <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
+            {/* Video */}
+            <div className="flex flex-col">
+              <div className="h-56 w-full bg-white/40 rounded-3xl overflow-hidden border-4 border-white shadow-sm relative group">
+                {videoPreview ? (
+                  <video
+                    src={videoPreview}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center italic text-[#3674B5]/50 text-sm p-4 text-center">
+                    Dodaj video prezentaciju
+                  </div>
+                )}
+                <label className="absolute bottom-2 right-2 cursor-pointer bg-[#3674B5] p-2 rounded-full text-white shadow-lg hover:bg-[#215993] transition">
+                  <span className="text-[10px] font-bold uppercase px-2">
+                    Upload Video
+                  </span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file && file.size <= 50 * 1024 * 1024) {
+                        setVideoFile(file);
+                        setVideoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. MAPA (LIJEVO) I GUMBI (DESNO) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+            {/* Mapa */}
+            <div className="md:col-span-8 space-y-2">
+              <span className="font-bold text-[#3674B5]">Lokacija:</span>
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="npr. Zagreb"
+                required
+                className="w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5] outline-none focus:bg-white shadow-sm mb-3"
+              />
+              {location && (
+                <div className="h-56 rounded-3xl overflow-hidden border-4 border-white shadow-sm">
+                  <GoogleMapEmbed
+                    location={location}
+                    className="h-full w-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Gumbi za akciju */}
+            <div className="md:col-span-4 space-y-4">
+              <div className="rounded-3xl bg-[#3674B5] p-5 shadow-sm space-y-3">
                 <button
                   type="submit"
-                  className="w-full rounded-xl bg-[#D1F8EF] px-4 py-2.5 text-[#3674B5]
-                             font-semibold hover:brightness-95"
+                  className="w-full rounded-xl bg-[#D1F8EF] px-4 py-3 text-[#3674B5] font-bold hover:brightness-105 transition shadow-md"
                 >
                   Spremi promjene
                 </button>
-
                 <button
                   type="button"
-                  onClick={handleCancel}
-                  className="w-full mt-4 rounded-xl bg-[#215993] px-4 py-2.5 text-white
-                             font-semibold hover:brightness-95"
+                  onClick={() => navigate("/home/instructor")}
+                  className="w-full rounded-xl bg-[#215993] px-4 py-3 text-white font-semibold hover:brightness-105 transition"
                 >
                   Odustani
                 </button>
