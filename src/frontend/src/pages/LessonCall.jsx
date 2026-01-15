@@ -27,23 +27,25 @@ export default function LessonCall() {
   }, [lessonId]);
 
   const handleMeetingEnd = async () => {
-  try {
-    await api.post(`/api/lessons/${lessonId}/end/`);
+    try {
+      // 1) Pozovi backend da označiš kraj i dobiješ uputu kamo dalje
+      const response = await api.post(`/api/lessons/${lessonId}/end/`);
 
-    const roleRes = await api.get("/api/user/role");
-    const role = roleRes.data?.role;
+      // 2) Backend vraća npr. { "redirect_to": "/payment/12" } za studenta
+      // ili { "redirect_to": "/home/instructor" } za instruktora
+      const targetUrl = response.data.redirect_to;
 
-    if (role === "INSTRUCTOR") {
-      navigate(`/summary/${lessonId}`);
-    } else {
-      navigate(`/review/${lessonId}`);
+      if (targetUrl) {
+        navigate(targetUrl);
+      } else {
+        // Fallback ako se nešto čudno dogodi
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Greška pri završetku lekcije:", err);
+      navigate("/");
     }
-  } catch (err) {
-    console.error(err);
-    navigate("/");
-  }
-};
-
+  };
 
   if (error) return <p className="text-red-600">{error}</p>;
   if (!meeting) return <p>Učitavanje meetinga…</p>;

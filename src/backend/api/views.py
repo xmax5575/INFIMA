@@ -736,7 +736,7 @@ class EndLessonView(APIView):
                 return Response({"error": "Forbidden"}, status=403)
 
             return Response({
-                "redirect_to": "/home/instructor"
+                "redirect_to": f"/summary/{lesson.lesson_id}"
             })
 
         # student ide na payment
