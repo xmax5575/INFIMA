@@ -22,12 +22,16 @@ def send_reservation_emails(sender, instance, created, **kwargs):
         send_email(
             to_email=student.student_id.email,
             subject="Rezervacija termina potvrđena",
-            content=(
-                f"Pozdrav {student.student_id.first_name},\n\n"
-                f"Uspješno si rezervirala termin.\n\n"
-                f"Predmet: {lesson.subject}\n"
+                content=(
+                f"Poštovani/Poštovana "
+                f"{student.student_id.first_name} "
+                f"{student.student_id.last_name},\n\n"
+                f"Ovim putem vas obavještavamo da je vaša rezervacija termina uspješno potvrđena.\n\n"
+                f"Detalji termina:\n"
+                f"Predmet: {lesson.subject.name}\n"
                 f"Datum: {lesson.date}\n"
                 f"Vrijeme: {lesson.time}\n\n"
+                f"Lijep pozdrav,\n"
                 f"INFIMA"
             ),
         )
@@ -37,12 +41,18 @@ def send_reservation_emails(sender, instance, created, **kwargs):
             to_email=instructor.instructor_id.email,
             subject="Novi rezervirani termin",
             content=(
-                f"Student {student.student_id.first_name} "
+                f"Poštovani/Poštovana "
+                f"{instructor.instructor_id.first_name} "
+                f"{instructor.instructor_id.last_name},\n\n"
+                f"Obavještavamo vas da je student "
+                f"{student.student_id.first_name} "
                 f"{student.student_id.last_name} "
-                f"rezervirao je termin.\n\n"
-                f"Predmet: {lesson.subject}\n"
+                f"rezervirao termin.\n\n"
+                f"Detalji termina:\n"
+                f"Predmet: {lesson.subject.name}\n"
                 f"Datum: {lesson.date}\n"
                 f"Vrijeme: {lesson.time}\n\n"
+                f"Lijep pozdrav,\n"
                 f"INFIMA"
             ),
         )

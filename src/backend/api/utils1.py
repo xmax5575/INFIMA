@@ -11,21 +11,12 @@ from api.utils.mail import send_email
 def send_24h_lesson_reminders():
     now = timezone.now()
 
-    print("======================================")
-    print(">>> REMINDER JOB STARTED")
-    print(">>> NOW (UTC):", now)
-    print(">>> NOW (LOCAL):", timezone.localtime())
-    print("======================================")
-
     # vremenski prozori
     window_24h_start = now + timedelta(hours=23)
     window_24h_end = now + timedelta(hours=25)
 
     window_1h_start = now + timedelta(minutes=50)
     window_1h_end = now + timedelta(minutes=70)
-
-    print(">>> 24H WINDOW:", window_24h_start, "->", window_24h_end)
-    print(">>> 1H  WINDOW:", window_1h_start, "->", window_1h_end)
 
     attendances = Attendance.objects.select_related(
         "lesson",
@@ -36,12 +27,9 @@ def send_24h_lesson_reminders():
     )
 
     for att in attendances:
-        print("--------------------------------------")
-        print(f">>> CHECK ATTENDANCE {att.id}")
 
         lesson = att.lesson
         if not lesson.date or not lesson.time:
-            print(">>> SKIP (no date/time)")
             continue
 
         lesson_local = timezone.make_aware(
@@ -50,14 +38,7 @@ def send_24h_lesson_reminders():
         )
         lesson_utc = lesson_local.astimezone(dt_timezone.utc)
 
-        print(">>> LESSON LOCAL:", lesson_local)
-        print(">>> LESSON UTC:  ", lesson_utc)
-
-        # =====================================================
-        # 24H REMINDER
-        # =====================================================
         if window_24h_start <= lesson_utc <= window_24h_end:
-            print(">>> 🔔 MATCH 24H WINDOW")
             try:
                 with transaction.atomic():
                     att_locked = Attendance.objects.select_for_update().get(id=att.id)
@@ -72,10 +53,13 @@ def send_24h_lesson_reminders():
                             to_email=att_locked.student.student_id.email,
                             subject="Podsjetnik: termin za 24 sata",
                             content=(
-                                f"Pozdrav {att_locked.student.student_id.first_name},\n\n"
-                                f"Imaš termin:\n"
-                                f"{lesson.subject}\n"
-                                f"{lesson.date} u {lesson.time}.\n\n"
+                                f"Poštovani/Poštovana "
+                                f"{att_locked.student.student_id.first_name} "
+                                f"{att_locked.student.student_id.last_name},\n\n"
+                                f"Obavještavamo vas da imate zakazane instrukcije "
+                                f"iz predmeta {lesson.subject.name} "
+                                f"dana {lesson.date} u {lesson.time}.\n\n"
+                                f"Lijep pozdrav,\n"
                                 f"INFIMA"
                             ),
                         )
@@ -83,13 +67,19 @@ def send_24h_lesson_reminders():
                         # INSTRUKTOR
                         send_email(
                             to_email=att_locked.lesson.instructor_id.instructor_id.email,
-                            subject="Podsjetnik: termin sutra",
+                            subject="Podsjetnik: termin za 24 sata",
                             content=(
-                                f"Sutra imaš termin sa studentom "
+                                f"Poštovani/Poštovana "
+                                f"{att_locked.lesson.instructor_id.instructor_id.first_name} "
+                                f"{att_locked.lesson.instructor_id.instructor_id.last_name},\n\n"
+                                f"Obavještavamo vas da imate zakazane instrukcije "
+                                f"sa studentom "
                                 f"{att_locked.student.student_id.first_name} "
-                                f"{att_locked.student.student_id.last_name}.\n\n"
-                                f"{lesson.subject}\n"
-                                f"{lesson.date} u {lesson.time}."
+                                f"{att_locked.student.student_id.last_name} "
+                                f"iz predmeta {lesson.subject.name} "
+                                f"dana {lesson.date} u {lesson.time}.\n\n"
+                                f"Lijep pozdrav,\n"
+                                f"INFIMA"
                             ),
                         )
 
@@ -102,9 +92,6 @@ def send_24h_lesson_reminders():
         else:
             print(">>> ❌ NOT IN 24H WINDOW")
 
-        # =====================================================
-        # 1H REMINDER
-        # =====================================================
         if window_1h_start <= lesson_utc <= window_1h_end:
             print(">>> 🔔 MATCH 1H WINDOW")
             try:
@@ -121,12 +108,16 @@ def send_24h_lesson_reminders():
                             to_email=att_locked.student.student_id.email,
                             subject="Podsjetnik: termin za 1 sat",
                             content=(
-                                f"Pozdrav {att_locked.student.student_id.first_name},\n\n"
-                                f"Tvoj termin počinje za 1 sat.\n\n"
-                                f"{lesson.subject}\n"
-                                f"{lesson.time}\n\n"
+                                f"Poštovani/Poštovana "
+                                f"{att_locked.student.student_id.first_name} "
+                                f"{att_locked.student.student_id.last_name},\n\n"
+                                f"Podsjećamo vas da imate instrukcije "
+                                f"iz predmeta {lesson.subject.name} "
+                                f"danas u {lesson.time}.\n\n"
+                                f"Lijep pozdrav,\n"
                                 f"INFIMA"
                             ),
+
                         )
 
                         # INSTRUKTOR
@@ -134,11 +125,17 @@ def send_24h_lesson_reminders():
                             to_email=att_locked.lesson.instructor_id.instructor_id.email,
                             subject="Podsjetnik: termin za 1 sat",
                             content=(
-                                f"Za 1 sat imaš termin sa studentom "
+                                f"Poštovani/Poštovana "
+                                f"{att_locked.lesson.instructor_id.instructor_id.first_name} "
+                                f"{att_locked.lesson.instructor_id.instructor_id.last_name},\n\n"
+                                f"Podsjećamo vas da za 1 sat imate zakazane instrukcije "
+                                f"sa studentom "
                                 f"{att_locked.student.student_id.first_name} "
-                                f"{att_locked.student.student_id.last_name}.\n\n"
-                                f"{lesson.subject}\n"
-                                f"{lesson.time}."
+                                f"{att_locked.student.student_id.last_name} "
+                                f"iz predmeta {lesson.subject.name} "
+                                f"u {lesson.time}.\n\n"
+                                f"Lijep pozdrav,\n"
+                                f"INFIMA"
                             ),
                         )
 
@@ -150,7 +147,3 @@ def send_24h_lesson_reminders():
                 print("!!! EMAIL ERROR 1H:", e)
         else:
             print(">>> ❌ NOT IN 1H WINDOW")
-
-    print("======================================")
-    print(">>> REMINDER JOB FINISHED")
-    print("======================================")
