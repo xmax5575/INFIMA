@@ -177,6 +177,9 @@ function Student() {
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
+  const dateFormatter = (date) => {
+    return date.getDate() + '.' + (date.getMonth() + 1) + "." +
+  date.getFullYear();}
 
   const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
     const isMyLesson = myLessonIds.has(t.lesson_id);
@@ -293,9 +296,9 @@ function Student() {
           </button>
         </div>
         <div className="mt-4 px-4 flex gap-3">
-          {tab === "summaries" && (
+          {tab === "summaries" && !loading && (
             <div className="mt-6 px-4">
-              {summariesLoading && (
+              {summariesLoading && summaries.length === 0  && (
                 <div className="text-white">
                   <LogoBulbLoader />
                 </div>
@@ -318,8 +321,12 @@ function Student() {
                     className="bg-white rounded-xl p-4 shadow flex justify-between items-center gap-5"
                   >
                     <div>
+                      <p className="text-[#578FCA]">
+                        {dateFormatter(new Date(s.lesson_date))} - {s.lesson_subject}
+                      </p>
+                      
                       <p className="font-semibold text-[#3674B5]">
-                        {getFileName(s.file_url)}
+                        {s.file_name}
                       </p>
                       <p className="text-sm text-gray-500">PDF bilješka</p>
                     </div>
