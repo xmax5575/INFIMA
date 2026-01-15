@@ -47,7 +47,7 @@ return (
     {!loading && (
       
         <div className="text-sm text-gray-500">
-          <QuizSolve questions={quizzes} />
+          <QuizSolve questions={quizzes} subject={subject} />
 
         </div>
     

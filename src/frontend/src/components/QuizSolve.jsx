@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../api";
 
-export default function QuizSolve({ questions }) {
+export default function QuizSolve({ questions, subject }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [finished, setFinished] = useState(false);
-  
 
   const currentQuestion = questions[currentIndex];
 
   if (!questions || questions.length === 0) {
     return <p>Nema pitanja.</p>;
   }
-  
 
   const saveAnswer = (value) => {
     setAnswers((prev) => ({
@@ -36,8 +35,7 @@ export default function QuizSolve({ questions }) {
     if (q.type === "short_answer") {
       return (
         typeof user === "string" &&
-        user.trim().toLowerCase() ===
-          q.correct_answer.trim().toLowerCase()
+        user.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()
       );
     }
 
@@ -45,10 +43,25 @@ export default function QuizSolve({ questions }) {
   };
 
   const correctCount = questions.filter(isCorrect).length;
+  useEffect(() => {
+  if (!finished) return;
 
-  /* =======================
-     REZULTAT
-  ======================= */
+  const percentage = (correctCount / questions.length) * 100;
+
+  let action = null;
+ 
+  if (percentage > 90) action = "upgrade";
+  else if (percentage < 40) action = "downgrade";
+     console.log("ono sta saljem: ", action, percentage, subject)
+  if (!action) return;
+
+  api.post("/api/student/knowledge/", {
+    subject: subject,
+    action: action,
+  });
+}, [finished]);
+
+
   if (finished) {
     return (
       <div className="bg-white p-6 rounded-2xl space-y-4">
@@ -63,13 +76,11 @@ export default function QuizSolve({ questions }) {
             </p>
 
             <p>
-              Tvoj odgovor:{" "}
-              <b>{String(answers[q.id] ?? "—")}</b>
+              Tvoj odgovor: <b>{String(answers[q.id] ?? "—")}</b>
             </p>
 
             <p>
-              Točan odgovor:{" "}
-              <b>{String(q.correct_answer)}</b>
+              Točan odgovor: <b>{String(q.correct_answer)}</b>
             </p>
 
             <p
@@ -158,9 +169,7 @@ export default function QuizSolve({ questions }) {
         disabled={answers[currentQuestion.id] == null}
         className="w-full bg-[#215993] text-white py-3 rounded-xl disabled:opacity-40"
       >
-        {currentIndex + 1 === questions.length
-          ? "Završi kviz"
-          : "Dalje"}
+        {currentIndex + 1 === questions.length ? "Završi kviz" : "Dalje"}
       </button>
     </div>
   );
