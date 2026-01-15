@@ -28,20 +28,22 @@ export default function LessonCall() {
 
   const handleMeetingEnd = async () => {
     try {
-      const res = await api.post(`/api/lessons/${lessonId}/end/`);
-      if (res.data.redirect_to) {
-        navigate(res.data.redirect_to);
+      // 1) Pozovi backend da označiš kraj i dobiješ uputu kamo dalje
+      const response = await api.post(`/api/lessons/${lessonId}/end/`);
+
+      // 2) Backend vraća npr. { "redirect_to": "/payment/12" } za studenta
+      // ili { "redirect_to": "/home/instructor" } za instruktora
+      const targetUrl = response.data.redirect_to;
+
+      if (targetUrl) {
+        navigate(targetUrl);
       } else {
-        // fallback po role-u
-        const role = localStorage.getItem("role"); // ili iz JWT-a
-        if (role === "INSTRUCTOR") {
-          navigate("/home/instructor");
-        } else {
-          navigate("/home/student");
-        }
+        // Fallback ako se nešto čudno dogodi
+        navigate("/");
       }
     } catch (err) {
-      navigate("/home"); // fallback
+      console.error("Greška pri završetku lekcije:", err);
+      navigate("/");
     }
   };
 

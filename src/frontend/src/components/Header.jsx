@@ -11,13 +11,14 @@ function Header() {
   const [instructor, setInstructor] = useState(null); // <-- instruktorski detalji
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   const menuRef = useRef(null);
   const location = useLocation();
 
   useEffect(() => {
     setMenuOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, profileVersion]);
 
   useEffect(() => {
     const onPointerDown = (e) => {
@@ -181,6 +182,9 @@ function Header() {
                 canEdit={true}
                 editTo={`/profile/${user.role.toLowerCase()}/edit`}
                 onClose={() => setShowProfile(false)}
+                onCalendarConnected={() => {
+                  setProfileVersion((v) => v + 1);
+                }}
               />
             ) : (
               <StudentCard />

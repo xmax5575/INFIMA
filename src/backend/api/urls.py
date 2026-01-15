@@ -48,4 +48,13 @@ urlpatterns = [
     path("student/quiz/<str:subject_name>/", views.StudentQuizView.as_view(), name="student-quiz"),
 
     path("cron/reminders/", views.ReminderCronView.as_view()),
+    # Endpoint za dohvacanje instruktorovih pitanja
+    path("instructor/questions/my/", views.InstructorQuestionsListView.as_view(), name="my-instructor-questions"),
+    # Endpoint za brisanje pitanja
+    path("question/delete/<int:id>/", views.QuestionDeleteView.as_view(), name="instructor-question-delete"),
+    path("google/calendar/connect/", views.GoogleCalendarConnectView.as_view(),name="google-calendar-connect"),
+
+    path("lesson/<int:lesson_id>/summary/", views.LessonSummaryView.as_view(), name="lesson-summary"),
+
+    path("student/summaries/", views.StudentSummariesView.as_view()),
 ]
