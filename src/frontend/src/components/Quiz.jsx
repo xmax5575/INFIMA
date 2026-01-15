@@ -4,7 +4,7 @@ import api from "../api";
 import LogoBulbLoader from "../components/LogoBulbProgress";
 import QuizSolve from "./QuizSolve";
 
-export default function Quiz({subject}) {
+export default function Quiz({subject, upload}) {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -22,7 +22,6 @@ export default function Quiz({subject}) {
       const res = await api.get(
         `/api/student/quiz/${encodeURIComponent(subject)}/`
       );
-      console.log("quizzes random: ", pickRandomQuestions(res.data));
       const random = pickRandomQuestions(res.data);
       setQuizzes(Array.isArray(random) ? random : []);
     } catch (e) {
@@ -33,7 +32,7 @@ export default function Quiz({subject}) {
   };
 
   loadQuizzes();
-}, [subject]);
+}, [subject, upload]);
 return (
   <div className="bg-[#3674B5] p-12 px-4 rounded-xl">
     <h1 className="text-white text-2xl font-semibold mb-4">

@@ -255,22 +255,21 @@ export default function StudentEditPage() {
 
         setTimeSlots(parsedSlots.length ? parsedSlots : [DEFAULT_SLOT]);
 
-        // ✅ knowledge_level: [{subject, level}]
-        const kl = Array.isArray(data.knowledge_level)
-          ? data.knowledge_level
-          : [];
-        const nextMap = { Matematika: "", Fizika: "", Informatika: "" };
+        const rawKL = data.knowledge_level ?? {};
+        const nextMap = {
+          Matematika: "",
+          Fizika: "",
+          Informatika: "",
+        };
 
-        kl.forEach((s) => {
-          const subject = s?.subject;
-          const level = s?.level;
-          if (
-            subject &&
-            Object.prototype.hasOwnProperty.call(nextMap, subject)
-          ) {
-            nextMap[subject] = level ?? "";
-          }
-        });
+        if (rawKL && typeof rawKL === "object" && !Array.isArray(rawKL)) {
+          Object.entries(rawKL).forEach(([subject, level]) => {
+            if (subject in nextMap) {
+              nextMap[subject] = level ?? "";
+            }
+          });
+        }
+
         setSubjectLevels(nextMap);
 
         // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]

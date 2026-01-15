@@ -52,13 +52,13 @@ export default function QuizSolve({ questions, subject }) {
  
   if (percentage > 90) action = "upgrade";
   else if (percentage < 40) action = "downgrade";
-     console.log("ono sta saljem: ", action, percentage, subject)
   if (!action) return;
 
   api.post("/api/student/knowledge/", {
     subject: subject,
     action: action,
   });
+  
 }, [finished]);
 
 

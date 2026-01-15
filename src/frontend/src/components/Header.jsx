@@ -12,6 +12,7 @@ function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
+  const [renderData, setRenderData] = useState(0);
 
   const menuRef = useRef(null);
   const location = useLocation();
@@ -86,10 +87,12 @@ function Header() {
         setInstructor(res.data);
       } else {
         setInstructor(null);
+        
       }
     } catch (err) {
       setInstructor(null);
     } finally {
+      setRenderData((v) => v + 1);
       setShowProfile(true);
     }
   };
@@ -187,7 +190,7 @@ function Header() {
                 }}
               />
             ) : (
-              <StudentCard />
+              <StudentCard renderData={renderData}/>
             )}
           </div>
         </div>
