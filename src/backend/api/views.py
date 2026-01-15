@@ -909,7 +909,7 @@ KNOWLEDGE_TO_DIFFICULTY = {
     "loša": "jako lagano",
     "dovoljna": "lagano",
     "dobra": "srednje",
-    "vrlo_dobra": "teško",
+    "vrlo dobra": "teško",
     "odlična": "jako teško",
 }
 
@@ -1164,9 +1164,9 @@ class UpdateKnowledgeLevelView(APIView):
             current = DEFAULT_LEVEL
 
         idx = LEVELS.index(current)
-        if action == "upgrade":
+        if action == "upgrade" and current != 4:
             idx = min(len(LEVELS) - 1, idx + 1)
-        else:
+        elif action == "downgrade" and current != 0:
             idx = max(0, idx - 1)
 
         new_level = LEVELS[idx]

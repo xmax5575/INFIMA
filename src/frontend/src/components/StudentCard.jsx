@@ -333,7 +333,7 @@ useEffect(() => {
                   onClick={onClose}
                 >
                   Uredi profil
-                </Link>
+                </Link>   
               </div>
             )}
           </>

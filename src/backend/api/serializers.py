@@ -102,7 +102,7 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
 
 
 ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
-ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
+ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
 ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
 
 class StudentUpdateSerializer(serializers.ModelSerializer):

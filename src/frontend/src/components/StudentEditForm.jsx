@@ -25,7 +25,7 @@ const HOURS = Array.from({ length: 14 }, (_, i) =>
 const MINUTES = ["00", "15", "30", "45"];
 
 const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
-const LEVELS = ["loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"];
+const LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"];
 const DEFAULT_SLOT = { day: "Ponedjeljak", from: "08:00", to: "09:00" };
 
 // "HH:MM" -> minute
@@ -55,6 +55,7 @@ async function uploadStudentAvatar(file) {
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = `students/pictures/${fileName}`;
 
+
   const { error } = await supabase.storage.from("media").upload(path, file);
 
   if (error) throw error;
@@ -64,7 +65,7 @@ async function uploadStudentAvatar(file) {
   return data.publicUrl;
 }
 
-export default function StudentEditPage() {
+export default function StudentEditPage({update}) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -207,6 +208,7 @@ export default function StudentEditPage() {
           full_name: full_name || "",
           grade: data.grade != null ? String(data.grade) : "",
           learning_goals: data.learning_goals || "",
+
         });
 
         // ✅ ako ti backend još nema school_level, ostavi ovo - neće smetati
@@ -256,6 +258,7 @@ export default function StudentEditPage() {
         setTimeSlots(parsedSlots.length ? parsedSlots : [DEFAULT_SLOT]);
 
         const rawKL = data.knowledge_level ?? {};
+
         const nextMap = {
           Matematika: "",
           Fizika: "",
@@ -268,8 +271,13 @@ export default function StudentEditPage() {
               nextMap[subject] = level ?? "";
             }
           });
+        } else {
+          rawKL.forEach((item) => {
+            if (item.subject in nextMap) {
+              nextMap[item.subject] = item.level || "";
+            }
+          });
         }
-
         setSubjectLevels(nextMap);
 
         // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]
@@ -294,7 +302,9 @@ export default function StudentEditPage() {
     };
 
     fetchProfile();
-  }, []);
+    // 2️⃣ svaki put kad se vratiš na stranicu
+  
+  }, [update]);
 
   // load instructors
   useEffect(() => {
@@ -540,7 +550,7 @@ export default function StudentEditPage() {
                         <option value="">Odaberi razinu</option>
                         {LEVELS.map((lvl) => (
                           <option key={lvl} value={lvl}>
-                            {lvl === "vrlo_dobra" ? "vrlo dobra" : lvl}
+                            {lvl}
                           </option>
                         ))}
                       </select>

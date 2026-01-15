@@ -4,7 +4,7 @@ import api from "../api";
 import LogoBulbLoader from "../components/LogoBulbProgress";
 import QuizSolve from "./QuizSolve";
 
-export default function Quiz({subject, upload}) {
+export default function Quiz({subject}) {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +32,7 @@ export default function Quiz({subject, upload}) {
   };
 
   loadQuizzes();
-}, [subject, upload]);
+}, [subject]);
 return (
   <div className="bg-[#3674B5] p-12 px-4 rounded-xl">
     <h1 className="text-white text-2xl font-semibold mb-4">
