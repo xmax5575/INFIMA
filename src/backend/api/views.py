@@ -1081,3 +1081,73 @@ class StudentSummariesView(APIView):
 
         serializer = SummarySerializer(summaries, many=True)
         return Response(serializer.data)
+    
+
+
+LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"]
+DEFAULT_LEVEL = "dovoljna"
+
+def knowledge_to_dict(value):
+    
+    if not value:
+        return {}
+
+    if isinstance(value, dict):
+        return value
+
+    if isinstance(value, list):
+        # očekujemo npr. [{"subject": "Matematika", "level": "dobra"}, ...]
+        out = {}
+        for item in value:
+            if isinstance(item, dict):
+                subj = item.get("subject")
+                lvl = item.get("level")
+                if subj and lvl:
+                    out[str(subj)] = str(lvl)
+        return out
+
+    return {}
+
+
+class UpdateKnowledgeLevelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if getattr(user, "role", None) != "STUDENT":
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        subject = request.data.get("subject")
+        action = request.data.get("action")  # upgrade / downgrade
+
+        if not subject or action not in {"upgrade", "downgrade"}:
+            return Response(
+                {"error": "Required: subject and action ('upgrade' or 'downgrade')"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        student = Student.objects.get(student_id=user)
+
+        knowledge = knowledge_to_dict(student.knowledge_level)
+
+        current = knowledge.get(subject, DEFAULT_LEVEL)
+        if current not in LEVELS:
+            current = DEFAULT_LEVEL
+
+        idx = LEVELS.index(current)
+        if action == "upgrade":
+            idx = min(len(LEVELS) - 1, idx + 1)
+        else:
+            idx = max(0, idx - 1)
+
+        new_level = LEVELS[idx]
+        knowledge[subject] = new_level
+
+        # spremamo kao dict (preporučeni format)
+        student.knowledge_level = knowledge
+        student.save(update_fields=["knowledge_level"])
+
+        return Response(
+            {"subject": subject, "new_level": new_level, "all_levels": knowledge},
+            status=status.HTTP_200_OK
+        )
