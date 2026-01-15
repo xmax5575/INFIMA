@@ -46,6 +46,8 @@ urlpatterns = [
     path("instructor/questions/upload/", views.InstructorQuestionUploadView.as_view(), name="instructor-question-upload"),
 
     path("student/quiz/<str:subject_name>/", views.StudentQuizView.as_view(), name="student-quiz"),
+
+    path("cron/reminders/", views.ReminderCronView.as_view()),
     # Endpoint za dohvacanje instruktorovih pitanja
     path("instructor/questions/my/", views.InstructorQuestionsListView.as_view(), name="my-instructor-questions"),
     # Endpoint za brisanje pitanja

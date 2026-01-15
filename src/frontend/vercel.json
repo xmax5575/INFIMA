@@ -1,4 +1,13 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/reminders/",
+      "schedule": "*/5 * * * *",
+      "headers": {
+        "X-CRON-TOKEN": "neki-random-string"
+      }
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
