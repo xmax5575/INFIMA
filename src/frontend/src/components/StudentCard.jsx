@@ -18,51 +18,45 @@ const levelLabel = (lvl) => {
 };
 
 export default function StudentCard({
-  user,
+
   onClose,
   canEdit = true,
   editTo = "/profile/student/edit",
+  renderData
+   
 }) {
-  const [student, setStudent] = useState(user ?? null);
-  const [loading, setLoading] = useState(true);
-  const [errMsg, setErrMsg] = useState("");
+  const [student, setStudent] = useState(null);
+const [loading, setLoading] = useState(false);
+const [errMsg, setErrMsg] = useState("");
 
-  // ✅ dohvat s /api/student/inf
-  useEffect(() => {
-    let alive = true;
+useEffect(() => {
+  let cancelled = false;
 
-    (async () => {
-      setLoading(true);
-      setErrMsg("");
+  const fetchStudent = async () => {
+    setLoading(true);
+    setErrMsg("");
 
-      const urls = ["/api/student/inf/", "/api/student/inf"];
-
-      try {
-        let ok = false;
-        for (const url of urls) {
-          try {
-            const res = await api.get(url);
-            if (!alive) return;
-            setStudent(res.data);
-            ok = true;
-            break;
-          } catch (e) {
-            if (e?.response?.status !== 404) throw e;
-          }
-        }
-        if (!ok) setErrMsg("Ne mogu dohvatiti podatke o učeniku (404).");
-      } catch (e) {
-        if (!alive) return;
-        setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
-      } finally {
-        if (alive) setLoading(false);
+    try {
+      const res = await api.get("/api/student/inf/");
+      if (!cancelled) {
+        setStudent(res.data);
       }
-    })();
+    } catch (e) {
+      if (!cancelled) {
+        setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
+      }
+    } finally {
+      if (!cancelled) setLoading(false);
+    }
+  };
 
-    return () => {
-      alive = false;
-    };
-  }, []);
+  fetchStudent();
+
+  return () => {
+    cancelled = true;
+  };
+}, [renderData]);
+
 
   const u = student;
 
@@ -85,9 +79,20 @@ export default function StudentCard({
 
   // ✅ knowledge_level: [{subject, level}]
   const subjects = useMemo(() => {
-    const raw = u?.knowledge_level ?? u?.subjects ?? [];
-    if (!Array.isArray(raw)) return [];
+  const raw = student?.knowledge_level;
 
+  if (!raw) return [];
+
+  // 🔥 AKO JE OBJECT (tvoj slučaj)
+  if (!Array.isArray(raw) && typeof raw === "object") {
+    return Object.entries(raw).map(([name, level]) => ({
+      name,
+      level,
+    }));
+  }
+
+  // (fallback ako ikad dođe array)
+  if (Array.isArray(raw)) {
     return raw
       .map((s) => {
         if (typeof s === "string") return { name: s, level: null };
@@ -97,7 +102,12 @@ export default function StudentCard({
         };
       })
       .filter((s) => s.name);
-  }, [u]);
+  }
+
+  return [];
+}, [student]);
+
+ 
 
   // ✅ preferred_times: [{day, start, end}] ili string
   const preferredSlots = useMemo(() => {
@@ -323,7 +333,7 @@ export default function StudentCard({
                   onClick={onClose}
                 >
                   Uredi profil
-                </Link>
+                </Link>   
               </div>
             )}
           </>

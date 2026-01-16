@@ -913,7 +913,7 @@ KNOWLEDGE_TO_DIFFICULTY = {
     "loša": "jako lagano",
     "dovoljna": "lagano",
     "dobra": "srednje",
-    "vrlo_dobra": "teško",
+    "vrlo dobra": "teško",
     "odlična": "jako teško",
 }
 
@@ -922,36 +922,64 @@ class StudentQuizView(APIView):
 
     def get(self, request, subject_name: str):
         if request.user.role != "STUDENT":
-            return Response({"error": "Only students can access this endpoint"}, status=403)
+            return Response(
+                {"error": "Only students can access this endpoint"},
+                status=403
+            )
 
         try:
             student = Student.objects.get(student_id=request.user)
         except Student.DoesNotExist:
-            return Response({"error": "Student profile not found"}, status=404)
+            return Response(
+                {"error": "Student profile not found"},
+                status=404
+            )
 
         grade = student.grade
         school_level = student.school_level
 
-        # filtriramo knowledge_level za taj predmet
-        questions_to_return = []
-        for kl in student.knowledge_level:
-            if kl.get("subject").lower() != subject_name.lower():
-                continue  # preskoči ako nije traženi predmet
+        raw_knowledge = student.knowledge_level or {}
 
-            level = kl.get("level")
-            difficulty = KNOWLEDGE_TO_DIFFICULTY.get(level.lower())
-            if not difficulty:
-                continue
+        # 🔥 NORMALIZACIJA ZNANJA U DICT
+        knowledge = {}
 
-            subject_questions = Question.objects.filter(
-                subject__name__iexact=subject_name,
-                grade=grade,
-                school_level=school_level,
-                difficulty=difficulty
+        # 1️⃣ AKO JE DICT (novi format)
+        if isinstance(raw_knowledge, dict):
+            knowledge = raw_knowledge
+
+        # 2️⃣ AKO JE LISTA (stari format)
+        elif isinstance(raw_knowledge, list):
+            for item in raw_knowledge:
+                if not isinstance(item, dict):
+                    continue
+                subject = item.get("subject")
+                level = item.get("level")
+                if subject and level:
+                    knowledge[subject] = level
+
+        # 3️⃣ SAD SIGURNO IMAMO DICT
+        level = knowledge.get(subject_name)
+        if not level:
+            return Response(
+                {"error": "No knowledge level for this subject"},
+                status=404
             )
-            questions_to_return.extend(subject_questions)
 
-        serializer = StudentQuestionSerializer(questions_to_return, many=True)
+        difficulty = KNOWLEDGE_TO_DIFFICULTY.get(level.lower())
+        if not difficulty:
+            return Response(
+                {"error": "Invalid knowledge level"},
+                status=400
+            )
+
+        questions = Question.objects.filter(
+            subject__name__iexact=subject_name,
+            grade=grade,
+            school_level=school_level,
+            difficulty=difficulty
+        )
+
+        serializer = StudentQuestionSerializer(questions, many=True)
         return Response(serializer.data)
 
 class ReminderCronView(APIView):
@@ -1099,3 +1127,73 @@ class StudentSummariesView(APIView):
 
         serializer = SummarySerializer(summaries, many=True)
         return Response(serializer.data)
+    
+
+
+LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"]
+DEFAULT_LEVEL = "dovoljna"
+
+def knowledge_to_dict(value):
+    
+    if not value:
+        return {}
+
+    if isinstance(value, dict):
+        return value
+
+    if isinstance(value, list):
+        # očekujemo npr. [{"subject": "Matematika", "level": "dobra"}, ...]
+        out = {}
+        for item in value:
+            if isinstance(item, dict):
+                subj = item.get("subject")
+                lvl = item.get("level")
+                if subj and lvl:
+                    out[str(subj)] = str(lvl)
+        return out
+
+    return {}
+
+
+class UpdateKnowledgeLevelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if getattr(user, "role", None) != "STUDENT":
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        subject = request.data.get("subject")
+        action = request.data.get("action")  # upgrade / downgrade
+
+        if not subject or action not in {"upgrade", "downgrade"}:
+            return Response(
+                {"error": "Required: subject and action ('upgrade' or 'downgrade')"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        student = Student.objects.get(student_id=user)
+
+        knowledge = knowledge_to_dict(student.knowledge_level)
+
+        current = knowledge.get(subject, DEFAULT_LEVEL)
+        if current not in LEVELS:
+            current = DEFAULT_LEVEL
+
+        idx = LEVELS.index(current)
+        if action == "upgrade" and current != 4:
+            idx = min(len(LEVELS) - 1, idx + 1)
+        elif action == "downgrade" and current != 0:
+            idx = max(0, idx - 1)
+
+        new_level = LEVELS[idx]
+        knowledge[subject] = new_level
+
+        # spremamo kao dict (preporučeni format)
+        student.knowledge_level = knowledge
+        student.save(update_fields=["knowledge_level"])
+
+        return Response(
+            {"subject": subject, "new_level": new_level, "all_levels": knowledge},
+            status=status.HTTP_200_OK
+        )

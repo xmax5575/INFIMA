@@ -22,7 +22,6 @@ export default function Quiz({subject}) {
       const res = await api.get(
         `/api/student/quiz/${encodeURIComponent(subject)}/`
       );
-      console.log("quizzes random: ", pickRandomQuestions(res.data));
       const random = pickRandomQuestions(res.data);
       setQuizzes(Array.isArray(random) ? random : []);
     } catch (e) {
@@ -47,7 +46,7 @@ return (
     {!loading && (
       
         <div className="text-sm text-gray-500">
-          <QuizSolve questions={quizzes} />
+          <QuizSolve questions={quizzes} subject={subject} />
 
         </div>
     
