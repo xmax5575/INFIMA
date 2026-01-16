@@ -2,10 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/reminders/",
-      "schedule": "30 12 * * *",
-      "headers": {
-        "X-CRON-TOKEN": "neki-random-string"
-      }
+      "schedule": "30 12 * * *"
     }
   ],
   "rewrites": [
