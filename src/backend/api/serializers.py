@@ -2,7 +2,7 @@ from datetime import datetime
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
-from .models import Instructor, Lesson, Review, Subject, Student
+from .models import Instructor, Lesson, Review, Subject, Student, Question, Summary
 
 User = get_user_model()
 
@@ -102,7 +102,7 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
 
 
 ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
-ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo_dobra", "odlična"}
+ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
 ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
@@ -211,7 +211,6 @@ class CalendarLessonSerializer(serializers.ModelSerializer):
     def get_subject_name(self, obj):
         return obj.subject.name if obj.subject else None
 
-
 class MyInstructorProfileSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id_id", read_only=True)
     full_name = serializers.SerializerMethodField()
@@ -220,6 +219,8 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
     calendar = serializers.SerializerMethodField()
     subjects = SubjectMiniSerializer(many=True, read_only=True)
     price_eur = serializers.IntegerField(source="price", read_only=True)
+
+    google_calendar_email = serializers.EmailField(read_only=True)
 
     class Meta:
         model = Instructor
@@ -235,7 +236,9 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             "avg_rating",
             "reviews",
             "calendar",
+            "google_calendar_email",  
         ]
+
 
     def get_full_name(self, obj):
         u = obj.instructor_id
@@ -292,7 +295,13 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "profile_image_url"
         ]
 
-
+class InstructorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Instructor
+        fields = [
+            # ostala polja
+            "google_calendar_email",
+        ]
 class InstructorListSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id.id", read_only=True)
     first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
@@ -320,3 +329,100 @@ class InstructorReviewSerializer(serializers.ModelSerializer):
             "student_first_name",
             "student_last_name",
         ]
+
+class QuestionSerializer(serializers.ModelSerializer):
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        queryset=Subject.objects.all()
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "subject",
+            "school_level",
+            "grade",
+            "difficulty",
+            "type",
+            "text",
+            "points",
+            "options",
+            "correct_answer",
+        ]
+
+    def validate(self, data):
+        qtype = data.get("type")
+        options = data.get("options", [])
+        answer = data.get("correct_answer")
+
+        if qtype == "true_false":
+            if answer is None or not isinstance(answer, bool):
+                raise serializers.ValidationError(
+                    "True/False question requires boolean correct_answer"
+                )
+
+        elif qtype == "multiple_choice":
+            if not options or not isinstance(options, list):
+                raise serializers.ValidationError(
+                    "Multiple choice requires options list"
+                )
+            if answer is None:
+                raise serializers.ValidationError(
+                    "Multiple choice requires correct_answer"
+                )
+            if answer not in options:
+                raise serializers.ValidationError(
+                    "correct_answer must be one of options"
+                )
+
+        elif qtype == "short_answer":
+            if answer is None or not isinstance(answer, str) or not answer.strip():
+                raise serializers.ValidationError(
+                    "Short answer requires text correct_answer"
+                )
+
+        else:
+            raise serializers.ValidationError("Unknown question type")
+
+        return data
+
+class QuestionBulkSerializer(serializers.Serializer):
+    questions = QuestionSerializer(many=True)
+
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    subject = serializers.SlugRelatedField(
+        slug_field="name",
+        read_only=True
+    )
+
+    class Meta:
+        model = Question
+        fields = [
+            "id",
+            "subject",
+            "school_level",
+            "grade",
+            "difficulty",
+            "type",
+            "text",
+            "points",
+            "options",
+            "correct_answer",
+        ]
+
+class SummarySerializer(serializers.ModelSerializer):
+    lesson_date = serializers.DateField(source="lesson.date", read_only=True)
+    lesson_subject = serializers.CharField(source="lesson.subject.name", read_only=True)
+
+    class Meta:
+        model = Summary
+        fields = [
+            "id",
+            "lesson",
+            "file_url",
+            "file_name",       
+            "lesson_date",     
+            "lesson_subject", 
+        ]
+        read_only_fields = ["id", "lesson", "lesson_date", "lesson_subject"]

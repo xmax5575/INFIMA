@@ -11,10 +11,11 @@ import { ACCESS_TOKEN } from "./constants";
 import Instructor from "./pages/Instructor";
 import Student from "./pages/Student";
 import Profile from "./pages/Profile";
-import Recenzija from "./pages/Recenzija";
 import LessonCall from "./pages/LessonCall";
 import Payment from "./pages/Payment";
 import Review from "./pages/Review";
+import QuizBuilder from "./components/QuizBuilder";
+import SummaryUpload from "./pages/SummaryUpload";
 
 function Logout() {
   localStorage.clear();
@@ -92,7 +93,6 @@ function App() {
                   <Profile role = "student"/>
               </ProtectedRoute>
             }/>
-            <Route path="/recenzija" element={<Recenzija />} />
           
 
             <Route
@@ -102,6 +102,10 @@ function App() {
                   <LessonCall />
                 </ProtectedRoute>
               }
+            />
+            <Route
+            path="/summary/:lessonId"
+            element = {<SummaryUpload/>}
             />
 
             <Route
@@ -121,6 +125,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
 
         </Routes>
       </BrowserRouter>

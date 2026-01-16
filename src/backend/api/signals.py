@@ -1,42 +1,60 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.mail import send_mail
-from django.conf import settings
+from django.db import transaction
+
 from api.models import Attendance
-import threading
+from api.utils.mail import send_email
+
 
 @receiver(post_save, sender=Attendance)
-def send_reservation_email(sender, instance, created, **kwargs):
+def send_reservation_emails(sender, instance, created, **kwargs):
     if not created:
         return
 
-    lesson = instance.lesson
-    student = instance.student
-    instructor = lesson.instructor_id
+    def _send():
+        lesson = instance.lesson
+        student = instance.student
+        instructor = lesson.instructor_id
 
-    def send_emails_task():
-        try:
-            # STUDENT MAIL
-            send_mail(
-                "Rezervacija termina potvrđena",
-                f"Rezervirali ste termin {lesson.subject} {lesson.date} u {lesson.time}.",
-                settings.DEFAULT_FROM_EMAIL,
-                [student.student_id.email],
-                fail_silently=False,
-            )
+        print(f">>> RESERVATION MAIL FOR ATTENDANCE {instance.id}")
 
-            # INSTRUKTOR MAIL
-            send_mail(
-                "Novi rezervirani termin",
-                f"Student {student.student_id.first_name} {student.student_id.last_name} "
-                f"rezervirao je termin {lesson.subject} {lesson.date} u {lesson.time}.",
-                settings.DEFAULT_FROM_EMAIL,
-                [instructor.instructor_id.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            # Budući da je u threadu, greška neće srušiti aplikaciju, 
-            # ali je dobro ispisati u logove radi debugiranja
-            print(f"Greška pri slanju emaila: {e}")
+        # STUDENT
+        send_email(
+            to_email=student.student_id.email,
+            subject="Rezervacija termina potvrđena",
+                content=(
+                f"Poštovani/Poštovana "
+                f"{student.student_id.first_name} "
+                f"{student.student_id.last_name},\n\n"
+                f"Ovim putem vas obavještavamo da je vaša rezervacija termina uspješno potvrđena.\n\n"
+                f"Detalji termina:\n"
+                f"Predmet: {lesson.subject.name}\n"
+                f"Datum: {lesson.date}\n"
+                f"Vrijeme: {lesson.time}\n\n"
+                f"Lijep pozdrav,\n"
+                f"INFIMA"
+            ),
+        )
 
-    threading.Thread(target=send_emails_task).start()
+        # INSTRUKTOR
+        send_email(
+            to_email=instructor.instructor_id.email,
+            subject="Novi rezervirani termin",
+            content=(
+                f"Poštovani/Poštovana "
+                f"{instructor.instructor_id.first_name} "
+                f"{instructor.instructor_id.last_name},\n\n"
+                f"Obavještavamo vas da je student "
+                f"{student.student_id.first_name} "
+                f"{student.student_id.last_name} "
+                f"rezervirao termin.\n\n"
+                f"Detalji termina:\n"
+                f"Predmet: {lesson.subject.name}\n"
+                f"Datum: {lesson.date}\n"
+                f"Vrijeme: {lesson.time}\n\n"
+                f"Lijep pozdrav,\n"
+                f"INFIMA"
+            ),
+        )
+
+    transaction.on_commit(_send)

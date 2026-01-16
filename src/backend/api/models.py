@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from datetime import date, datetime
+from django.utils import timezone
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
@@ -77,6 +78,8 @@ class Instructor(models.Model):
     video_url = models.URLField(null=True, blank=True)
     lat = models.FloatField(null=True, blank=True)
     lng = models.FloatField(null=True, blank=True)  
+    google_calendar_email = models.EmailField(null=True, blank=True)
+    google_refresh_token = models.TextField(null=True, blank=True)
     
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
@@ -113,6 +116,7 @@ class Lesson(models.Model):
     price = models.IntegerField(null=True, blank=True)
     date = models.DateField(null=True, blank=True)
     time = models.TimeField(null=True, blank=True)
+    google_event_id = models.CharField(max_length=255, null=True, blank=True)
     
     level = models.CharField(
         max_length=20,
@@ -140,6 +144,7 @@ class Attendance(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
     attended = models.BooleanField(default=False)  
     reminder_sent = models.BooleanField(default=False)
+    reminder_1h_sent = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("lesson", "student")
@@ -152,15 +157,25 @@ class Payment(models.Model):
 
 # model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):
-    author = models.ForeignKey(Instructor, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
-    difficulty = models.TextField()  
+    class QuestionType(models.TextChoices):
+        TRUE_FALSE = "true_false", "True / False"
+        MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
+        SHORT_ANSWER = "short_answer", "Short answer"
+
+    author = models.ForeignKey(Instructor, on_delete=models.CASCADE, related_name="questions") # strani ključ
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE) # strani ključ
+    school_level = models.CharField(max_length=20)
+    grade = models.IntegerField()
+    difficulty = models.CharField(max_length=50)
+    type = models.CharField(max_length=30, choices=QuestionType.choices)
     text = models.TextField()
-    answer = models.TextField()
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    points = models.IntegerField(default=1)
+    options = models.JSONField(default=list, blank=True)  
+    correct_answer = models.JSONField(default=list)
 
 # model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="summary") # strani ključ
     author = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
-    notes = models.TextField(null=True, blank=True)
-    homework = models.TextField(null=True, blank=True)
+    file_url = models.URLField()
+    file_name = models.CharField(max_length=255) 

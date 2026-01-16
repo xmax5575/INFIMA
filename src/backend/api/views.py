@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model, logout
 from rest_framework import generics, views, status, permissions
 from rest_framework.views import APIView
-from .serializers import UserSerializer, LessonSerializer, InstructorUpdateSerializer, MyInstructorProfileSerializer, StudentProfileSerializer, InstructorListSerializer, StudentUpdateSerializer, AttendanceCreateSerializer, InstructorReviewSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -13,11 +13,17 @@ import time
 from rest_framework_simplejwt.tokens import RefreshToken
 import uuid
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
 from rest_framework import serializers
 from django.utils import timezone
 from django.db.models import Count, F
 from datetime import timedelta
+from api.utils1 import create_google_calendar_event
+from api.utils1 import sync_existing_lessons_to_google
+from api.utils1 import send_24h_lesson_reminders
+from django.conf import settings
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 
 User = get_user_model()
@@ -52,82 +58,108 @@ def user_profile(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
+from rest_framework import status, views
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.conf import settings
+from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.tokens import RefreshToken
+import requests, jwt, uuid
+from api.models import Instructor
+
+
 class GoogleAuthCodeExchangeView(views.APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
-        code = request.data.get('code')
+        code = request.data.get("code")
 
         if not code:
-            return Response({"error": "Authorization code missing."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Authorization code missing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # 1. Exchange code for tokens (id_token)
         token_exchange_url = "https://oauth2.googleapis.com/token"
-        
-        # NOTE: You MUST set these in your Django settings.py file
-        CLIENT_ID = settings.GOOGLE_CLIENT_ID
-        CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
-        
+
         data = {
-            'code': code,
-            'client_id': CLIENT_ID,
-            'client_secret': CLIENT_SECRET,
-            'redirect_uri': 'postmessage', # Standard value for this flow
-            'grant_type': 'authorization_code',
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": "postmessage",
+            "grant_type": "authorization_code",
         }
 
         try:
-            # Send POST request to Google's token endpoint
             response = requests.post(token_exchange_url, data=data)
-            response.raise_for_status() # Raise exception for HTTP errors (4xx or 5xx)
+            response.raise_for_status()
             tokens = response.json()
-            id_token = tokens.get('id_token')
 
+            id_token = tokens.get("id_token")
             if not id_token:
-                return Response({"error": "Failed to retrieve ID token from Google."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"error": "Failed to retrieve ID token."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-            # 2. Decode ID Token to get user info
-            # The 'jwt' library is required to decode the token.
-            # IMPORTANT: For production, you should use google-auth-library to properly verify the signature.
+            # Decode ID token
             user_info = jwt.decode(id_token, options={"verify_signature": False})
-            
-            email = user_info.get('email')
-            first_name = user_info.get('given_name', '')
-            last_name = user_info.get('family_name', '')
-            unique_username = f"google_{email.split('@')[0]}_{str(uuid.uuid4())[:8]}"
 
-            # 3. Authenticate or Register User
+            email = user_info.get("email")
+            first_name = user_info.get("given_name", "")
+            last_name = user_info.get("family_name", "")
+
+            if not email:
+                return Response(
+                    {"error": "Google account has no email."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Get or create user
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={
-                    'username': unique_username,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'password': make_password(str(uuid.uuid4()))
-                }
+                    "username": f"google_{uuid.uuid4().hex[:10]}",
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "password": make_password(uuid.uuid4().hex),
+                },
             )
 
-            # 4. Generate your custom JWTs (using DRF Simple JWT logic)
+            # 🔴 KLJUČNI DIO — SPREMANJE CALENDAR ID-a
+            try:
+                instructor = Instructor.objects.get(instructor_id=user)
+                instructor.google_calendar_email = email  # primary calendar
+                instructor.save(update_fields=["google_calendar_email"])
+            except Instructor.DoesNotExist:
+                # ako user još nema instructor profil – ignoriramo
+                pass
+
+            # JWT tokeni
             refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                "access": str(refresh.access_token), 
-                "refresh": str(refresh),
-                "created": created # Optional: tell frontend if user was created
-            }, status=status.HTTP_200_OK)
+
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "created": created,
+                },
+                status=status.HTTP_200_OK,
+            )
 
         except requests.exceptions.RequestException as e:
-            # Handle network errors, connection problems, or Google's API errors
-            print(f"Google token exchange failed: {e}")
-            return Response({"error": "External authentication failed."}, status=status.HTTP_400_BAD_REQUEST)
-        except jwt.exceptions.DecodeError as e:
-            print(f"JWT decode error: {e}")
-            return Response({"error": "Invalid token received."}, status=status.HTTP_400_BAD_REQUEST)
+            print("Google token exchange failed:", e)
+            return Response(
+                {"error": "External authentication failed."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         except Exception as e:
-            # Catch all other exceptions (e.g., database issues)
-            print(f"Internal error during authentication: {e}")
-            return Response({"error": "Internal server error."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+            print("Internal error:", e)
+            return Response(
+                {"error": "Internal server error."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
@@ -217,7 +249,17 @@ class CreateRoleView(APIView):
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticated]
+    def perform_create(self, serializer):
+        instructor = getattr(self.request.user, "instructor", None)
+        if not instructor:
+            raise serializers.ValidationError(
+                "Instructor profil nije pronađen."
+            )
 
+        lesson = serializer.save(instructor_id=instructor)
+
+        if instructor.google_refresh_token:
+            create_google_calendar_event(instructor, lesson)
     def get_queryset(self):
         """Prikazuje lekcije ovisno o ulozi korisnika."""
         user = self.request.user
@@ -239,13 +281,21 @@ class LessonListCreateView(generics.ListCreateAPIView):
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
 
-    def perform_create(self, serializer):
-        """Kada instruktor kreira lekciju, automatski ga postavi kao instruktora."""
-        instructor = getattr(self.request.user, "instructor", None)
-        if not instructor:
-            raise serializers.ValidationError("Instructor profil nije pronađen za ovog korisnika.")
-        serializer.save(instructor_id=instructor)
 
+class LessonDeleteView(generics.DestroyAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'lesson_id'
+
+    def get_queryset(self):
+        user = self.request.user
+        # Osiguravamo da instruktor može obrisati samo svoje lekcije
+        if user.role == 'INSTRUCTOR':
+            return Lesson.objects.filter(instructor_id__instructor_id=user)
+        if user.is_superuser:
+            return Lesson.objects.all()
+        return Lesson.objects.none()
 
 class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = LessonSerializer
@@ -323,7 +373,7 @@ class InstructorUpdateView(APIView):
                         instructor.save(update_fields=["lat", "lng"])
                 except Exception as e:
                     # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
-                    print("Geocoding failed:", e)
+                    None
 
         return Response(
             serializer.data,
@@ -690,7 +740,7 @@ class EndLessonView(APIView):
                 return Response({"error": "Forbidden"}, status=403)
 
             return Response({
-                "redirect_to": "/home/instructor"
+                "redirect_to": f"/summary/{lesson.lesson_id}"
             })
 
         # student ide na payment
@@ -825,3 +875,325 @@ class InstructorReviewsView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True, context={"request": request})
         return Response(serializer.data)
+
+class InstructorQuestionUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != "INSTRUCTOR":
+            return Response(
+                {"error": "Only instructors can upload questions"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        instructor = Instructor.objects.get(instructor_id=request.user)
+
+        serializer = QuestionBulkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created = []
+        for q in serializer.validated_data["questions"]:
+            question = Question.objects.create(
+                author=instructor,
+                **q
+            )
+            created.append(question.id)
+
+        return Response(
+            {
+                "message": "Questions uploaded successfully",
+                "count": len(created),
+                "question_ids": created
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+# preslikavanje knowledge_level -> difficulty
+KNOWLEDGE_TO_DIFFICULTY = {
+    "loša": "jako lagano",
+    "dovoljna": "lagano",
+    "dobra": "srednje",
+    "vrlo dobra": "teško",
+    "odlična": "jako teško",
+}
+
+class StudentQuizView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, subject_name: str):
+        if request.user.role != "STUDENT":
+            return Response(
+                {"error": "Only students can access this endpoint"},
+                status=403
+            )
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student profile not found"},
+                status=404
+            )
+
+        grade = student.grade
+        school_level = student.school_level
+
+        raw_knowledge = student.knowledge_level or {}
+
+        # 🔥 NORMALIZACIJA ZNANJA U DICT
+        knowledge = {}
+
+        # 1️⃣ AKO JE DICT (novi format)
+        if isinstance(raw_knowledge, dict):
+            knowledge = raw_knowledge
+
+        # 2️⃣ AKO JE LISTA (stari format)
+        elif isinstance(raw_knowledge, list):
+            for item in raw_knowledge:
+                if not isinstance(item, dict):
+                    continue
+                subject = item.get("subject")
+                level = item.get("level")
+                if subject and level:
+                    knowledge[subject] = level
+
+        # 3️⃣ SAD SIGURNO IMAMO DICT
+        level = knowledge.get(subject_name)
+        if not level:
+            return Response(
+                {"error": "No knowledge level for this subject"},
+                status=404
+            )
+
+        difficulty = KNOWLEDGE_TO_DIFFICULTY.get(level.lower())
+        if not difficulty:
+            return Response(
+                {"error": "Invalid knowledge level"},
+                status=400
+            )
+
+        questions = Question.objects.filter(
+            subject__name__iexact=subject_name,
+            grade=grade,
+            school_level=school_level,
+            difficulty=difficulty
+        )
+
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
+
+class ReminderCronView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request):
+        token = request.headers.get("X-CRON-TOKEN")
+        print(">>> CRON ENDPOINT HIT")
+        print(">>> HEADERS:", dict(request.headers))
+        if token != settings.CRON_SECRET:
+            return Response({"error": "unauthorized"}, status=401)
+
+        send_24h_lesson_reminders()
+        return Response({"status": "ok"})
+    
+class InstructorQuestionsListView(APIView):
+    queryset = Question.objects.all()
+    serializer_class = StudentQuestionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            questions = Question.objects.filter(author__instructor_id=user)
+        else:
+            questions = Question.objects.none()
+
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
+    
+class QuestionDeleteView(generics.DestroyAPIView):
+    queryset = Question.objects.all()
+    serializer_class = StudentQuestionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'INSTRUCTOR':
+            return Question.objects.filter(author__instructor_id=user)
+        if user.is_superuser:
+            return Question.objects.all()
+        return Question.objects.none()
+class GoogleCalendarConnectView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.role != User.Role.INSTRUCTOR:
+            return Response(
+                {"error": "Only instructors can connect calendar"},
+                status=403
+            )
+
+        code = request.data.get("code")
+        if not code:
+            return Response({"error": "Code missing"}, status=400)
+
+        response = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": "postmessage",
+                "grant_type": "authorization_code",
+            },
+        )
+
+        tokens = response.json()
+
+        refresh_token = tokens.get("refresh_token")
+        if not refresh_token:
+            return Response(
+                {"error": "No refresh token received"},
+                status=400
+            )
+
+        instructor = request.user.instructor
+        instructor.google_refresh_token = refresh_token
+        instructor.google_calendar_email = request.user.email
+        instructor.save(update_fields=["google_refresh_token", "google_calendar_email"])
+        sync_existing_lessons_to_google(instructor)
+
+        return Response({"status": "calendar_connected"})
+        return Question.objects.none()
+    
+class LessonSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        if request.user.role != "INSTRUCTOR":
+            return Response(
+                {"error": "Only instructors can upload summaries"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            instructor = Instructor.objects.get(instructor_id=request.user)
+        except Instructor.DoesNotExist:
+            return Response(
+                {"error": "Instructor profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            lesson = Lesson.objects.get(pk=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response(
+                {"error": "Lesson not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = SummarySerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(
+                author=instructor,
+                lesson=lesson   
+            )
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class StudentSummariesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.role != "STUDENT":
+            return Response(
+                {"error": "Only students can access summaries"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            student = Student.objects.get(student_id=request.user)
+        except Student.DoesNotExist:
+            return Response(
+                {"error": "Student profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        summaries = Summary.objects.filter(
+            lesson__attendance__student=student
+        ).select_related("lesson", "lesson__subject")
+
+        serializer = SummarySerializer(summaries, many=True)
+        return Response(serializer.data)
+    
+
+
+LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"]
+DEFAULT_LEVEL = "dovoljna"
+
+def knowledge_to_dict(value):
+    
+    if not value:
+        return {}
+
+    if isinstance(value, dict):
+        return value
+
+    if isinstance(value, list):
+        # očekujemo npr. [{"subject": "Matematika", "level": "dobra"}, ...]
+        out = {}
+        for item in value:
+            if isinstance(item, dict):
+                subj = item.get("subject")
+                lvl = item.get("level")
+                if subj and lvl:
+                    out[str(subj)] = str(lvl)
+        return out
+
+    return {}
+
+
+class UpdateKnowledgeLevelView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        if getattr(user, "role", None) != "STUDENT":
+            return Response({"error": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+
+        subject = request.data.get("subject")
+        action = request.data.get("action")  # upgrade / downgrade
+
+        if not subject or action not in {"upgrade", "downgrade"}:
+            return Response(
+                {"error": "Required: subject and action ('upgrade' or 'downgrade')"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        student = Student.objects.get(student_id=user)
+
+        knowledge = knowledge_to_dict(student.knowledge_level)
+
+        current = knowledge.get(subject, DEFAULT_LEVEL)
+        if current not in LEVELS:
+            current = DEFAULT_LEVEL
+
+        idx = LEVELS.index(current)
+        if action == "upgrade" and current != 4:
+            idx = min(len(LEVELS) - 1, idx + 1)
+        elif action == "downgrade" and current != 0:
+            idx = max(0, idx - 1)
+
+        new_level = LEVELS[idx]
+        knowledge[subject] = new_level
+
+        # spremamo kao dict (preporučeni format)
+        student.knowledge_level = knowledge
+        student.save(update_fields=["knowledge_level"])
+
+        return Response(
+            {"subject": subject, "new_level": new_level, "all_levels": knowledge},
+            status=status.HTTP_200_OK
+        )

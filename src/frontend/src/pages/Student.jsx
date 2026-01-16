@@ -4,6 +4,7 @@ import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 import LogoBulbLoader from "../components/LogoBulbProgress";
+import Quiz from "../components/Quiz";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -15,6 +16,18 @@ function Student() {
   const [myTermini, setMyTermini] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [summaries, setSummaries] = useState([]);
+  const [summariesLoading, setSummariesLoading] = useState(false);
+  const [summariesErr, setSummariesErr] = useState(null);
+  const getFileName = (url) => {
+    try {
+      return decodeURIComponent(url.split("/").pop());
+    } catch {
+      return "dokument.pdf";
+    }
+  };
 
   const [filters, setFilters] = useState({
     format: null, // "online" | "uzivo"
@@ -22,6 +35,14 @@ function Student() {
     days: null, // 7 | 14
     rating: null, // 4 | 5
   });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // Osvježava svaku minutu
+
+    return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
+  }, []);
 
   const filterBtnClass = (active) =>
     `px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200
@@ -91,6 +112,38 @@ function Student() {
 
     loadMine();
   }, [tab]);
+  useEffect(() => {
+    if (tab !== "summaries") return;
+
+    const loadSummaries = async () => {
+      setSummariesLoading(true);
+      setSummariesErr(null);
+
+      const token = localStorage.getItem(ACCESS_TOKEN);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/student/summaries/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Ne mogu dohvatiti bilješke");
+        }
+
+        const data = await res.json();
+        setSummaries(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setSummariesErr("Greška kod dohvaćanja bilješki.");
+        setSummaries([]);
+      } finally {
+        setSummariesLoading(false);
+      }
+    };
+
+    loadSummaries();
+  }, [tab]);
 
   const reserveOrCancelLesson = async (lesson_id) => {
     const token = localStorage.getItem(ACCESS_TOKEN);
@@ -124,24 +177,26 @@ function Student() {
   };
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
-  const applyFilters = () => {
-    setShowFilters(false);
-  };
+  const dateFormatter = (date) => {
+    return date.getDate() + '.' + (date.getMonth() + 1) + "." +
+  date.getFullYear();}
+
+  const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
+    const isMyLesson = myLessonIds.has(t.lesson_id);
+    const lessonDateTime = new Date(`${t.date}T${t.time}`);
+
+    const limit = isMyLesson
+      ? new Date(lessonDateTime.getTime() + 15 * 60 * 1000)
+      : lessonDateTime;
+
+    if (currentTime > limit) return false;
+
+    return true;
+  });
 
   const filteredTermini =
     tab === "all"
-      ? termini.filter((t) => {
-          const now = new Date();
-          const lessonDateTime = new Date(`${t.date}T${t.time}`);
-          const isMyLesson = myLessonIds.has(t.lesson_id);
-
-          if (isMyLesson) {
-            const limit = new Date(lessonDateTime.getTime() + 15 * 60000);
-            if (now > limit) return false;
-          } else {
-            if (now > lessonDateTime) return false;
-          }
-          
+      ? visibleTermini.filter((t) => {
           if (filters.format && t.format !== filters.format) return false;
 
           /*KAD FABO NAPRAVI OVO CE RADIT*/
@@ -158,16 +213,16 @@ function Student() {
 
             const diff = (lessonDateTime - now) / (1000 * 60 * 60 * 24);
 
-            if (diff < 0) return false; // prošli termini ❌
-            if (diff > filters.days) return false; // predaleko u budućnosti ❌
+            if (diff < 0) return false;
+            if (diff > filters.days) return false;
           }
 
-          /*OVDJE DODAT OCJENE*/
-          /*if (filters.rating && t.teacher_rating < filters.rating) return false;*/
+          /*TU TREBA DOC NEKAKO DO RATINGA*/
+          /*if (filters.rating && t.avg_rating < filters.rating) return false;*/
 
           return true;
         })
-      : myTermini;
+      : visibleTermini;
 
   const [sortBy, setSortBy] = useState(null); // "date_asc" | "date_desc" | "rating_desc" | "price_asc" | "price_desc"
   const toggleSort = (key) => {
@@ -223,8 +278,83 @@ function Student() {
           >
             Moji termini
           </button>
+          <button
+            onClick={() => setTab("quiz")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "quiz" ? "text-white" : "text-white/70"}`}
+          >
+            Moji kvizovi
+          </button>
+          <button
+            onClick={() => setTab("summaries")}
+            className={`text-2xl font-semibold hover:scale-110
+    transition-transform duration-200
+    ${tab === "summaries" ? "text-white" : "text-white/70"}`}
+          >
+            Moje bilješke
+          </button>
         </div>
         <div className="mt-4 px-4 flex gap-3">
+          {tab === "summaries" && !loading && (
+            <div className="mt-6 px-4">
+              {summariesLoading && summaries.length === 0  && (
+                <div className="text-white">
+                  <LogoBulbLoader />
+                </div>
+              )}
+
+              {summariesErr && (
+                <div className="bg-red-50 text-red-700 p-3 rounded-xl">
+                  {summariesErr}
+                </div>
+              )}
+
+              {!summariesLoading && summaries.length === 0 && (
+                <p className="text-white/90">Nema dostupnih bilješki.</p>
+              )}
+
+              <ul className="space-y-3">
+                {summaries.map((s) => (
+                  <li
+                    key={s.id}
+                    className="bg-white rounded-xl p-4 shadow flex justify-between items-center gap-5"
+                  >
+                    <div>
+                      <p className="text-[#578FCA]">
+                        {dateFormatter(new Date(s.lesson_date))} - {s.lesson_subject}
+                      </p>
+                      
+                      <p className="font-semibold text-[#3674B5]">
+                        {s.file_name}
+                      </p>
+                      <p className="text-sm text-gray-500">PDF bilješka</p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <a
+                        href={s.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-[#3674B5] text-white font-medium hover:bg-[#2a5a8c]"
+                      >
+                        Otvori
+                      </a>
+
+                      <a
+                        href={s.file_url}
+                        download
+                        className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      >
+                        Download
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {tab === "all" && (
             <>
               <button
@@ -254,7 +384,24 @@ function Student() {
             <LogoBulbLoader />
           </div>
         )}
-        {!loading && !err && (
+        {tab === "quiz" && !loading && (
+          <div className="mt-6 grid grid-cols-3 gap-4 px-4 pb-6">
+            {["Matematika", "Fizika", "Informatika"].map((subject) => (
+              <button
+                key={subject}
+                onClick={() => setSelectedSubject(subject)}
+                className="rounded-xl bg-white p-4 font-semibold text-[#215993]
+                   hover:scale-105 transition "
+              >
+                {subject}
+              </button>
+            ))}
+          </div>
+        )}
+        {tab === "quiz" && selectedSubject && (
+          <Quiz subject={selectedSubject} />
+        )}
+        {!loading && !err && (tab === "all" || tab === "mine") && (
           <ul className="mt-6 space-y-3">
             {sortedTermini.map((t) => (
               <li key={t.lesson_id}>
@@ -262,12 +409,13 @@ function Student() {
                   termin={t}
                   role="student"
                   onReserveOrCancel={reserveOrCancelLesson}
+                  onTerminDelete={null}
                   canReserve={tab === "all"}
                   reserved={myLessonIds.has(t.lesson_id)}
                 />
               </li>
             ))}
-            {(tab === "all" ? termini : myTermini).length === 0 && (
+            {(tab === "all" ? visibleTermini : myTermini).length === 0 && (
               <li className="text-white/90">Nema termina za ovaj prikaz.</li>
             )}
           </ul>
@@ -417,7 +565,7 @@ function Student() {
               <div className="flex gap-3"></div>
               <button
                 onClick={() => setShowFilters(false)}
-                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2a5a8c] duration-[500ms] hover:scale-105"
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2a5a8c] duration-[350ms] hover:scale-105"
               >
                 OK
               </button>
@@ -484,7 +632,7 @@ function Student() {
               })}
               <button
                 onClick={() => setShowSort(false)}
-                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2A5A8C] duration-[500ms] hover:scale-105"
+                className="w-full bg-[#3674B5] py-3 rounded-xl font-bold text-white hover:bg-[#2A5A8C] duration-[350ms] hover:scale-105"
               >
                 OK
               </button>
