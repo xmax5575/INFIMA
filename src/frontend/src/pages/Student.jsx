@@ -162,7 +162,7 @@ function Student() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (isReserved) {
@@ -170,7 +170,7 @@ function Student() {
       } else {
         const reservedTermin = termini.find((t) => t.lesson_id === lesson_id);
         setMyTermini((prev) =>
-          reservedTermin ? [...prev, reservedTermin] : prev
+          reservedTermin ? [...prev, reservedTermin] : prev,
         );
       }
     } catch (err) {}
@@ -178,8 +178,10 @@ function Student() {
 
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
   const dateFormatter = (date) => {
-    return date.getDate() + '.' + (date.getMonth() + 1) + "." +
-  date.getFullYear();}
+    return (
+      date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear()
+    );
+  };
 
   const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
     const isMyLesson = myLessonIds.has(t.lesson_id);
@@ -227,6 +229,17 @@ function Student() {
   const [sortBy, setSortBy] = useState(null); // "date_asc" | "date_desc" | "rating_desc" | "price_asc" | "price_desc"
   const toggleSort = (key) => {
     setSortBy((prev) => (prev === key ? null : key));
+  };
+  const downloadFile = async (url, filename = "summary.pdf") => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
   };
   const sortedTermini = [...filteredTermini].sort((a, b) => {
     if (!sortBy) return 0;
@@ -298,7 +311,7 @@ function Student() {
         <div className="mt-4 px-4 flex gap-3">
           {tab === "summaries" && !loading && (
             <div className="mt-6 px-4">
-              {summariesLoading && summaries.length === 0  && (
+              {summariesLoading && summaries.length === 0 && (
                 <div className="text-white">
                   <LogoBulbLoader />
                 </div>
@@ -322,9 +335,10 @@ function Student() {
                   >
                     <div>
                       <p className="text-[#578FCA]">
-                        {dateFormatter(new Date(s.lesson_date))} - {s.lesson_subject}
+                        {dateFormatter(new Date(s.lesson_date))} -{" "}
+                        {s.lesson_subject}
                       </p>
-                      
+
                       <p className="font-semibold text-[#3674B5]">
                         {s.file_name}
                       </p>
@@ -341,13 +355,14 @@ function Student() {
                         Otvori
                       </a>
 
-                      <a
-                        href={s.file_url}
-                        download
+                      <button
+                        onClick={() =>
+                          downloadFile(s.file_url, s.file_name || "summary.pdf")
+                        }
                         className="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300"
                       >
                         Download
-                      </a>
+                      </button>
                     </div>
                   </li>
                 ))}
