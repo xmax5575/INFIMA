@@ -13,23 +13,36 @@ export default function RecenzijaForm() {
 
 
   const submitReview = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setError(null);
 
-    try {
-      const res = await api.post(`/api/reviews/${lessonId}/submit/`, {
-        rating,
-        description ,
-      });
+  if (!rating) {
+    setError("Ocjena je obavezna.");
+    return;
+  }
 
-      navigate("/home/student"); 
-    } catch (err) {
+  setLoading(true);
+
+  try {
+    // ⚠️ Ako ti baseURL već ima "/api", koristi ovo:
+    // await api.post(`/reviews/${lessonId}/submit/`, { rating, description });
+
+    // ⚠️ Ako baseURL NEMA "/api", koristi ovo:
+    await api.post(`/api/reviews/${lessonId}/submit/`, { rating, description });
+
+    navigate("/home/student");
+  } catch (err) {
+    console.error(err);
+    if (err?.response?.status === 403) {
+      setError("Ne možeš ostaviti recenziju prije plaćanja ili prije završetka poziva.");
+    } else {
       setError("Neuspjelo slanje recenzije.");
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="w-full max-w-3xl mx-auto rounded-3xl bg-[#D1F8EF] p-8">

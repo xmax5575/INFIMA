@@ -63,9 +63,13 @@ export default function TerminCard({
 
   const navigate = useNavigate();
 
-  const goToMeeting = () => {
-    navigate(`/lesson/${lesson_id}/call`);
-  };
+  const goToMeeting = async () => {
+  if (role === "INSTRUCTOR") {
+    await api.get(`/api/lessons/${lesson_id}/jitsi/`);
+  }
+  navigate(`/lesson/${lesson_id}/call`);
+};
+
 
   const [showInstructor, setShowInstructor] = useState(false);
   const [instructorProfile, setInstructorProfile] = useState(null);
