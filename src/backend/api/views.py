@@ -1197,3 +1197,21 @@ class UpdateKnowledgeLevelView(APIView):
             {"subject": subject, "new_level": new_level, "all_levels": knowledge},
             status=status.HTTP_200_OK
         )
+
+class ReviewDeleteView(generics.DestroyAPIView):
+    queryset = Review.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "id"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # admin može sve
+        if user.is_superuser or user.role == "ADMIN":
+            return Review.objects.all()
+
+        # instruktor može samo svoje recenzije
+        if user.role == "INSTRUCTOR":
+            return Review.objects.filter(instructor__instructor_id=user)
+
+        return Review.objects.none()

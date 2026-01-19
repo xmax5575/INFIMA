@@ -59,4 +59,6 @@ urlpatterns = [
     path("student/summaries/", views.StudentSummariesView.as_view()),
 
     path("student/knowledge/", views.UpdateKnowledgeLevelView.as_view()),
+
+    path("review/delete/<int:id>/", views.ReviewDeleteView.as_view(), name="review-delete"),
 ]
