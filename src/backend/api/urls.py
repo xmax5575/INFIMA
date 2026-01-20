@@ -61,4 +61,11 @@ urlpatterns = [
     path("student/knowledge/", views.UpdateKnowledgeLevelView.as_view()),
 
     path("review/delete/<int:id>/", views.ReviewDeleteView.as_view(), name="review-delete"),
+
+    path("admin/questions/", views.AdminQuestionsListView.as_view()),
+
+    path("admin/reviews/", views.AdminReviewsListView.as_view()),
+    # ADMIN
+    path("admin/lessons/", views.AdminLessonsListView.as_view()),
+    path("admin/lesson/<int:lesson_id>/delete/", views.LessonDeleteView.as_view()),
 ]

@@ -1215,3 +1215,47 @@ class ReviewDeleteView(generics.DestroyAPIView):
             return Review.objects.filter(instructor__instructor_id=user)
 
         return Review.objects.none()
+
+class AdminQuestionsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        questions = Question.objects.all().select_related("subject")
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
+    
+class AdminReviewsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        reviews = Review.objects.select_related(
+            "student", "student__student_id", "instructor", "instructor__instructor_id"
+        ).order_by("-id")
+
+        serializer = InstructorReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+    
+class AdminLessonsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        expire_lessons()
+
+        lessons = Lesson.objects.all().order_by("date", "time")
+        serializer = LessonSerializer(lessons, many=True)
+        return Response(serializer.data)

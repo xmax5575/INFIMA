@@ -45,7 +45,7 @@ function Admin() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await api.get("/api/lessons/");
+      const res = await api.get("/api/admin/lessons/");
       setTermini(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setErr("Greška prilikom učitavanja termina.");
@@ -55,11 +55,12 @@ function Admin() {
     }
   };
 
+
   const loadReviews = async () => {
     setLoading(true);
     setErr(null);
     try {
-      const res = await api.get("/api/reviews/");
+      const res = await api.get("/api/admin/reviews/");
       setReviews(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setErr("Greška prilikom učitavanja recenzija.");
@@ -73,7 +74,7 @@ function Admin() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await api.get("/api/questions/");
+      const res = await api.get("/api/admin/questions/");
       setQuestions(Array.isArray(res.data) ? res.data : []);
     } catch (e) {
       setErr("Greška prilikom učitavanja pitanja.");
@@ -93,26 +94,18 @@ function Admin() {
   // ---------- DELETES ----------
   const deleteTermin = async (lessonId) => {
     try {
-      await tryRequest([
-        () => api.delete(`/api/lesson/${lessonId}/`), // prema tvom opisu
-        () => api.delete(`/api/lesson/${lessonId}`),
-        () => api.delete(`/api/termin/delete/${lessonId}/`), // fallback (postojeće u Instructor)
-      ]);
+      await api.delete(`/api/admin/lesson/${lessonId}/delete/`);
       setTermini((prev) =>
-        prev.filter((t) => t.lesson_id !== lessonId && t.id !== lessonId)
+        prev.filter((t) => t.lesson_id !== lessonId)
       );
     } catch (e) {
-      // ne rušimo UI, samo prikažemo poruku
       setErr("Brisanje termina nije uspjelo.");
     }
   };
 
   const deleteReview = async (reviewId) => {
     try {
-      await tryRequest([
-        () => api.delete(`/api/reviews/${reviewId}/`), // prema tvom opisu
-        () => api.delete(`/api/reviews/${reviewId}`),
-      ]);
+      await api.delete(`/api/review/delete/${reviewId}/`);
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (e) {
       setErr("Brisanje recenzije nije uspjelo.");
@@ -121,11 +114,7 @@ function Admin() {
 
   const deleteQuestion = async (questionId) => {
     try {
-      await tryRequest([
-        () => api.delete(`/api/questions/${questionId}/`), // prema tvom opisu
-        () => api.delete(`/api/questions/${questionId}`),
-        () => api.delete(`/api/question/delete/${questionId}/`), // fallback (postojeće u Instructor)
-      ]);
+      await api.delete(`/api/question/delete/${questionId}/`);
       setQuestions((prev) => prev.filter((q) => q.id !== questionId));
     } catch (e) {
       setErr("Brisanje pitanja nije uspjelo.");
