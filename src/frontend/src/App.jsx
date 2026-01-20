@@ -16,6 +16,8 @@ import Payment from "./pages/Payment";
 import Review from "./pages/Review";
 import QuizBuilder from "./components/QuizBuilder";
 import SummaryUpload from "./pages/SummaryUpload";
+import Admin from "./pages/Admin";
+import HomeRedirect from "./pages/HomeRedirect";
 
 function Logout() {
   localStorage.clear();
@@ -56,11 +58,13 @@ function App() {
           />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
-          
+
           <Route
             path="/role"
             element={
-                  <Role />
+              <ProtectedRoute>
+                <Role />
+              </ProtectedRoute>
             }
           />
           <Route
@@ -80,53 +84,58 @@ function App() {
             }
           />
           <Route
+            path="/home/admin"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile/instructor/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
-                  <Profile role = "instructor"/>
+                <Profile role="instructor" />
               </ProtectedRoute>
-            }/>
-            <Route
+            }
+          />
+          <Route
             path="/profile/student/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <Profile role = "student"/>
+                <Profile role="student" />
               </ProtectedRoute>
-            }/>
-          
+            }
+          />
 
-            <Route
-              path="/lesson/:lessonId/call"
-              element={
-                <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
-                  <LessonCall />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-            path="/summary/:lessonId"
-            element = {<SummaryUpload/>}
-            />
+          <Route
+            path="/lesson/:lessonId/call"
+            element={
+              <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
+                <LessonCall />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/summary/:lessonId" element={<SummaryUpload />} />
 
-            <Route
-              path="/payment/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <Payment />
-                </ProtectedRoute>
-              }
-            />
+          <Route
+            path="/payment/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <Payment />
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/review/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <Review />
-                </ProtectedRoute>
-              }
-            />
-
-
+          <Route
+            path="/review/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <Review />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/home" element={<HomeRedirect />} />
         </Routes>
       </BrowserRouter>
     </>

@@ -104,7 +104,7 @@ export default function TerminCard({
   return (
     <>
       <article
-        className={`group rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[350ms] ease-in-out`}
+        className={`relative group rounded-2xl bg-[#D1F8EF] border border-white/60 p-4 text-[#3674B5] max-w-xxl shadow-lg hover:scale-[1.01] duration-[350ms] ease-in-out`}
       >
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3">
@@ -133,7 +133,6 @@ export default function TerminCard({
               : "—"}
           </div>
         </div>
-
         {/* TAGOVI */}
         <div className="mt-5 flex flex-wrap gap-2 text-lg justify-start">
           <span className="px-5 py-3 rounded-full bg-white/70 ring-1 lowercase first-letter:uppercase">
@@ -154,7 +153,6 @@ export default function TerminCard({
             {duration_min} min
           </span>
         </div>
-
         {/* DATUM / LOKACIJA */}
         <div className="mt-5 text-xl underline underline-offset-2 font-bold">
           <div>{when}</div>
@@ -166,14 +164,12 @@ export default function TerminCard({
             </div>
           )}
         </div>
-
         {/* MAPA */}
         {location && format !== "Online" && (
           <div className="mt-5 h-48 w-full rounded-xl overflow-hidden ring-1">
             <GoogleMapEmbed location={location} />
           </div>
         )}
-
         {/* ACTIONS */}
         {role === "student" &&
           ((reserved && format === "Online") || !expired) && (
@@ -207,7 +203,6 @@ export default function TerminCard({
               )}
             </div>
           )}
-
         {role === "instructor" && format === "Online" && (
           <button
             onClick={goToMeeting}
@@ -216,13 +211,12 @@ export default function TerminCard({
             Pokreni meeting
           </button>
         )}
-
-        {/* DELETE IKONA ZA INSTRUKTORA */}
-        {role === "instructor" && (
+        {/* DELETE IKONA ZA INSTRUKTORA */}+{" "}
+        {!!onTerminDelete && (
           <button
             onClick={() => onTerminDelete(lesson_id)}
             className="px-3 py-3 absolute bottom-3 right-5 text-red-600 hover:bg-red-200 rounded-full 
-            transition-all duration-[350ms] ease-in-out opacity-0 group-hover:opacity-100"
+      transition-all duration-[350ms] ease-in-out opacity-0 group-hover:opacity-100"
           >
             <Trash2 className="w-7 h-7" />
           </button>
