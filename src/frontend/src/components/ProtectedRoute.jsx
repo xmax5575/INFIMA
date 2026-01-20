@@ -27,8 +27,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         return; 
       }
 
-    const roleRes = await api.get("/api/user/role/");
-
       try {
         // 1) rola
         const roleRes = await api.get("/api/user/role/");
@@ -105,7 +103,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return () => {
       alive = false;
     };
-  }, [token]);
+  }, [token, navigate]);
 
   // Ako se triggera profileUpdated event, odmah se prelazi na home page.
   useEffect(() => {
@@ -154,6 +152,43 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     navigate("/", { replace: true });
   }
 }, [loading, role, navigate]); 
+useEffect(() => {
+  // čekaj da se sve učita
+  if (loading) return;
+  if (!token) return;
+
+  // ako nije odabrao rolu ili profil nije kompletan, ne enforce-aj još
+  if (!role || role === "" || !isProfileComplete) return;
+
+  // dok je na /role ili edit profilu, nemoj ga prekidati
+  if (location.pathname === "/role" || location.pathname.startsWith("/profile/")) return;
+
+  let alive = true;
+
+  (async () => {
+    try {
+      // backend kaže što je "na redu"
+      const res = await api.get("/api/flow/next/");
+      if (!alive) return;
+
+      const target = res.data?.redirect_to; // npr. "/payment/306" ili "/review/306" ili "/summary/306"
+      if (!target) return;
+
+      // ako već je tamo, ne diraj
+      if (location.pathname === target) return;
+
+      // inače ga vrati na to što je na redu
+      navigate(target, { replace: true });
+    } catch (e) {
+      // ignore (ne želimo rušiti routing ako flow endpoint padne)
+    }
+  })();
+
+  return () => {
+    alive = false;
+  };
+}, [loading, token, role, isProfileComplete, location.pathname, navigate, location.pathname, location]);
+
 if (loading || role === null){
     return <LoadingPage/>
   }

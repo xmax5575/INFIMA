@@ -24,7 +24,7 @@ from api.utils1 import send_24h_lesson_reminders
 from django.conf import settings
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.db import IntegrityError
 
 User = get_user_model()
 
@@ -744,20 +744,34 @@ class EndLessonView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # instruktor završava meeting
+        # 👨‍🏫 instruktor -> označi call_ended za sve attendances + summary
         if user.role == User.Role.INSTRUCTOR:
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
-            return Response({
-                "redirect_to": f"/summary/{lesson.lesson_id}"
-            })
+            Attendance.objects.filter(lesson=lesson).update(call_ended=True)  # ✅
+            return Response({"redirect_to": f"/summary/{lesson.lesson_id}"})
 
-        # student ide na payment
+        # 👨‍🎓 student -> označi call_ended za svog attendance + payment
         if user.role == User.Role.STUDENT:
-            return Response({
-                "redirect_to": f"/payment/{lesson.lesson_id}"
-            })
+            student = getattr(user, "student", None)
+            if not student:
+                return Response({"error": "Student profile not found"}, status=404)
+
+            attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+            if not attendance:
+                return Response({"error": "Forbidden"}, status=403)
+
+            attendance.call_ended = True
+            attendance.save(update_fields=["call_ended"])
+
+            amount = lesson.price or lesson.instructor_id.price or 10
+            Payment.objects.get_or_create(
+                attendance=attendance,
+                defaults={"amount": amount, "is_paid": False},
+            )
+
+            return Response({"redirect_to": f"/payment/{lesson.lesson_id}"})
 
         return Response({"error": "Invalid role"}, status=400)
 
@@ -766,33 +780,75 @@ class SubmitReviewView(APIView):
 
     def post(self, request, lesson_id):
         user = request.user
-
         if user.role != User.Role.STUDENT:
             return Response({"error": "Only students can review"}, status=403)
 
-        try:
-            lesson = Lesson.objects.get(lesson_id=lesson_id)
-        except Lesson.DoesNotExist:
-            return Response({"error": "Lesson not found"}, status=404)
-
+        lesson = Lesson.objects.get(lesson_id=lesson_id)
         student = user.student
-        instructor = lesson.instructor_id
+
+        attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+        if not attendance:
+            return Response({"error": "Forbidden"}, status=403)
+
+        if not attendance.call_ended:
+            return Response({"error": "Call not ended"}, status=403)
+
+        payment = getattr(attendance, "payment", None)
+        if not payment or not payment.is_paid:
+            return Response({"error": "Not paid"}, status=403)
+
+        if attendance.review_done:
+            return Response({"redirect_to": "/home/student"}, status=200)
 
         Review.objects.create(
-            instructor=instructor,
+            instructor=lesson.instructor_id,
             student=student,
             rating=request.data.get("rating"),
             description=request.data.get("description", "")
         )
-        
-        lesson.status = Lesson.Status.EXPIRED
-        lesson.is_available = False
-        lesson.save(update_fields=["status", "is_available"])
 
-        return Response({
-            "redirect_to": "/home/student"
-        })
+        attendance.review_done = True
+        attendance.save(update_fields=["review_done"])
 
+        return Response({"redirect_to": "/home/student"}, status=200)
+
+class ReviewAccessView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        # samo student
+        if request.user.role != "STUDENT":
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        # lesson mora postojati
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"allowed": False}, status=status.HTTP_404_NOT_FOUND)
+
+        # student mora imati Attendance za tu lekciju
+        student = getattr(request.user, "student", None)
+        if not student:
+            return Response({"allowed": False}, status=status.HTTP_404_NOT_FOUND)
+
+        attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+        if not attendance:
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        # poziv mora biti završen
+        if not getattr(attendance, "call_ended", False):
+            return Response({"allowed": False, "redirect_to": f"/lesson/{lesson_id}/call"}, status=200)
+
+        # mora biti plaćeno
+        payment = Payment.objects.filter(attendance=attendance).first()
+        if not payment or not payment.is_paid:
+            return Response({"allowed": False, "redirect_to": f"/payment/{lesson_id}"}, status=200)
+
+        # review se ne smije duplo
+        if getattr(attendance, "review_done", False):
+            return Response({"allowed": False, "redirect_to": "/home/student"}, status=200)
+
+        return Response({"allowed": True}, status=200)
 import stripe
 from django.conf import settings
 
@@ -813,7 +869,26 @@ class ConfirmPaymentView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        amount = lesson.price * 100 if lesson.price else 1000  # centi
+        student = getattr(user, "student", None)
+        if not student:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+        if not attendance:
+            return Response({"error": "Forbidden"}, status=403)
+
+        if not attendance.call_ended:
+            return Response({"error": "Call not ended yet"}, status=403)
+
+        payment, _ = Payment.objects.get_or_create(
+            attendance=attendance,
+            defaults={"amount": lesson.price or lesson.instructor_id.price or 10, "is_paid": False},
+        )
+
+        if payment.is_paid:
+            return Response({"checkout_url": None, "already_paid": True})
+
+        amount_cents = int(payment.amount or 10) * 100
 
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -825,21 +900,182 @@ class ConfirmPaymentView(APIView):
                     "product_data": {
                         "name": f"Instrukcije – {lesson.subject.name if lesson.subject else 'Lekcija'}"
                     },
-                    "unit_amount": amount,
+                    "unit_amount": amount_cents,
                 },
                 "quantity": 1,
             }],
-            success_url=f"{settings.FRONTEND_URL}/review/{lesson.lesson_id}",
+            # ✅ VRATI NA PAYMENT STRANICU S SESSION ID-om
+            success_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}",
             metadata={
                 "lesson_id": lesson.lesson_id,
-                "student_id": user.id,
+                "student_user_id": user.id,
             }
         )
 
-        return Response({
-            "checkout_url": session.url
-        })
+        return Response({"checkout_url": session.url})
+#sta je na redu???
+class FlowNextActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # -------- STUDENT --------
+        if user.role == User.Role.STUDENT:
+            student = getattr(user, "student", None)
+            if not student:
+                return Response({"next_action": None})
+
+            # 1) neplaćeno -> PAYMENT
+            pending_payment = (
+                Payment.objects
+                .filter(
+                    attendance__student=student,
+                    attendance__call_ended=True,
+                    is_paid=False,
+                )
+                .select_related("attendance__lesson")
+                .order_by("attendance__lesson__date", "attendance__lesson__time")
+                .first()
+            )
+            if pending_payment:
+                lid = pending_payment.attendance.lesson.lesson_id
+                return Response({
+                    "next_action": "payment",
+                    "lesson_id": lid,
+                    "redirect_to": f"/payment/{lid}",
+                })
+
+            # 2) plaćeno, ali review nije -> REVIEW
+            pending_review = (
+                Attendance.objects
+                .filter(
+                    student=student,
+                    call_ended=True,
+                    review_done=False,
+                    payment__is_paid=True,
+                )
+                .select_related("lesson")
+                .order_by("lesson__date", "lesson__time")
+                .first()
+            )
+            if pending_review:
+                lid = pending_review.lesson.lesson_id
+                return Response({
+                    "next_action": "review",
+                    "lesson_id": lid,
+                    "redirect_to": f"/review/{lid}",
+                })
+
+            return Response({"next_action": None})
+
+        # -------- INSTRUCTOR --------
+        if user.role == User.Role.INSTRUCTOR:
+            instructor = getattr(user, "instructor", None)
+            if not instructor:
+                return Response({"next_action": None})
+
+            pending_summary = (
+                Lesson.objects
+                .filter(
+                    instructor_id=instructor,
+                    attendance__call_ended=True,
+                    summary__isnull=True,   # Summary je OneToOne (related_name="summary")
+                )
+                .distinct()
+                .order_by("date", "time")
+                .first()
+            )
+            if pending_summary:
+                lid = pending_summary.lesson_id
+                return Response({
+                    "next_action": "summary",
+                    "lesson_id": lid,
+                    "redirect_to": f"/summary/{lid}",
+                })
+
+            return Response({"next_action": None})
+
+        return Response({"next_action": None})
+
+class PaymentAccessView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, lesson_id):
+        # samo student
+        if request.user.role != "STUDENT":
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        # lesson
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"allowed": False}, status=status.HTTP_404_NOT_FOUND)
+
+        student = getattr(request.user, "student", None)
+        if not student:
+            return Response({"allowed": False}, status=status.HTTP_404_NOT_FOUND)
+
+        attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+        if not attendance:
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        # mora biti završen call
+        if not getattr(attendance, "call_ended", False):
+            return Response({"allowed": False, "redirect_to": f"/lesson/{lesson_id}/call"}, status=200)
+
+        payment = Payment.objects.filter(attendance=attendance).first()
+        if payment and payment.is_paid:
+            # već plaćeno -> odmah na review
+            return Response({"allowed": False, "redirect_to": f"/review/{lesson_id}"}, status=200)
+
+        return Response({"allowed": True}, status=200)
+
+class CompletePaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, lesson_id):
+        user = request.user
+
+        if user.role != User.Role.STUDENT:
+            return Response({"error": "Only students"}, status=403)
+
+        session_id = request.data.get("session_id")
+        if not session_id:
+            return Response({"error": "Missing session_id"}, status=400)
+
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        student = getattr(user, "student", None)
+        if not student:
+            return Response({"error": "Student profile not found"}, status=404)
+
+        attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
+        if not attendance:
+            return Response({"error": "Forbidden"}, status=403)
+
+        payment = Payment.objects.filter(attendance=attendance).first()
+        if not payment:
+            return Response({"error": "Payment record missing"}, status=404)
+
+        # Stripe provjera
+        session = stripe.checkout.Session.retrieve(session_id)
+
+        if session.payment_status != "paid":
+            return Response({"error": "Payment not completed"}, status=409)
+
+        # (Opcionalno) dodatna provjera metadata
+        # if str(session.metadata.get("lesson_id")) != str(lesson_id): ...
+
+        payment.is_paid = True
+        payment.save(update_fields=["is_paid"])
+
+        return Response({"ok": True})
+
 
 class MyInstructorReviewsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1081,38 +1317,67 @@ class LessonSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, lesson_id):
-        if request.user.role != "INSTRUCTOR":
-            return Response(
-                {"error": "Only instructors can upload summaries"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        # samo instruktor
+        if request.user.role != User.Role.INSTRUCTOR:
+            return Response({"error": "Only instructors can upload summaries"}, status=403)
 
+        # instructor profil
         try:
             instructor = Instructor.objects.get(instructor_id=request.user)
         except Instructor.DoesNotExist:
-            return Response(
-                {"error": "Instructor profile not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Instructor profile not found"}, status=404)
+
+        # lesson (kod tebe pk je lesson_id, ali ovako je jasnije i konzistentno)
+        try:
+            lesson = Lesson.objects.get(lesson_id=lesson_id)
+        except Lesson.DoesNotExist:
+            return Response({"error": "Lesson not found"}, status=404)
+
+        # mora biti njegova lekcija
+        if lesson.instructor_id.instructor_id != request.user:
+            return Response({"error": "Forbidden"}, status=403)
+
+        # mora biti call završen
+        if not Attendance.objects.filter(lesson=lesson, call_ended=True).exists():
+            return Response({"error": "Call not ended"}, status=403)
+
+        # summary već postoji -> 409
+        if Summary.objects.filter(lesson=lesson).exists():
+            return Response({"error": "Summary already exists"}, status=409)
+
+        # validacija podataka
+        serializer = SummarySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
         try:
-            lesson = Lesson.objects.get(pk=lesson_id)
-        except Lesson.DoesNotExist:
-            return Response(
-                {"error": "Lesson not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            serializer.save(author=instructor, lesson=lesson)
+        except IntegrityError:
+            # safety net ako se desi race condition
+            return Response({"error": "Summary already exists"}, status=409)
 
-        serializer = SummarySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(
-                author=instructor,
-                lesson=lesson   
-            )
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=201)
+class SummaryAccessView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    def get(self, request, lesson_id):
+        if request.user.role != User.Role.INSTRUCTOR:
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        lesson = Lesson.objects.get(lesson_id=lesson_id)
+
+        if lesson.instructor_id.instructor_id != request.user:
+            return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
+
+        # ✅ NOVO: call_ended mora biti True
+        if not Attendance.objects.filter(lesson=lesson, call_ended=True).exists():
+            return Response({"allowed": False, "redirect_to": f"/lesson/{lesson_id}/call"}, status=200)
+
+        # ✅ ako summary već postoji
+        if Summary.objects.filter(lesson=lesson).exists():
+            return Response({"allowed": False, "redirect_to": "/home/instructor"}, status=200)
+
+        return Response({"allowed": True}, status=200)
+
 class StudentSummariesView(APIView):
     permission_classes = [IsAuthenticated]
 

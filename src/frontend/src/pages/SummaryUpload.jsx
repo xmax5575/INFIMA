@@ -74,7 +74,7 @@ export default function SummaryUpload() {
     await api.post(`/api/lesson/${lessonId}/summary/`, {
       file_url: uploadResult.publicUrl,
       file_name: uploadResult.originalName, // ⬅️ BITNO
-      storage_path: uploadResult.storagePath,
+  
     });
 
     navigate(`/home/instructor`);

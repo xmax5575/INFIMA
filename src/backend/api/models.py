@@ -147,6 +147,10 @@ class Attendance(models.Model):
     reminder_sent = models.BooleanField(default=False)
     reminder_1h_sent = models.BooleanField(default=False)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    
+    call_ended = models.BooleanField(default=False)
+    review_done = models.BooleanField(default=False)
+
 
     class Meta:
         unique_together = ("lesson", "student")
@@ -156,6 +160,7 @@ class Payment(models.Model):
     attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, null=True, blank=True) # strani ključ
     amount = models.IntegerField()
     is_paid = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
 # model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):

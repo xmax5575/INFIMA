@@ -19,6 +19,9 @@ import SummaryUpload from "./pages/SummaryUpload";
 import Admin from "./pages/Admin";
 import HomeRedirect from "./pages/HomeRedirect";
 
+import ReviewGuard from "./components/ReviewGuard";
+import PaymentGuard from "./components/PaymentGuard";
+import SummaryGuard from "./components/SummaryGuard";
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -108,6 +111,13 @@ function App() {
             }
           />
 
+          <Route path="/summary/:lessonId" element={
+             <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
+              <SummaryGuard>
+            <SummaryUpload />
+            </SummaryGuard>
+            </ProtectedRoute>}/>
+
           <Route
             path="/lesson/:lessonId/call"
             element={
@@ -116,13 +126,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/summary/:lessonId" element={<SummaryUpload />} />
 
           <Route
             path="/payment/:lessonId"
             element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                <Payment />
+                <PaymentGuard>
+                  <Payment />
+                </PaymentGuard>
               </ProtectedRoute>
             }
           />
@@ -131,11 +142,12 @@ function App() {
             path="/review/:lessonId"
             element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                <Review />
+                <ReviewGuard>
+                  <Review />
+                </ReviewGuard>
               </ProtectedRoute>
             }
           />
-          <Route path="/home" element={<HomeRedirect />} />
         </Routes>
       </BrowserRouter>
     </>

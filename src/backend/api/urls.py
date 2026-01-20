@@ -70,4 +70,16 @@ urlpatterns = [
     path("admin/lesson/<int:lesson_id>/delete/", views.LessonDeleteView.as_view()),
     path("admin/analytics/", views.AdminAnalyticsView.as_view()),
     path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
+    
+    path("payments/<int:lesson_id>/complete/", views.CompletePaymentView.as_view(), name="payment-complete"),
+    path("reviews/<int:lesson_id>/allowed/", views.ReviewAccessView.as_view(), name="review-allowed"),
+    path("payments/<int:lesson_id>/allowed/", views.PaymentAccessView.as_view(), name="payment-allowed"),
+    path("lesson/<int:lesson_id>/summary/allowed/", views.SummaryAccessView.as_view(), name="summary-allowed"),
+    path("flow/next/", views.FlowNextActionView.as_view(), name="flow-next"),
+
+
+
+
+
+
 ]
