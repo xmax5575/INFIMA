@@ -68,4 +68,6 @@ urlpatterns = [
     # ADMIN
     path("admin/lessons/", views.AdminLessonsListView.as_view()),
     path("admin/lesson/<int:lesson_id>/delete/", views.LessonDeleteView.as_view()),
+    path("admin/analytics/", views.AdminAnalyticsView.as_view()),
+    path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
 ]

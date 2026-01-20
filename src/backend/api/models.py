@@ -146,6 +146,7 @@ class Attendance(models.Model):
     attended = models.BooleanField(default=False)  
     reminder_sent = models.BooleanField(default=False)
     reminder_1h_sent = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("lesson", "student")

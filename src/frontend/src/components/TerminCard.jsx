@@ -211,7 +211,6 @@ export default function TerminCard({
             Pokreni meeting
           </button>
         )}
-        {/* DELETE IKONA ZA INSTRUKTORA */}+{" "}
         {!!onTerminDelete && (
           <button
             onClick={() => onTerminDelete(lesson_id)}

@@ -323,6 +323,7 @@ class InstructorReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = [
+            "id",
             "rating",
             "description",
             "student_id",
