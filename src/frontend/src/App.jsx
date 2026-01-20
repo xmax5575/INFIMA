@@ -16,7 +16,9 @@ import Payment from "./pages/Payment";
 import Review from "./pages/Review";
 import QuizBuilder from "./components/QuizBuilder";
 import SummaryUpload from "./pages/SummaryUpload";
-
+import ReviewGuard from "./components/ReviewGuard";
+import PaymentGuard from "./components/PaymentGuard";
+import SummaryGuard from "./components/SummaryGuard";
 function Logout() {
   localStorage.clear();
   googleLogout();
@@ -56,13 +58,8 @@ function App() {
           />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
-          
-          <Route
-            path="/role"
-            element={
-                  <Role />
-            }
-          />
+
+          <Route path="/role" element={<Role />} />
           <Route
             path="/home/instructor"
             element={
@@ -81,52 +78,58 @@ function App() {
           />
           <Route
             path="/profile/instructor/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
-                  <Profile role = "instructor"/>
+                <Profile role="instructor" />
               </ProtectedRoute>
-            }/>
-            <Route
+            }
+          />
+          <Route
             path="/profile/student/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <Profile role = "student"/>
+                <Profile role="student" />
               </ProtectedRoute>
-            }/>
-          
+            }
+          />
 
-            <Route
-              path="/lesson/:lessonId/call"
-              element={
-                <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
-                  <LessonCall />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-            path="/summary/:lessonId"
-            element = {<SummaryUpload/>}
-            />
+          <Route path="/summary/:lessonId" element={
+             <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
+              <SummaryGuard>
+            <SummaryUpload />
+            </SummaryGuard>
+            </ProtectedRoute>}/>
 
-            <Route
-              path="/payment/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
+          <Route
+            path="/lesson/:lessonId/call"
+            element={
+              <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
+                <LessonCall />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <PaymentGuard>
                   <Payment />
-                </ProtectedRoute>
-              }
-            />
+                </PaymentGuard>
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/review/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
+          <Route
+            path="/review/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <ReviewGuard>
                   <Review />
-                </ProtectedRoute>
-              }
-            />
-
-
+                </ReviewGuard>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>
