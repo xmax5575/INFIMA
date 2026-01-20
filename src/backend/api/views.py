@@ -580,17 +580,18 @@ class ReserveLessonView(APIView):
             },
             status=201
         )
-    
+
 class CancelLessonView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # samo studenti smiju otkazivati
         if request.user.role != User.Role.STUDENT:
             return Response(
                 {"error": "Only students can cancel lessons"},
-                status=403
+                status=status.HTTP_403_FORBIDDEN
             )
-        
+
         serializer = AttendanceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -599,21 +600,30 @@ class CancelLessonView(APIView):
         try:
             student = Student.objects.get(student_id=request.user)
         except Student.DoesNotExist:
-            return Response({"error": "Student profile not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-        attendance = Attendance.objects.filter(lesson_id=lesson_id, student=student)
+            return Response(
+                {"error": "Student profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        attendance = Attendance.objects.filter(
+            lesson_id=lesson_id,
+            student=student,
+            cancelled_at__isnull=True
+        )
 
         if not attendance.exists():
             return Response(
-                {"error": "Reservation not found"}, 
+                {"error": "Reservation not found or already cancelled"},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        attendance.delete()
+
+        attendance.update(cancelled_at=timezone.now())
 
         return Response(
-            {"message": "Lesson reservation cancelled successfully",
-             "lesson_id": lesson_id},
+            {
+                "message": "Lesson reservation cancelled successfully",
+                "lesson_id": lesson_id
+            },
             status=status.HTTP_200_OK
         )
 
@@ -1462,3 +1472,100 @@ class UpdateKnowledgeLevelView(APIView):
             {"subject": subject, "new_level": new_level, "all_levels": knowledge},
             status=status.HTTP_200_OK
         )
+
+class ReviewDeleteView(generics.DestroyAPIView):
+    queryset = Review.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "id"
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # admin može sve
+        if user.is_superuser or user.role == "ADMIN":
+            return Review.objects.all()
+
+        # instruktor može samo svoje recenzije
+        if user.role == "INSTRUCTOR":
+            return Review.objects.filter(instructor__instructor_id=user)
+
+        return Review.objects.none()
+
+class AdminQuestionsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        questions = Question.objects.all().select_related("subject")
+        serializer = StudentQuestionSerializer(questions, many=True)
+        return Response(serializer.data)
+    
+class AdminReviewsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        reviews = Review.objects.select_related(
+            "student", "student__student_id", "instructor", "instructor__instructor_id"
+        ).order_by("-id")
+
+        serializer = InstructorReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+    
+class AdminLessonsListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        expire_lessons()
+
+        lessons = Lesson.objects.all().order_by("date", "time")
+        serializer = LessonSerializer(lessons, many=True)
+        return Response(serializer.data)
+
+from django.db.models import Avg
+
+class AdminAnalyticsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not (user.is_superuser or user.role == "ADMIN"):
+            return Response({"error": "Forbidden"}, status=403)
+
+        total_reservations = Attendance.objects.filter(
+            cancelled_at__isnull=True
+        ).count()
+
+        cancelled_reservations = Attendance.objects.filter(
+            cancelled_at__isnull=False
+        ).count()
+
+        cancellation_rate = (
+            (cancelled_reservations / (total_reservations + cancelled_reservations)) * 100
+            if (total_reservations + cancelled_reservations) > 0
+            else 0
+        )
+
+        avg_rating = Review.objects.aggregate(avg=Avg("rating"))["avg"] or 0
+        total_reviews = Review.objects.count()
+
+        return Response({
+            "total_reservations": total_reservations,
+            "cancelled_reservations": cancelled_reservations,
+            "cancellation_rate": round(cancellation_rate, 2),
+            "average_rating": round(avg_rating, 2),
+            "total_reviews": total_reviews,
+        })

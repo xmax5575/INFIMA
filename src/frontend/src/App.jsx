@@ -16,6 +16,9 @@ import Payment from "./pages/Payment";
 import Review from "./pages/Review";
 import QuizBuilder from "./components/QuizBuilder";
 import SummaryUpload from "./pages/SummaryUpload";
+import Admin from "./pages/Admin";
+import HomeRedirect from "./pages/HomeRedirect";
+
 import ReviewGuard from "./components/ReviewGuard";
 import PaymentGuard from "./components/PaymentGuard";
 import SummaryGuard from "./components/SummaryGuard";
@@ -59,7 +62,14 @@ function App() {
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
 
-          <Route path="/role" element={<Role />} />
+          <Route
+            path="/role"
+            element={
+              <ProtectedRoute>
+                <Role />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/home/instructor"
             element={
@@ -73,6 +83,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
                 <Student />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/home/admin"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Admin />
               </ProtectedRoute>
             }
           />

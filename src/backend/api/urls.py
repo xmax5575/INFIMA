@@ -59,6 +59,17 @@ urlpatterns = [
     path("student/summaries/", views.StudentSummariesView.as_view()),
 
     path("student/knowledge/", views.UpdateKnowledgeLevelView.as_view()),
+
+    path("review/delete/<int:id>/", views.ReviewDeleteView.as_view(), name="review-delete"),
+
+    path("admin/questions/", views.AdminQuestionsListView.as_view()),
+
+    path("admin/reviews/", views.AdminReviewsListView.as_view()),
+    # ADMIN
+    path("admin/lessons/", views.AdminLessonsListView.as_view()),
+    path("admin/lesson/<int:lesson_id>/delete/", views.LessonDeleteView.as_view()),
+    path("admin/analytics/", views.AdminAnalyticsView.as_view()),
+    path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
     
     path("payments/<int:lesson_id>/complete/", views.CompletePaymentView.as_view(), name="payment-complete"),
     path("reviews/<int:lesson_id>/allowed/", views.ReviewAccessView.as_view(), name="review-allowed"),

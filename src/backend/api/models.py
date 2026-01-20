@@ -16,6 +16,7 @@ class UserManager(BaseUserManager):
     
     def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
         user = self.create_user(
+            username=email,
             email=email,
             first_name=first_name,
             last_name=last_name,
@@ -145,6 +146,7 @@ class Attendance(models.Model):
     attended = models.BooleanField(default=False)  
     reminder_sent = models.BooleanField(default=False)
     reminder_1h_sent = models.BooleanField(default=False)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     
     call_ended = models.BooleanField(default=False)
     review_done = models.BooleanField(default=False)
