@@ -16,6 +16,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import dj_database_url
 from whitenoise.storage import CompressedManifestStaticFilesStorage
+import sys
 
 load_dotenv()
 
@@ -287,3 +288,11 @@ else:
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL")
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
+    }
