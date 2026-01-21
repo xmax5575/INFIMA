@@ -65,6 +65,10 @@ class User(AbstractUser, PermissionsMixin):
 
 # model koji predstavlja predmet u bazi podataka
 class Subject(models.Model):
+    def clean(self):
+        super().clean()
+        if self.name not in ["Matematika", "Fizika", "Informatika"]:
+            raise ValidationError("Matematika, fizika i informatika su trenutno jedini podržani predmeti.")
     subject_id = models.AutoField(primary_key=True) # primarni ključ 
     name = models.TextField(unique=True)
 
