@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from datetime import date, datetime
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
@@ -164,6 +165,12 @@ class Payment(models.Model):
 
 # model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):
+    def clean(self):
+        super().clean()
+        if self.type == self.QuestionType.TRUE_FALSE:
+            if len(self.correct_answer) != 1:
+                raise ValidationError("True/False pitanje mora imati točno jedan točan odgovor.")
+            
     class QuestionType(models.TextChoices):
         TRUE_FALSE = "true_false", "True / False"
         MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
