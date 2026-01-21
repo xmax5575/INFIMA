@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
@@ -14,14 +13,12 @@ import Profile from "./pages/Profile";
 import LessonCall from "./pages/LessonCall";
 import Payment from "./pages/Payment";
 import Review from "./pages/Review";
-import QuizBuilder from "./components/QuizBuilder";
 import SummaryUpload from "./pages/SummaryUpload";
 import Admin from "./pages/Admin";
-import HomeRedirect from "./pages/HomeRedirect";
-
 import ReviewGuard from "./components/ReviewGuard";
 import PaymentGuard from "./components/PaymentGuard";
 import SummaryGuard from "./components/SummaryGuard";
+
 function Logout() {
   localStorage.clear();
   googleLogout();

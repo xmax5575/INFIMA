@@ -10,7 +10,7 @@ function Login() {
       <Header />
       <div className="flex flex-1 justify-center items-center mt-20">
         <div className="flex flex-col gap-3">
-          <Form method="login" route="/login" />
+          <Form method="login"/>
           <div className="flex items-center gap-2">
             <div className="h-px bg-white/40 w-full" />
             <span className="text-white/70 text-sm">ili</span>
