@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 # funkcija pomoću koje šaljemo mailove za podsjetnike 24 sata i sat vremena prije termina instrukcija i koja se pokreće pomoću cron-a
-def send_lesson_reminders():
+def send_24h_lesson_reminders():
     now = timezone.now()
 
     # vremenski prozori za provjeru

@@ -20,7 +20,7 @@ from django.db.models import Count, F
 from datetime import timedelta
 from api.utils1 import create_google_calendar_event
 from api.utils1 import sync_existing_lessons_to_google
-from api.utils1 import send_lesson_reminders
+from api.utils1 import send_24h_lesson_reminders
 from django.db import IntegrityError
 
 User = get_user_model()
@@ -285,9 +285,12 @@ class LessonDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        # Osiguravamo da instruktor može obrisati samo svoje lekcije
+
+        # instruktor može brisati samo svoje lekcije
         if user.role == 'INSTRUCTOR':
             return Lesson.objects.filter(instructor_id__instructor_id=user)
+        
+        # admin može brisati sve lekcije
         if user.is_superuser:
             return Lesson.objects.all()
         return Lesson.objects.none()
@@ -301,7 +304,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = self.request.user
 
         expire_lessons()
-
+        
+        # admin vidi sve lekcije
         if user.is_superuser or user.role == 'ADMIN':
             return Lesson.objects.all()
         if user.role == 'INSTRUCTOR':
@@ -1231,7 +1235,7 @@ class ReminderCronView(APIView):
         if token != settings.CRON_SECRET:
             return Response({"error": "unauthorized"}, status=401)
 
-        send_lesson_reminders()  # pokretanje funkcije za slanje podsjetnika 24 sata i sat vremena prije termina
+        send_24h_lesson_reminders()  # pokretanje funkcije za slanje podsjetnika 24 sata i sat vremena prije termina
         return Response({"status": "ok"})
     
 class InstructorQuestionsListView(APIView):
@@ -1473,16 +1477,17 @@ class ReviewDeleteView(generics.DestroyAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        # admin može sve
+        # admin može brisati sve recenzije
         if user.is_superuser or user.role == "ADMIN":
             return Review.objects.all()
 
-        # instruktor može samo svoje recenzije
+        # instruktor može brisati samo svoje recenzije
         if user.role == "INSTRUCTOR":
             return Review.objects.filter(instructor__instructor_id=user)
 
         return Review.objects.none()
 
+# admin dohvaća sva pitanja 
 class AdminQuestionsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1495,7 +1500,8 @@ class AdminQuestionsListView(APIView):
         questions = Question.objects.all().select_related("subject")
         serializer = StudentQuestionSerializer(questions, many=True)
         return Response(serializer.data)
-    
+
+# admin dohvaća sve recenzije 
 class AdminReviewsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1511,7 +1517,8 @@ class AdminReviewsListView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    
+
+# admin dohvaća sve termine
 class AdminLessonsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1529,6 +1536,7 @@ class AdminLessonsListView(APIView):
 
 from django.db.models import Avg
 
+# analitika admina
 class AdminAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1537,20 +1545,24 @@ class AdminAnalyticsView(APIView):
         if not (user.is_superuser or user.role == "ADMIN"):
             return Response({"error": "Forbidden"}, status=403)
 
+        # broj aktivnih rezervacija
         total_reservations = Attendance.objects.filter(
             cancelled_at__isnull=True
         ).count()
-
+        
+        # broj otkazanih rezervacija
         cancelled_reservations = Attendance.objects.filter(
             cancelled_at__isnull=False
         ).count()
 
+        # postotak otkaizvanja
         cancellation_rate = (
             (cancelled_reservations / (total_reservations + cancelled_reservations)) * 100
             if (total_reservations + cancelled_reservations) > 0
             else 0
         )
 
+        # prosječna ocjena svih recenzija
         avg_rating = Review.objects.aggregate(avg=Avg("rating"))["avg"] or 0
         total_reviews = Review.objects.count()
 
