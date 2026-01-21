@@ -96,6 +96,10 @@ class LessonSerializer(serializers.ModelSerializer):
         """
         return self.get_instructor_name(obj)
     
+ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
+ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
+ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
+
 class InstructorUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više predmeta
     subjects = serializers.SlugRelatedField(
@@ -115,10 +119,13 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                   'profile_image_url'
         ]
 
-
-ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
-ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
-ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
+    def validate_subjects(self, value):
+        if len(value) > 3:
+            raise serializers.ValidationError("Instruktor ne smije dodati više od 3 predmeta.")
+        for s in value:
+            if s.name not in ALLOWED_SUBJECTS:
+                raise serializers.ValidationError(f"Predmet {s.name} nije dozvoljen.")
+        return value
 
 class StudentUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više instruktora
