@@ -226,48 +226,22 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") 
 
-# Stripe
+# plaćanje
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
-# Frontend (za Stripe redirecte)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-'''
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-
-EMAIL_HOST_USER = os.getenv("GMAIL_USER")
-EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-'''
-#EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-
-'''
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-
-SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-'''
-# settings.py
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
-# Tvoj mail s kojim si se ulogirala na Brevo
 EMAIL_HOST_USER = 'infima.instrukcije@gmail.com' 
 
-# Ovdje zalijepi onaj dugi ključ koji si upravo kopirala (xkeysib...)
-#EMAIL_HOST_PASSWORD = os.getenv("BREVO_SMTP_KEY")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
-# Mora biti ISTO kao pošiljatelj na tvojoj zadnjoj slici
 DEFAULT_FROM_EMAIL = 'infima.instrukcije@gmail.com'
 
-# OVO MORA BITI TOČNO OVAKO (bez razmaka i malim slovima)
-#DEFAULT_FROM_EMAIL = 'infima.instrukcije@gmail.com'
 SERVER_EMAIL = 'infima.instrukcije@gmail.com'
 CRON_SECRET = os.getenv("CRON_SECRET")
 

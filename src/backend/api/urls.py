@@ -77,9 +77,4 @@ urlpatterns = [
     path("lesson/<int:lesson_id>/summary/allowed/", views.SummaryAccessView.as_view(), name="summary-allowed"),
     path("flow/next/", views.FlowNextActionView.as_view(), name="flow-next"),
 
-
-
-
-
-
 ]

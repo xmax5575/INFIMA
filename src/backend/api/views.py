@@ -20,10 +20,7 @@ from django.db.models import Count, F
 from datetime import timedelta
 from api.utils1 import create_google_calendar_event
 from api.utils1 import sync_existing_lessons_to_google
-from api.utils1 import send_24h_lesson_reminders
-from django.conf import settings
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from api.utils1 import send_lesson_reminders
 from django.db import IntegrityError
 
 User = get_user_model()
@@ -59,9 +56,7 @@ def user_profile(request):
     return Response(serializer.data)
 
 from rest_framework import status, views
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from django.conf import settings
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests, jwt, uuid
@@ -849,11 +844,10 @@ class ReviewAccessView(APIView):
             return Response({"allowed": False, "redirect_to": "/home/student"}, status=200)
 
         return Response({"allowed": True}, status=200)
+    
 import stripe
-from django.conf import settings
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
 
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1234,12 +1228,10 @@ class ReminderCronView(APIView):
 
     def get(self, request):
         token = request.headers.get("X-CRON-TOKEN")
-        print(">>> CRON ENDPOINT HIT")
-        print(">>> HEADERS:", dict(request.headers))
         if token != settings.CRON_SECRET:
             return Response({"error": "unauthorized"}, status=401)
 
-        send_24h_lesson_reminders()
+        send_lesson_reminders()  # pokretanje funkcije za slanje podsjetnika 24 sata i sat vremena prije termina
         return Response({"status": "ok"})
     
 class InstructorQuestionsListView(APIView):

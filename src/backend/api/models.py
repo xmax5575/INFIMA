@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
-from datetime import date, datetime
-from django.utils import timezone
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
@@ -36,7 +34,7 @@ class User(AbstractUser, PermissionsMixin):
         INSTRUCTOR = 'INSTRUCTOR', 'Instructor'
         ADMIN = 'ADMIN', 'Administrator'
     
-    id = models.AutoField(primary_key=True) # primarni ključ 
+    id = models.AutoField(primary_key=True)  
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
 
@@ -64,7 +62,7 @@ class User(AbstractUser, PermissionsMixin):
 
 # model koji predstavlja predmet u bazi podataka
 class Subject(models.Model):
-    subject_id = models.AutoField(primary_key=True) # primarni ključ 
+    subject_id = models.AutoField(primary_key=True) 
     name = models.TextField(unique=True)
 
 # model koji predstavlja instruktora u bazi podataka
@@ -82,6 +80,7 @@ class Instructor(models.Model):
     google_calendar_email = models.EmailField(null=True, blank=True)
     google_refresh_token = models.TextField(null=True, blank=True)
     
+# model koji predstavlja studenta u bazi podataka
 class Student(models.Model):
     student_id = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True) # ako se obriše korisnik, briše se i student, primarni ključ
     school_level = models.CharField(max_length=20, null=True, blank=True)
@@ -95,8 +94,8 @@ class Student(models.Model):
 
 # model koji predstavlja recenzije u bazi podataka
 class Review(models.Model):
-    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
-    student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE) 
+    student = models.ForeignKey(Student, on_delete=models.SET_NULL, null=True, blank=True) 
     rating = models.FloatField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
 
@@ -109,7 +108,7 @@ class Lesson(models.Model):
     lesson_id = models.AutoField(primary_key=True)
     instructor_id = models.ForeignKey(Instructor, on_delete=models.CASCADE, db_column='instructor_id' ) # ako se obriše instruktor, brišu se i svi njegovi termini, strani ključ
     is_available = models.BooleanField(default=True)
-    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) # strani ključ
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True) 
     location = models.TextField(null=True, blank=True)
     duration_min = models.IntegerField(null=True, blank=True)
     max_students = models.IntegerField(default=1)
@@ -119,30 +118,21 @@ class Lesson(models.Model):
     time = models.TimeField(null=True, blank=True)
     google_event_id = models.CharField(max_length=255, null=True, blank=True)
     
-    level = models.CharField(
-        max_length=20,
-        choices=Level.choices,
-        null=True,
-        blank=True
-    )
+    level = models.CharField(max_length=20, choices=Level.choices, null=True, blank=True)
 
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Aktivan"
         EXPIRED = "EXPIRED", "Istekao"
         CANCELED = "CANCELED", "Otkazan"
 
-    status = models.CharField(
-        max_length=10,
-        choices=Status.choices,
-        default=Status.ACTIVE
-    )
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
     jitsi_room = models.CharField(max_length=255, blank=True, null=True)
 
-# model koji predstavlja status prisutnosti u bazi podataka
+# model koji predstavlja rezervaciju termina u bazi podataka, koristi se i kao okidač za slanje email obavijesti 
 class Attendance(models.Model):
     # ako se termin ili student obrišu, briše se i status prisutnosti
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) # strani ključ
-    student = models.ForeignKey(Student, on_delete=models.CASCADE) # strani ključ
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE) 
+    student = models.ForeignKey(Student, on_delete=models.CASCADE) # 
     attended = models.BooleanField(default=False)  
     reminder_sent = models.BooleanField(default=False)
     reminder_1h_sent = models.BooleanField(default=False)
@@ -151,13 +141,12 @@ class Attendance(models.Model):
     call_ended = models.BooleanField(default=False)
     review_done = models.BooleanField(default=False)
 
-
     class Meta:
         unique_together = ("lesson", "student")
 
 # model koji predstavlja plaćanje u bazi podataka
 class Payment(models.Model):
-    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, null=True, blank=True) # strani ključ
+    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, null=True, blank=True) 
     amount = models.IntegerField()
     is_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -169,8 +158,8 @@ class Question(models.Model):
         MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
         SHORT_ANSWER = "short_answer", "Short answer"
 
-    author = models.ForeignKey(Instructor, on_delete=models.CASCADE, related_name="questions") # strani ključ
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE) # strani ključ
+    author = models.ForeignKey(Instructor, on_delete=models.CASCADE, related_name="questions") 
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     school_level = models.CharField(max_length=20)
     grade = models.IntegerField()
     difficulty = models.CharField(max_length=50)
@@ -182,7 +171,7 @@ class Question(models.Model):
 
 # model koji predstavlja sažetak u bazi podataka
 class Summary(models.Model):
-    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="summary") # strani ključ
-    author = models.ForeignKey(Instructor, on_delete=models.CASCADE) # strani ključ
+    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="summary") 
+    author = models.ForeignKey(Instructor, on_delete=models.CASCADE) 
     file_url = models.URLField()
     file_name = models.CharField(max_length=255) 
