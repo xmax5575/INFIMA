@@ -11,15 +11,14 @@ export default function Payment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ Kad se vratiš sa Stripe-a
+  
   useEffect(() => {
     if (!sessionId) return;
-
     const complete = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Ako ti api baseURL već ima "/api", makni "/api" ovdje:
+
         await api.post(`/api/payments/${lessonId}/complete/`, { session_id: sessionId });
         navigate(`/review/${lessonId}`);
       } catch (err) {
@@ -38,7 +37,6 @@ export default function Payment() {
     setError(null);
 
     try {
-      // Ako ti api baseURL već ima "/api", makni "/api" ovdje:
       const res = await api.post(`/api/payments/${lessonId}/confirm/`);
       window.location.href = res.data.checkout_url;
     } catch (err) {

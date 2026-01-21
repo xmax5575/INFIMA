@@ -9,7 +9,6 @@ import { useGoogleLogin } from "@react-oauth/google";
 function getFullName(user) {
   return (
     user?.full_name ||
-    `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() ||
     "Instruktor"
   );
 }
@@ -20,6 +19,7 @@ export default function InstructorCard({
   canEdit = false,
   editTo = "/edit",
 }) {
+  console.log(user);
   const fullName = getFullName(user);
   const bio = user?.bio || "Ovdje ide biografija instruktora.";
   const location = user?.location || "—";
@@ -31,12 +31,12 @@ export default function InstructorCard({
   // Podaci za prikaz
   const subjectsRaw = user?.subjects ?? [];
   const subjects = Array.isArray(subjectsRaw)
-    ? subjectsRaw.map((s) => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+    ? subjectsRaw.map((s) => (s.name))
     : [];
 
   const ratingRaw = user?.avg_rating ?? "-";
   const rating = String(ratingRaw).replace(".", ",");
-  const priceLabel = user?.price_label ?? (user?.price_eur != null ? `${user.price_eur}€` : "—");
+  const priceLabel =(user?.price_eur != null ? `${user.price_eur}€` : "—");
   const avatarUrl = user?.profile_image_url || null;
   const videoUrl = user?.video_url || null;
   const lessons = Array.isArray(user?.calendar) ? user.calendar : [];
@@ -76,14 +76,13 @@ export default function InstructorCard({
   // renderStars funkcija
   const renderStars = (rating) => {
     const maxStars = 5;
-    const rounded = Math.round(rating);
     return (
       <div className="flex gap-0.5">
         {Array.from({ length: maxStars }).map((_, i) => (
           <Star
             key={i}
             className={`h-4 w-4 ${
-              i < rounded ? "text-[#3674B5] fill-[#3674B5]" : "text-[#3674B5]/30"
+              i < rating? "text-[#3674B5] fill-[#3674B5]" : "text-[#3674B5]/30"
             }`}
           />
         ))}
@@ -157,7 +156,7 @@ export default function InstructorCard({
               </div>
               <h2 className="text-lg sm:text-xl font-semibold">Područja</h2>
               <div className="mt-4 flex flex-wrap gap-2 pr-[88px]">
-                {(subjects.length ? subjects : ["—"]).slice(0, 8).map((s, i) => (
+                {(subjects.length ? subjects : ["—"]).map((s, i) => (
                   <span key={i} className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-sm">
                     {s}
                   </span>
@@ -191,7 +190,7 @@ export default function InstructorCard({
                 ) : reviews.length === 0 ? (
                   <p className="text-sm text-[#3674B5]/60 italic text-center">Nema recenzija</p>
                 ) : (
-                  reviews.map((r, i) => (
+                  reviews.slice(0,5).map((r, i) => (
                     <div key={i} className="p-3 rounded-xl border border-[#3674B5]/10 bg-slate-50/50">
                       <div className="flex justify-between items-center mb-1">
                         {renderStars(r.rating)}

@@ -11,13 +11,11 @@ export default function ReviewGuard({ children }) {
   useEffect(() => {
     const run = async () => {
       try {
-        // ⚠️ ako ti api baseURL već ima "/api", makni "/api" ovdje
         const res = await api.get(`/api/reviews/${lessonId}/allowed/`);
         const allowed = !!res.data?.allowed;
         const to = res.data?.redirect_to || "/home/student";
         setState({ loading: false, allowed, to });
       } catch (e) {
-        // ako je 403/401/404 -> nema pristup
         setState({ loading: false, allowed: false, to: "/home/student" });
       }
     };

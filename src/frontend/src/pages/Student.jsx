@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Header from "../components/Header";
 import TerminCard from "../components/TerminCard";
 import { ACCESS_TOKEN } from "../constants";
@@ -21,6 +21,7 @@ function Student() {
   const [summaries, setSummaries] = useState([]);
   const [summariesLoading, setSummariesLoading] = useState(false);
   const [summariesErr, setSummariesErr] = useState(null);
+  const [rend, setRend] = useState(false);
   const getFileName = (url) => {
     try {
       return decodeURIComponent(url.split("/").pop());
@@ -404,7 +405,9 @@ function Student() {
             {["Matematika", "Fizika", "Informatika"].map((subject) => (
               <button
                 key={subject}
-                onClick={() => setSelectedSubject(subject)}
+                onClick={() => {setSelectedSubject(subject)
+                                setRend(!rend);
+                }}
                 className="rounded-xl bg-white p-4 font-semibold text-[#215993]
                    hover:scale-105 transition "
               >
@@ -414,7 +417,7 @@ function Student() {
           </div>
         )}
         {tab === "quiz" && selectedSubject && (
-          <Quiz subject={selectedSubject} />
+          <Quiz subject={selectedSubject} rend = {rend} />
         )}
         {!loading && !err && (tab === "all" || tab === "mine") && (
           <ul className="mt-6 space-y-3">
