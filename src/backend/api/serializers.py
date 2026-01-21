@@ -3,10 +3,22 @@ from django.contrib.auth import get_user_model
 from django.db.models import Avg
 from rest_framework import serializers
 from .models import Instructor, Lesson, Review, Subject, Student, Question, Summary
+from django.contrib.auth.password_validation import validate_password
+from rest_framework.validators import UniqueValidator
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        required=True,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        validators=[validate_password],
+        style={'input_type': 'password'}
+    )
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'password', 'email', 'role']
@@ -24,8 +36,11 @@ class UserSerializer(serializers.ModelSerializer):
         if 'role' in validated_data and validated_data['role'] is None:
             del validated_data['role']
 
+        allowed = set(self.Meta.fields) - {'id'}
+        filtered_data = {k: v for k, v in validated_data.items() if k in allowed}
+
         # Use email as username so create_user doesn't raise missing username
-        user = User.objects.create_user(username=email, **validated_data)
+        user = User.objects.create_user(username=email, **filtered_data)
         return user
     
 class LessonSerializer(serializers.ModelSerializer):
