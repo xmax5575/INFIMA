@@ -3,17 +3,18 @@ import Header from "../components/Header";
 import TerminCard from "../components/TerminCard";
 import api from "../api";
 import { Trash2, Star } from "lucide-react";
-
 import ShortAnswerDisplay from "../components/ShortAnswerDisplay";
 import TrueFalseDisplay from "../components/TrueFalseDisplay";
 import MultipleChoiceDisplay from "../components/MultipleChoiceDisplay";
 
+//prikaz i upravljanje terminima recenzijama i pitanjima
+//frontend ne provjerava role detaljno, renderamo UI i pozivamo endpointe
 function Admin() {
   const [tab, setTab] = useState("termini");
-
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
 
+  //podaci po tabovima
   const [termini, setTermini] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -21,12 +22,13 @@ function Admin() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
+  //real-time osvježavanje filtriranja termina, da se ne mora refreshat
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 10000);
     return () => clearInterval(timer);
   }, []);
 
-  // ---------- LOADERS ----------
+  //dohvat termina
   const loadTermini = async () => {
     setLoading(true);
     setErr(null);
@@ -39,7 +41,7 @@ function Admin() {
       setLoading(false);
     }
   };
-
+  //dohvat recenzcija
   const loadReviews = async () => {
     setLoading(true);
     setErr(null);
@@ -53,6 +55,7 @@ function Admin() {
     }
   };
 
+  //dohvat pitanja
   const loadQuestions = async () => {
     setLoading(true);
     setErr(null);
@@ -66,6 +69,7 @@ function Admin() {
     }
   };
 
+  //dohvat analitike
   const loadAnalytics = async () => {
     setLoading(true);
     setErr(null);
@@ -79,15 +83,16 @@ function Admin() {
     }
   };
 
+  // prikaz podataka ovisno na kojem se tabu nalazimo
   useEffect(() => {
     if (tab === "termini") loadTermini();
     if (tab === "recenzije") loadReviews();
     if (tab === "pitanja") loadQuestions();
     if (tab === "analitika") loadAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  // ---------- DELETES ----------
+  //opercaije brisanja za pojedine tabove
+
   const deleteTermin = async (lessonId) => {
     try {
       await api.delete(`/api/admin/lesson/${lessonId}/delete/`);
@@ -102,12 +107,14 @@ function Admin() {
       await api.delete(`/api/review/delete/${reviewId}/`);
       setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     } catch (e) {
-      console.error("DELETE REVIEW ERROR:", e.response?.status, e.response?.data);
+      console.error(
+        "DELETE REVIEW ERROR:",
+        e.response?.status,
+        e.response?.data,
+      );
       setErr("Brisanje recenzije nije uspjelo.");
     }
   };
-
-
 
   const deleteQuestion = async (questionId) => {
     try {
@@ -118,7 +125,7 @@ function Admin() {
     }
   };
 
-  // ---------- HELPERS ----------
+  //filtriranje aktualnih termina (onih koji jos nisu prosli)
   const visibleTermini = useMemo(() => {
     return termini.filter((t) => {
       if (!t?.date || !t?.time) return true;
@@ -135,7 +142,9 @@ function Admin() {
       case "true_false":
         return <TrueFalseDisplay {...commonProps} />;
       case "multiple_choice":
-        return <MultipleChoiceDisplay {...commonProps} options={q.options || []} />;
+        return (
+          <MultipleChoiceDisplay {...commonProps} options={q.options || []} />
+        );
       default:
         return <p className="text-red-200">Nepoznat tip pitanja</p>;
     }
@@ -273,11 +282,21 @@ function Admin() {
         {/* ANALITIKA */}
         {tab === "analitika" && analytics && (
           <div className="w-full max-w-xl bg-white/20 p-6 rounded-2xl text-white space-y-3">
-            <div>📅 Ukupno rezervacija: <b>{analytics.total_reservations}</b></div>
-            <div>❌ Otkazane rezervacije: <b>{analytics.cancelled_reservations}</b></div>
-            <div>📉 Stopa otkaza: <b>{analytics.cancellation_rate}%</b></div>
-            <div>⭐ Prosječna ocjena: <b>{analytics.average_rating ?? "N/A"}</b></div>
-            <div>💬 Broj recenzija: <b>{analytics.total_reviews}</b></div>
+            <div>
+              📅 Ukupno rezervacija: <b>{analytics.total_reservations}</b>
+            </div>
+            <div>
+              ❌ Otkazane rezervacije: <b>{analytics.cancelled_reservations}</b>
+            </div>
+            <div>
+              📉 Stopa otkaza: <b>{analytics.cancellation_rate}%</b>
+            </div>
+            <div>
+              ⭐ Prosječna ocjena: <b>{analytics.average_rating ?? "N/A"}</b>
+            </div>
+            <div>
+              💬 Broj recenzija: <b>{analytics.total_reviews}</b>
+            </div>
           </div>
         )}
       </div>

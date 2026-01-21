@@ -6,6 +6,7 @@ import defaultAvatar from "../images/avatar.jpg";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import { supabase } from "../supabaseClient";
 
+//Upload slike instruktora u Supabase Storage pod jedinstvenim imenom i vraća njen javni URL za spremanje u bazu
 async function uploadInstructorAvatar(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -15,7 +16,7 @@ async function uploadInstructorAvatar(file) {
   const { data } = supabase.storage.from("media").getPublicUrl(path);
   return data.publicUrl;
 }
-
+//Upload odabranog videa instruktora i vraća javni URL videa
 async function uploadInstructorVideo(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -42,7 +43,7 @@ export default function InstructorEditForm() {
   const [videoPreview, setVideoPreview] = useState(null);
 
   const SUBJECT_OPTIONS = ["Matematika", "Fizika", "Informatika"];
-
+  //Pri otvaranju stranice dohvaća podatke s backenda i popunjava formu postojećim vrijednostima i preview-ima.
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) return;
@@ -53,7 +54,7 @@ export default function InstructorEditForm() {
           profRes.data.full_name ??
             `${profRes.data.first_name ?? ""} ${
               profRes.data.last_name ?? ""
-            }`.trim()
+            }`.trim(),
         );
         const infRes = await api.get("/api/instructor/inf/");
         const inf = infRes.data;
@@ -65,13 +66,15 @@ export default function InstructorEditForm() {
         setSubjects(
           Array.isArray(inf.subjects)
             ? inf.subjects.map((s) => s.name).filter(Boolean)
-            : []
+            : [],
         );
       } catch (err) {}
     };
     load();
   }, []);
 
+  //Na submit uploada nove medije ako postoje, validira da je odabran barem jedan predmet,
+  //šalje ažurirane podatke backendu i preusmjerava instruktora na njegov home.
   const onSubmit = async (e) => {
     e.preventDefault();
     let profileImageUrl = null;
@@ -99,14 +102,12 @@ export default function InstructorEditForm() {
     <div className="w-full">
       <div className="mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-6 sm:p-10 shadow-sm">
         <form onSubmit={onSubmit} className="space-y-6">
-          {/* 1. IME (GORNJI LIJEVI KUT) */}
           <div className="text-left">
             <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
               {fullName}
             </h1>
           </div>
 
-          {/* 2. BIOGRAFIJA (FULL WIDTH) */}
           <div className="w-full text-[#3674B5]">
             <span className="font-bold text-lg">Biografija:</span>
             <textarea
@@ -119,9 +120,7 @@ export default function InstructorEditForm() {
             />
           </div>
 
-          {/* 3. REDAK: SLIKA | PODRUČJA | VIDEO */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-            {/* Slika */}
             <div className="flex flex-col">
               <label htmlFor="avatarUpload" className="cursor-pointer h-full">
                 <div className="relative h-56 w-full bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white shadow-sm group">
@@ -151,8 +150,6 @@ export default function InstructorEditForm() {
                 }}
               />
             </div>
-
-            {/* Područja i Cijena */}
             <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF] flex flex-col shadow-sm h-56">
               <div className="flex-1">
                 <h2 className="text-xl font-bold">Područja</h2>
@@ -167,7 +164,7 @@ export default function InstructorEditForm() {
                           setSubjects((prev) =>
                             prev.includes(s)
                               ? prev.filter((x) => x !== s)
-                              : [...prev, s]
+                              : [...prev, s],
                           )
                         }
                         className={`rounded-full px-3 py-1.5 text-sm font-medium border transition ${
@@ -182,8 +179,7 @@ export default function InstructorEditForm() {
                   })}
                 </div>
               </div>
-              
-              {/* Centrirana Cijena */}
+
               <div className="flex items-center justify-center gap-2 bg-white/10 p-2 rounded-xl border border-white/20 mt-auto">
                 <input
                   value={price}
@@ -198,8 +194,6 @@ export default function InstructorEditForm() {
                 </span>
               </div>
             </div>
-
-            {/* Video */}
             <div className="flex flex-col">
               <div className="h-56 w-full bg-white/40 rounded-3xl overflow-hidden border-4 border-white shadow-sm relative group">
                 {videoPreview ? (
@@ -234,9 +228,7 @@ export default function InstructorEditForm() {
             </div>
           </div>
 
-          {/* 4. MAPA (LIJEVO) I GUMBI (DESNO) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-            {/* Mapa */}
             <div className="md:col-span-8 space-y-2">
               <span className="font-bold text-[#3674B5]">Lokacija:</span>
               <input
@@ -255,8 +247,6 @@ export default function InstructorEditForm() {
                 </div>
               )}
             </div>
-
-            {/* Gumbi za akciju */}
             <div className="md:col-span-4 space-y-4">
               <div className="rounded-3xl bg-[#3674B5] p-5 shadow-sm space-y-3">
                 <button

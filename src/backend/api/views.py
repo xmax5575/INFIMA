@@ -67,7 +67,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import requests, jwt, uuid
 from api.models import Instructor
 
-
+#mijenja authorization code za tokene i kreira korisnika po Google emailu
 class GoogleAuthCodeExchangeView(views.APIView):
     permission_classes = [AllowAny]
 
@@ -89,7 +89,7 @@ class GoogleAuthCodeExchangeView(views.APIView):
             "redirect_uri": "postmessage",
             "grant_type": "authorization_code",
         }
-
+# Spremamo Google email kao calendar ID za kasniji embed i povezivanje.
         try:
             response = requests.post(token_exchange_url, data=data)
             response.raise_for_status()
@@ -102,7 +102,6 @@ class GoogleAuthCodeExchangeView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Decode ID token
             user_info = jwt.decode(id_token, options={"verify_signature": False})
 
             email = user_info.get("email")
@@ -258,6 +257,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         lesson = serializer.save(instructor_id=instructor)
 
+        # Ako je instruktor povezao Google Calendar kreiramo event za novu lekciju.
         if instructor.google_refresh_token:
             create_google_calendar_event(instructor, lesson)
     def get_queryset(self):
@@ -358,6 +358,7 @@ class InstructorUpdateView(APIView):
         # ako imamo novu (drugačiju) lokaciju, probamo ju geokodirati
         if new_location and new_location != old_location:
             api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", None)
+            #kad se promijeni lokacija, pretvaramo adresu u lat/lng i spremamo koordinate
             if api_key:
                 try:
                     resp = requests.get(
@@ -1270,9 +1271,12 @@ class QuestionDeleteView(generics.DestroyAPIView):
         if user.is_superuser:
             return Question.objects.all()
         return Question.objects.none()
+
+# Povezuje Google Calendar za instruktora, spremanje tokena i sinkronizacija lekcija.    
 class GoogleCalendarConnectView(APIView):
     permission_classes = [IsAuthenticated]
 
+    #Prima authorization code s frontenda i sprema refresh token u instructor profil.
     def post(self, request):
         if request.user.role != User.Role.INSTRUCTOR:
             return Response(
@@ -1280,10 +1284,12 @@ class GoogleCalendarConnectView(APIView):
                 status=403
             )
 
+        #Authorization code dolazi iz Google OAuth popupa, iz frontenda u backend
         code = request.data.get("code")
         if not code:
             return Response({"error": "Code missing"}, status=400)
 
+        #zamjena code za token
         response = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
@@ -1311,7 +1317,6 @@ class GoogleCalendarConnectView(APIView):
         sync_existing_lessons_to_google(instructor)
 
         return Response({"status": "calendar_connected"})
-        return Question.objects.none()
     
 class LessonSummaryView(APIView):
     permission_classes = [IsAuthenticated]

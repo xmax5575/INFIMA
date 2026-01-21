@@ -73,7 +73,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google", #dodajemo drige providere ovdje ako ćemo trebati
+    "allauth.socialaccount.providers.google", #omogućuje rad s googleovim računima
 ]
 
 SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scopeove ovdje
@@ -81,6 +81,7 @@ SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scop
         "SCOPE": {
             "profile",
             "email",
+           #calendar.events -> dozvola za kreiranje/uređivanje događaja u Google kalendaru.
             "https://www.googleapis.com/auth/calendar.events"
         },
         "AUTH_PARAMS": {
@@ -222,6 +223,9 @@ AUTHENTICATION_BACKENDS = (
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
+# Google OAuth Client ID - identificira tvoju aplikaciju prema Googleu, 
+# Google OAuth Client Secret - tajni ključ za mijenjanje code -> token
+#Google Maps API key - pozivi prema googleovim servisima za pretvaranje u koordinate
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") 
