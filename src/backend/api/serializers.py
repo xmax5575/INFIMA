@@ -81,6 +81,7 @@ class LessonSerializer(serializers.ModelSerializer):
         """
         return self.get_instructor_name(obj)
     
+# Serializer za kreiranje ili update profila instruktora
 class InstructorUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više predmeta
     subjects = serializers.SlugRelatedField(
@@ -105,6 +106,7 @@ ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
 ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
 ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
 
+# Serializer za kreiranje ili update profila studenta
 class StudentUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više instruktora
     favorite_instructors = serializers.PrimaryKeyRelatedField(
@@ -331,6 +333,7 @@ class InstructorReviewSerializer(serializers.ModelSerializer):
             "student_last_name",
         ]
 
+# Serializer za kreiranje i validaciju pojedinačnog pitanja
 class QuestionSerializer(serializers.ModelSerializer):
     subject = serializers.SlugRelatedField(
         slug_field="name",
@@ -387,10 +390,12 @@ class QuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unknown question type")
 
         return data
-
+    
+# Serializer za upload više pitanja odjednom
 class QuestionBulkSerializer(serializers.Serializer):
     questions = QuestionSerializer(many=True)
 
+# Serializer za prikaz pitanja studenta u kvizu
 class StudentQuestionSerializer(serializers.ModelSerializer):
     subject = serializers.SlugRelatedField(
         slug_field="name",
@@ -412,6 +417,7 @@ class StudentQuestionSerializer(serializers.ModelSerializer):
             "correct_answer",
         ]
 
+# Serializer za kreiranje i prikaz summary-ja lekcije
 class SummarySerializer(serializers.ModelSerializer):
     lesson_date = serializers.DateField(source="lesson.date", read_only=True)
     lesson_subject = serializers.CharField(source="lesson.subject.name", read_only=True)

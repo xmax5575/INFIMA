@@ -1,27 +1,37 @@
+# Django
 from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model, logout
-from rest_framework import generics, views, status, permissions
-from rest_framework.views import APIView
-from .serializers import *
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from django.conf import settings
-import requests
-import jwt
-import time
-from rest_framework_simplejwt.tokens import RefreshToken
-import uuid
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
-from rest_framework import serializers
 from django.utils import timezone
-from django.db.models import Count, F
-from datetime import timedelta
-from api.utils1 import create_google_calendar_event
-from api.utils1 import sync_existing_lessons_to_google
-from api.utils1 import send_24h_lesson_reminders
 from django.db import IntegrityError
+from django.db.models import Count, F
+
+# DRF
+from rest_framework import generics, serializers, status, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.decorators import api_view, permission_classes
+
+# JWT / Auth / External
+from rest_framework_simplejwt.tokens import RefreshToken
+import jwt
+import requests
+import stripe
+import uuid
+import time
+from datetime import timedelta
+
+# Models
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
+
+# Serializers
+from .serializers import *
+
+# Utils1
+from api.utils1 import create_google_calendar_event, sync_existing_lessons_to_google, send_24h_lesson_reminders
+
 
 User = get_user_model()
 
@@ -55,15 +65,8 @@ def user_profile(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
-from rest_framework import status, views
-from rest_framework.permissions import AllowAny
-from django.contrib.auth.hashers import make_password
-from rest_framework_simplejwt.tokens import RefreshToken
-import requests, jwt, uuid
-from api.models import Instructor
 
-
-class GoogleAuthCodeExchangeView(views.APIView):
+class GoogleAuthCodeExchangeView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -318,11 +321,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InstructorUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Kreira ili ažurira instruktora za trenutno prijavljenog korisnika
     def post(self, request):
-        """
-        CREATE ili UPDATE instruktora koji pripada trenutno prijavljenom korisniku.
-        Frontend NE šalje ID.
-        """
 
         if request.user.role != 'INSTRUCTOR':
             return Response(
@@ -413,6 +413,7 @@ class InstructorPublicProfileView(APIView):
 class StudentUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Kreira ili ažurira studenta za trenutno prijavljenog korisnika
     def post(self, request):
         """
         CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
@@ -1122,7 +1123,7 @@ class InstructorReviewsView(APIView):
 
 class InstructorQuestionUploadView(APIView):
     permission_classes = [IsAuthenticated]
-
+    # Prima listu pitanja od instruktora i sprema ih u bazu
     def post(self, request):
         if request.user.role != "INSTRUCTOR":
             return Response(
@@ -1164,6 +1165,7 @@ KNOWLEDGE_TO_DIFFICULTY = {
 class StudentQuizView(APIView):
     permission_classes = [IsAuthenticated]
 
+     # Dohvaća pitanja za studenta na temelju njegovog znanja za određeni predmet
     def get(self, request, subject_name: str):
         if request.user.role != "STUDENT":
             return Response(
@@ -1184,14 +1186,11 @@ class StudentQuizView(APIView):
 
         raw_knowledge = student.knowledge_level or {}
 
-        # 🔥 NORMALIZACIJA ZNANJA U DICT
         knowledge = {}
 
-        # 1️⃣ AKO JE DICT (novi format)
         if isinstance(raw_knowledge, dict):
             knowledge = raw_knowledge
 
-        # 2️⃣ AKO JE LISTA (stari format)
         elif isinstance(raw_knowledge, list):
             for item in raw_knowledge:
                 if not isinstance(item, dict):
@@ -1201,7 +1200,6 @@ class StudentQuizView(APIView):
                 if subject and level:
                     knowledge[subject] = level
 
-        # 3️⃣ SAD SIGURNO IMAMO DICT
         level = knowledge.get(subject_name)
         if not level:
             return Response(
@@ -1307,11 +1305,11 @@ class GoogleCalendarConnectView(APIView):
         sync_existing_lessons_to_google(instructor)
 
         return Response({"status": "calendar_connected"})
-        return Question.objects.none()
     
 class LessonSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Upload summary za lekciju, samo instruktor
     def post(self, request, lesson_id):
         # samo instruktor
         if request.user.role != User.Role.INSTRUCTOR:
@@ -1352,6 +1350,7 @@ class LessonSummaryView(APIView):
             return Response({"error": "Summary already exists"}, status=409)
 
         return Response(serializer.data, status=201)
+    
 class SummaryAccessView(APIView):
     permission_classes = [IsAuthenticated]
 
