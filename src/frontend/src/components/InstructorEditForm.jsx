@@ -6,6 +6,7 @@ import defaultAvatar from "../images/avatar.jpg";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import { supabase } from "../supabaseClient";
 
+//Upload slike instruktora u Supabase Storage pod jedinstvenim imenom i vraća njen javni URL za spremanje u bazu
 async function uploadInstructorAvatar(file) {
   const ext = file.name.split(".").pop();                 //ekstenzija filea
   const fileName = `${crypto.randomUUID()}.${ext}`;       //unique id
@@ -15,7 +16,7 @@ async function uploadInstructorAvatar(file) {
   const { data } = supabase.storage.from("media").getPublicUrl(path);     //generiramo javni url koji spremamo u bazu 
   return data.publicUrl;
 }
-
+//Upload odabranog videa instruktora i vraća javni URL videa
 async function uploadInstructorVideo(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -74,6 +75,8 @@ export default function InstructorEditForm() {
     load();
   }, []);
 
+  //Na submit uploada nove medije ako postoje, validira da je odabran barem jedan predmet,
+  //šalje ažurirane podatke backendu i preusmjerava instruktora na njegov home.
   const onSubmit = async (e) => {
     e.preventDefault();
     let profileImageUrl = null;

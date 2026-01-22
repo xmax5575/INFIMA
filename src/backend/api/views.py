@@ -1,32 +1,40 @@
+# Django
 from django.shortcuts import render, redirect
-from django.contrib.auth import get_user_model, logout
-from rest_framework import generics, views, status, permissions
-from rest_framework.views import APIView
-from .serializers import *
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
 from django.conf import settings
-import requests
-import jwt
-import time
-from rest_framework_simplejwt.tokens import RefreshToken
-import uuid
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
-from rest_framework import serializers
 from django.utils import timezone
-from django.db.models import Count, F
-from datetime import timedelta
-from api.utils1 import create_google_calendar_event
-from api.utils1 import sync_existing_lessons_to_google
-from api.utils1 import send_24h_lesson_reminders
-from django.conf import settings
-from rest_framework.response import Response
-from rest_framework.views import APIView
 from django.db import IntegrityError
+from django.db.models import Count, F
+
+# DRF
+from rest_framework import generics, serializers, status, permissions
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.decorators import api_view, permission_classes
+
+# JWT / Auth / External
+from rest_framework_simplejwt.tokens import RefreshToken
+import jwt
+import requests
+import stripe
+import uuid
+import time
+from datetime import timedelta
+
+# Models
+from .models import Lesson, Instructor, Student, Attendance, Review, Payment, Question, Summary
+
+# Serializers
+from .serializers import *
+
+# Utils1
+from api.utils1 import create_google_calendar_event, sync_existing_lessons_to_google, send_24h_lesson_reminders
+
 
 User = get_user_model()
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def expire_lessons():
     now = timezone.localtime()
@@ -52,22 +60,22 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+    def perform_create(self, serializer):
+        # provjera da nema ekstra fields
+        extra_fields = set(self.request.data.keys()) - set(serializer.fields.keys())
+        if extra_fields:
+            raise serializers.ValidationError(
+                {field: "This field is not allowed." for field in extra_fields}
+            )
+        serializer.save()
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
-from rest_framework import status, views
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from django.conf import settings
-from django.contrib.auth.hashers import make_password
-from rest_framework_simplejwt.tokens import RefreshToken
-import requests, jwt, uuid
-from api.models import Instructor
-
-
+#mijenja authorization code za tokene i kreira korisnika po Google emailu
 class GoogleAuthCodeExchangeView(views.APIView):
     permission_classes = [AllowAny]
 
@@ -89,7 +97,7 @@ class GoogleAuthCodeExchangeView(views.APIView):
             "redirect_uri": "postmessage",
             "grant_type": "authorization_code",
         }
-
+# Spremamo Google email kao calendar ID za kasniji embed i povezivanje.
         try:
             response = requests.post(token_exchange_url, data=data)
             response.raise_for_status()
@@ -102,7 +110,6 @@ class GoogleAuthCodeExchangeView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Decode ID token
             user_info = jwt.decode(id_token, options={"verify_signature": False})
 
             email = user_info.get("email")
@@ -258,6 +265,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         lesson = serializer.save(instructor_id=instructor)
 
+        # Ako je instruktor povezao Google Calendar kreiramo event za novu lekciju.
         if instructor.google_refresh_token:
             create_google_calendar_event(instructor, lesson)
     def get_queryset(self):
@@ -290,9 +298,12 @@ class LessonDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        # Osiguravamo da instruktor može obrisati samo svoje lekcije
+
+        # instruktor može brisati samo svoje lekcije
         if user.role == 'INSTRUCTOR':
             return Lesson.objects.filter(instructor_id__instructor_id=user)
+        
+        # admin može brisati sve lekcije
         if user.is_superuser:
             return Lesson.objects.all()
         return Lesson.objects.none()
@@ -306,7 +317,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
         user = self.request.user
 
         expire_lessons()
-
+        
+        # admin vidi sve lekcije
         if user.is_superuser or user.role == 'ADMIN':
             return Lesson.objects.all()
         if user.role == 'INSTRUCTOR':
@@ -319,11 +331,8 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InstructorUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Kreira ili ažurira instruktora za trenutno prijavljenog korisnika
     def post(self, request):
-        """
-        CREATE ili UPDATE instruktora koji pripada trenutno prijavljenom korisniku.
-        Frontend NE šalje ID.
-        """
 
         if request.user.role != 'INSTRUCTOR':
             return Response(
@@ -358,6 +367,7 @@ class InstructorUpdateView(APIView):
         # ako imamo novu (drugačiju) lokaciju, probamo ju geokodirati
         if new_location and new_location != old_location:
             api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", None)
+            #kad se promijeni lokacija, pretvaramo adresu u lat/lng i spremamo koordinate
             if api_key:
                 try:
                     resp = requests.get(
@@ -380,7 +390,7 @@ class InstructorUpdateView(APIView):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-
+#view za dohvaćanje podataka logiranog instruktora
 class MyInstructorProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -392,7 +402,8 @@ class MyInstructorProfileView(APIView):
 
         serializer = MyInstructorProfileSerializer(instructor)
         return Response(serializer.data)
-    
+
+#view za dohvaćanje podataka instruktora po pk
 class InstructorPublicProfileView(APIView):
     permission_classes = [AllowAny]
 
@@ -414,6 +425,7 @@ class InstructorPublicProfileView(APIView):
 class StudentUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Kreira ili ažurira studenta za trenutno prijavljenog korisnika
     def post(self, request):
         """
         CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
@@ -450,7 +462,7 @@ class StudentUpdateView(APIView):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-
+#view za dohvaćanje podataka logiranog studenta
 class MyStudentProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -466,7 +478,7 @@ class MyStudentProfileView(APIView):
         serializer = StudentProfileSerializer(student)
         return Response(serializer.data)
     
-
+#view za dohvaćanje podataka studenta po pk
 class StudentPublicProfileView(APIView):
     permission_classes = [AllowAny]
 
@@ -485,7 +497,7 @@ class StudentPublicProfileView(APIView):
         )
         return Response(serializer.data)
     
-
+#view za dohvaćanje podataka svih instruktora
 class InstructorListView(APIView):
     permission_classes = [AllowAny]
 
@@ -494,7 +506,7 @@ class InstructorListView(APIView):
         serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)
     
-
+#view za dohvaćanje svih lekcija logiranog studenta
 class StudentMyLessonsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -627,6 +639,7 @@ class CancelLessonView(APIView):
             status=status.HTTP_200_OK
         )
 
+#view za pokretanje jitsi meeting sobe za instruktora i studenta
 class LessonJitsiRoomView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -638,8 +651,7 @@ class LessonJitsiRoomView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # 👨‍🏫 INSTRUKTOR
-        if user.role == User.Role.INSTRUCTOR:
+        if user.role == User.Role.INSTRUCTOR: #samo instruktor čija je lekcija može otvoriti sobu
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
@@ -649,11 +661,10 @@ class LessonJitsiRoomView(APIView):
 
             return Response({"room": lesson.jitsi_room})
 
-        # 👨‍🎓 STUDENT
         if user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
 
-            if not Attendance.objects.filter(
+            if not Attendance.objects.filter(     #samo student prijavljen u lekciju može uci u sobu
                 lesson=lesson,
                 student=student
             ).exists():
@@ -670,7 +681,7 @@ class LessonJitsiRoomView(APIView):
         return Response({"error": "Forbidden"}, status=403)
     
 
-
+#view za dohvaćanje jaas tokena za meeting
 class LessonJaasTokenView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -682,16 +693,16 @@ class LessonJaasTokenView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # room mora postojati (instruktor “starta” meeting)
+        # room mora postojati (instruktor starta meeting)
         if not lesson.jitsi_room:
             return Response({"error": "Meeting not started yet"}, status=400)
 
-        # instr. smije ako je njegov
+        # instruktor smije samo za svoje lekcije
         if user.role == User.Role.INSTRUCTOR:
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
-        # student smije ako ima Attendance
+        # student mora biti prijavljen u lekciju
         elif user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
             if not Attendance.objects.filter(lesson=lesson, student=student).exists():
@@ -714,7 +725,7 @@ class LessonJaasTokenView(APIView):
                     "id": str(user.id),
                     "name": f"{user.first_name} {user.last_name}".strip() or user.email,
                     "email": user.email,
-                    # moderator true samo za instruktora (ako želiš)
+                    # moderator je samo instruktor
                     "moderator": "true" if user.role == User.Role.INSTRUCTOR else "false",
                 }
             },
@@ -850,12 +861,6 @@ class ReviewAccessView(APIView):
 
         return Response({"allowed": True}, status=200)
     
-    
-import stripe
-from django.conf import settings
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
-
 
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -1079,7 +1084,7 @@ class CompletePaymentView(APIView):
 
         return Response({"ok": True})
 
-
+#view za dohvaćanje recenzija za logiranog instruktora
 class MyInstructorReviewsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1104,7 +1109,8 @@ class MyInstructorReviewsView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    
+
+#view za dohvaćanje recenzija za instruktora po pk   
 class InstructorReviewsView(APIView):
     permission_classes = [AllowAny]
 
@@ -1127,7 +1133,7 @@ class InstructorReviewsView(APIView):
 
 class InstructorQuestionUploadView(APIView):
     permission_classes = [IsAuthenticated]
-
+    # Prima listu pitanja od instruktora i sprema ih u bazu
     def post(self, request):
         if request.user.role != "INSTRUCTOR":
             return Response(
@@ -1169,6 +1175,7 @@ KNOWLEDGE_TO_DIFFICULTY = {
 class StudentQuizView(APIView):
     permission_classes = [IsAuthenticated]
 
+     # Dohvaća pitanja za studenta na temelju njegovog znanja za određeni predmet
     def get(self, request, subject_name: str):
         if request.user.role != "STUDENT":
             return Response(
@@ -1189,14 +1196,11 @@ class StudentQuizView(APIView):
 
         raw_knowledge = student.knowledge_level or {}
 
-        # 🔥 NORMALIZACIJA ZNANJA U DICT
         knowledge = {}
 
-        # 1️⃣ AKO JE DICT (novi format)
         if isinstance(raw_knowledge, dict):
             knowledge = raw_knowledge
 
-        # 2️⃣ AKO JE LISTA (stari format)
         elif isinstance(raw_knowledge, list):
             for item in raw_knowledge:
                 if not isinstance(item, dict):
@@ -1206,7 +1210,6 @@ class StudentQuizView(APIView):
                 if subject and level:
                     knowledge[subject] = level
 
-        # 3️⃣ SAD SIGURNO IMAMO DICT
         level = knowledge.get(subject_name)
         if not level:
             return Response(
@@ -1237,12 +1240,10 @@ class ReminderCronView(APIView):
 
     def get(self, request):
         token = request.headers.get("X-CRON-TOKEN")
-        print(">>> CRON ENDPOINT HIT")
-        print(">>> HEADERS:", dict(request.headers))
         if token != settings.CRON_SECRET:
             return Response({"error": "unauthorized"}, status=401)
 
-        send_24h_lesson_reminders()
+        send_24h_lesson_reminders()  # pokretanje funkcije za slanje podsjetnika 24 sata i sat vremena prije termina
         return Response({"status": "ok"})
     
 class InstructorQuestionsListView(APIView):
@@ -1273,9 +1274,12 @@ class QuestionDeleteView(generics.DestroyAPIView):
         if user.is_superuser:
             return Question.objects.all()
         return Question.objects.none()
+
+# Povezuje Google Calendar za instruktora, spremanje tokena i sinkronizacija lekcija.    
 class GoogleCalendarConnectView(APIView):
     permission_classes = [IsAuthenticated]
 
+    #Prima authorization code s frontenda i sprema refresh token u instructor profil.
     def post(self, request):
         if request.user.role != User.Role.INSTRUCTOR:
             return Response(
@@ -1283,10 +1287,12 @@ class GoogleCalendarConnectView(APIView):
                 status=403
             )
 
+        #Authorization code dolazi iz Google OAuth popupa, iz frontenda u backend
         code = request.data.get("code")
         if not code:
             return Response({"error": "Code missing"}, status=400)
 
+        #zamjena code za token
         response = requests.post(
             "https://oauth2.googleapis.com/token",
             data={
@@ -1314,11 +1320,11 @@ class GoogleCalendarConnectView(APIView):
         sync_existing_lessons_to_google(instructor)
 
         return Response({"status": "calendar_connected"})
-        return Question.objects.none()
     
 class LessonSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Upload summary za lekciju, samo instruktor
     def post(self, request, lesson_id):
         # samo instruktor
         if request.user.role != User.Role.INSTRUCTOR:
@@ -1359,6 +1365,7 @@ class LessonSummaryView(APIView):
             return Response({"error": "Summary already exists"}, status=409)
 
         return Response(serializer.data, status=201)
+    
 class SummaryAccessView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1407,10 +1414,11 @@ class StudentSummariesView(APIView):
         return Response(serializer.data)
     
 
-
+#razine znanja studenta u polju
 LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"]
 DEFAULT_LEVEL = "dovoljna"
 
+#pretvaramo razine znanja u dict
 def knowledge_to_dict(value):
     
     if not value:
@@ -1420,7 +1428,6 @@ def knowledge_to_dict(value):
         return value
 
     if isinstance(value, list):
-        # očekujemo npr. [{"subject": "Matematika", "level": "dobra"}, ...]
         out = {}
         for item in value:
             if isinstance(item, dict):
@@ -1432,7 +1439,7 @@ def knowledge_to_dict(value):
 
     return {}
 
-
+#view za dizanje ili spuštanje razine znanja studenta ovisno o rješenim kvizovima
 class UpdateKnowledgeLevelView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1467,7 +1474,7 @@ class UpdateKnowledgeLevelView(APIView):
         new_level = LEVELS[idx]
         knowledge[subject] = new_level
 
-        # spremamo kao dict (preporučeni format)
+        # spremamo kao dict
         student.knowledge_level = knowledge
         student.save(update_fields=["knowledge_level"])
 
@@ -1484,16 +1491,17 @@ class ReviewDeleteView(generics.DestroyAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        # admin može sve
+        # admin može brisati sve recenzije
         if user.is_superuser or user.role == "ADMIN":
             return Review.objects.all()
 
-        # instruktor može samo svoje recenzije
+        # instruktor može brisati samo svoje recenzije
         if user.role == "INSTRUCTOR":
             return Review.objects.filter(instructor__instructor_id=user)
 
         return Review.objects.none()
 
+# admin dohvaća sva pitanja 
 class AdminQuestionsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1506,7 +1514,8 @@ class AdminQuestionsListView(APIView):
         questions = Question.objects.all().select_related("subject")
         serializer = StudentQuestionSerializer(questions, many=True)
         return Response(serializer.data)
-    
+
+# admin dohvaća sve recenzije 
 class AdminReviewsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1522,7 +1531,8 @@ class AdminReviewsListView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    
+
+# admin dohvaća sve termine
 class AdminLessonsListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1540,6 +1550,7 @@ class AdminLessonsListView(APIView):
 
 from django.db.models import Avg
 
+# analitika admina
 class AdminAnalyticsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1548,20 +1559,24 @@ class AdminAnalyticsView(APIView):
         if not (user.is_superuser or user.role == "ADMIN"):
             return Response({"error": "Forbidden"}, status=403)
 
+        # broj aktivnih rezervacija
         total_reservations = Attendance.objects.filter(
             cancelled_at__isnull=True
         ).count()
-
+        
+        # broj otkazanih rezervacija
         cancelled_reservations = Attendance.objects.filter(
             cancelled_at__isnull=False
         ).count()
 
+        # postotak otkaizvanja
         cancellation_rate = (
             (cancelled_reservations / (total_reservations + cancelled_reservations)) * 100
             if (total_reservations + cancelled_reservations) > 0
             else 0
         )
 
+        # prosječna ocjena svih recenzija
         avg_rating = Review.objects.aggregate(avg=Avg("rating"))["avg"] or 0
         total_reviews = Review.objects.count()
 

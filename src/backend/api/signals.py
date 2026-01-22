@@ -1,14 +1,13 @@
-import threading
+import threading  # koristi se za slanje maila u pozadini
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import transaction
-
 from api.models import Attendance
 from api.utils.mail import send_email
 
-
-@receiver(post_save, sender=Attendance)
+@receiver(post_save, sender=Attendance) # kada se spremi rezervacija u Attendance, automatski se šalju mailovi
 def send_reservation_emails(sender, instance, created, **kwargs):
+    # ako se nije napravila nova rezervacija, ne događa se ništa
     if not created:
         return
 
@@ -18,9 +17,7 @@ def send_reservation_emails(sender, instance, created, **kwargs):
             student = instance.student
             instructor = lesson.instructor_id
 
-            print(f"RESERVATION MAIL FOR ATTENDANCE {instance.id}")
-
-            # STUDENT - IDENTIČAN TEKST
+            # mail koji se šalje učeniku
             send_email(
                 to_email=student.student_id.email,
                 subject="Rezervacija termina potvrđena",
@@ -37,8 +34,8 @@ def send_reservation_emails(sender, instance, created, **kwargs):
                     f"INFIMA"
                 ),
             )
-
-            # INSTRUKTOR - IDENTIČAN TEKST
+            
+            # mail koji se šalje instrukotru
             send_email(
                 to_email=instructor.instructor_id.email,
                 subject="Novi rezervirani termin",
@@ -58,13 +55,12 @@ def send_reservation_emails(sender, instance, created, **kwargs):
                     f"INFIMA"
                 ),
             )
-            print(f"RESERVATION MAIL FOR SENT FOR {instance.id}")
         except Exception as e:
-            print(f"Error sending email: {e}")
+             print("Greška prilikom slanja emaila za rezervaciju:", e)
 
+    # funkcija za pokretanje thread-a, odnosno slanje maila u pozadini
     def _start_background_thread():
-    # Daemon=True osigurava da thread ne blokira gašenje ako zatreba
-        thread = threading.Thread(target=_send_logic, daemon=True)
+        thread = threading.Thread(target=_send_logic, daemon=True)  
         thread.start()
 
-    transaction.on_commit(_start_background_thread)
+    transaction.on_commit(_start_background_thread)  # kada se baza spremi, pokreće se thread
