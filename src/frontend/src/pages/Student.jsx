@@ -75,7 +75,6 @@ function Student() {
 
         // Ako nam backend vrati odgovor, spremi u data i tu imamo sve potrebne podatke za slati u TerminCard.
         const data = await res.json();
-        console.log("Podatci o lekciji: ", data);
         const list = Array.isArray(data) ? data : [];
 
         // Spremi listu termina.
@@ -223,14 +222,14 @@ function Student() {
             if (diff > filters.days) return false;
           }
 
-          /*TU TREBA DOC NEKAKO DO RATINGA*/
-          /*if (filters.rating && t.avg_rating < filters.rating) return false;*/
+          
+          if (filters.rating && t.avg_rating <= filters.rating) return false;
 
           return true;
         })
       : visibleTermini;
 
-  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno) "rating_desc" 
+  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno), Ocjena (silazno) 
   const toggleSort = (key) => {
     setSortBy((prev) => (prev === key ? null : key));
   };
@@ -256,8 +255,8 @@ function Student() {
     const priceA = (parseFloat(a.price) * a.duration_min) / 60;
     const priceB = (parseFloat(b.price) * b.duration_min) / 60;
 
-    const ratingA = parseFloat(a.teacher_rating);
-    const ratingB = parseFloat(b.teacher_rating);
+    const ratingA = parseFloat(a.avg_rating || 0) ;
+    const ratingB = parseFloat(b.avg_rating || 0) ;
 
     switch (sortBy) {
       case "date_asc":
@@ -578,7 +577,7 @@ function Student() {
                       }
                       className={filterBtnClass(isActive)}
                     >
-                      ⭐ {r}+
+                      ⭐ {r}{r != 5 && "+"}
                     </button>
                   );
                 })}

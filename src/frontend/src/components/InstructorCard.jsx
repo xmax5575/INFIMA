@@ -152,12 +152,12 @@ export default function InstructorCard({
         </div>
 
         {/* Dugme za Google (samo za instruktora) */}
-        <button
+        {user?.role === "INSTRUCTOR" &&(<button
           onClick={() => connectCalendar()}
           className="mt-6 w-full rounded-xl bg-white px-4 py-3 text-[#3674B5] font-semibold hover:bg-white/90 shadow-sm transition-all"
         >
           Poveži Google kalendar
-        </button>
+        </button>)}
 
         <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
           <div className="lg:col-span-5 flex flex-col gap-5">
