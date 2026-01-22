@@ -5,6 +5,7 @@ from api.models import Student, Instructor, Subject
 
 User = get_user_model()
 
+#Testira endpoint za ažuriranje studentskog profila (/api/student/me/).
 class StudentUpdateEndpointTest(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -32,6 +33,7 @@ class StudentUpdateEndpointTest(TestCase):
             instr = Instructor.objects.create(instructor_id=instr_user, price=100)
             self.instructors.append(instr)
 
+    #Provjerava da student može uspješno ažurirati sve polja svog profila.
     def test_student_can_update_profile_successfully(self):
         self.client.force_authenticate(user=self.user)
 
@@ -66,6 +68,8 @@ class StudentUpdateEndpointTest(TestCase):
                          data["favorite_instructors"])
         self.assertEqual(student.profile_image_url, data["profile_image_url"])
 
+    #Provjerava da korisnici koji nisu studenti (npr. instruktori) ne mogu ažurirati studentski profil.
+    #Endpoint vraća HTTP 403 Forbidden.
     def test_non_student_cannot_update_profile(self):
         other_user = User.objects.create_user(
             email="instr_non@test.com",
@@ -82,6 +86,8 @@ class StudentUpdateEndpointTest(TestCase):
         response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, 403)
 
+    #Provjerava da je moguće ažurirati samo neka polja (partial update).
+    #Nepromenjena polja ostaju na zadanim ili praznim vrijednostima.
     def test_partial_update_fields(self):
         self.client.force_authenticate(user=self.user)
 
