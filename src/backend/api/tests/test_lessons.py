@@ -10,6 +10,7 @@ class LessonCreatePermissionTest(TestCase):
         self.client = APIClient()
         self.url = "/api/lessons/"
 
+        # Priprema predmeta i podataka za kreiranje termina
         self.subject = Subject.objects.create(name="Matematika")
 
         self.payload = {
@@ -22,11 +23,12 @@ class LessonCreatePermissionTest(TestCase):
 
     def test_anonymous_user_cannot_create_lesson(self):
         response = self.client.post(self.url, self.payload, format="json")
-
+        # Anonimni korisnik ne smije kreirati termin
         self.assertIn(response.status_code, [401, 403])
         self.assertEqual(Lesson.objects.count(), 0)
 
     def test_student_cannot_create_lesson(self):
+        # Student ne smije kreirati termin
         user = User.objects.create_user(
             email="student@test.com",
             password="test123",
@@ -45,6 +47,7 @@ class LessonCreatePermissionTest(TestCase):
         self.assertEqual(Lesson.objects.count(), 0)
 
     def test_instructor_can_create_lesson(self):
+        # Instruktor moze kreirati termin
         user = User.objects.create_user(
             email="inst@test.com",
             password="test123",

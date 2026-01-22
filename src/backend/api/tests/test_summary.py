@@ -10,6 +10,7 @@ class LessonSummaryFlowTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+        # Priprema predmeta i korisnika za test toka sazetka.
         self.subject = Subject.objects.create(name="Matematika")
 
         self.inst_a_user = User.objects.create_user(
@@ -62,6 +63,7 @@ class LessonSummaryFlowTest(TestCase):
             call_ended=False,
         )
 
+        # Endpoint i payload za upload sazetka
         self.url = f"/api/lesson/{self.lesson.lesson_id}/summary/"
         self.payload = {
             "file_url": "https://example.com/summary.pdf",
@@ -69,12 +71,14 @@ class LessonSummaryFlowTest(TestCase):
         }
 
     def test_instructor_summary_upload_flow(self):
+        # Upload nije dozvoljen prije zavrsetka poziva
         self.client.force_authenticate(user=self.inst_a_user)
 
         response = self.client.post(self.url, self.payload, format="json")
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Summary.objects.count(), 0)
 
+        # Nakon zavrsetka poziva upload je dozvoljen
         self.attendance.call_ended = True
         self.attendance.save(update_fields=["call_ended"])
 
@@ -86,10 +90,12 @@ class LessonSummaryFlowTest(TestCase):
         self.assertEqual(summary.lesson, self.lesson)
         self.assertEqual(summary.author, self.inst_a)
 
+        # Dupli upload za isti termin nije dozvoljen
         response = self.client.post(self.url, self.payload, format="json")
         self.assertEqual(response.status_code, 409)
         self.assertEqual(Summary.objects.count(), 1)
 
+        # Drugi instruktor nema pravo na upload
         self.client.force_authenticate(user=self.inst_b_user)
         response = self.client.post(self.url, self.payload, format="json")
         self.assertEqual(response.status_code, 403)
