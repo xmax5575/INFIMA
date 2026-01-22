@@ -29,7 +29,6 @@ export default function QuizSolve({ questions, subject }) {
 
   const isCorrect = (q) => {
     const user = answers[q.id];
-
     if (user == null) return false;
 
     if (q.type === "short_answer") {
@@ -43,24 +42,21 @@ export default function QuizSolve({ questions, subject }) {
   };
 
   const correctCount = questions.filter(isCorrect).length;
+
+  // postavljanje razine znanja učenika
   useEffect(() => {
-  if (!finished) return;
+    if (!finished) return;
+    const percentage = (correctCount / questions.length) * 100;
+    let action = null;
+    if (percentage > 90) action = "upgrade";
+    else if (percentage < 40) action = "downgrade";
+    if (!action) return;
 
-  const percentage = (correctCount / questions.length) * 100;
-
-  let action = null;
- 
-  if (percentage > 90) action = "upgrade";
-  else if (percentage < 40) action = "downgrade";
-  if (!action) return;
-
-  api.post("/api/student/knowledge/", {
-    subject: subject,
-    action: action,
-  });
-  
-}, [finished]);
-
+    api.post("/api/student/knowledge/", {
+      subject: subject,
+      action: action,
+    });
+  }, [finished]);
 
   if (finished) {
     return (
@@ -98,9 +94,6 @@ export default function QuizSolve({ questions, subject }) {
     );
   }
 
-  /* =======================
-     PITANJE
-  ======================= */
   return (
     <div className="bg-white p-6 rounded-2xl space-y-6">
       <h2 className="text-lg font-semibold text-[#215993]">

@@ -9,7 +9,6 @@ import ShortAnswerDisplay from "../components/ShortAnswerDisplay";
 import TrueFalseDisplay from "../components/TrueFalseDisplay";
 import MultipleChoiceDisplay from "../components/MultipleChoiceDisplay";
 import { Trash2 } from "lucide-react";
-
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 function Instructor() {
@@ -23,6 +22,7 @@ function Instructor() {
   const [tab, setTab] = useState("termini");
   const [questions, setQuestions] = useState([]);
   // Učitaj instruktorova pitanja
+  
   const loadQuestions = async () => {
     setLoading(true);
     setErr(null);

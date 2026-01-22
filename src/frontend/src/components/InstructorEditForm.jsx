@@ -8,12 +8,12 @@ import { supabase } from "../supabaseClient";
 
 //Upload slike instruktora u Supabase Storage pod jedinstvenim imenom i vraća njen javni URL za spremanje u bazu
 async function uploadInstructorAvatar(file) {
-  const ext = file.name.split(".").pop();
-  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const ext = file.name.split(".").pop();                 //ekstenzija filea
+  const fileName = `${crypto.randomUUID()}.${ext}`;       //unique id
   const path = `instructors/pictures/${fileName}`;
   const { error } = await supabase.storage.from("media").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("media").getPublicUrl(path);
+  const { data } = supabase.storage.from("media").getPublicUrl(path);     //generiramo javni url koji spremamo u bazu 
   return data.publicUrl;
 }
 //Upload odabranog videa instruktora i vraća javni URL videa
@@ -43,7 +43,8 @@ export default function InstructorEditForm() {
   const [videoPreview, setVideoPreview] = useState(null);
 
   const SUBJECT_OPTIONS = ["Matematika", "Fizika", "Informatika"];
-  //Pri otvaranju stranice dohvaća podatke s backenda i popunjava formu postojećim vrijednostima i preview-ima.
+
+  // učitaj podatke o instruktoru i ispiši ih na formu kako bi instruktor mogao uređivati 
   useEffect(() => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) return;
@@ -51,13 +52,14 @@ export default function InstructorEditForm() {
       try {
         const profRes = await api.get("/api/user/profile/");
         setFullName(
-          profRes.data.full_name ??
             `${profRes.data.first_name ?? ""} ${
               profRes.data.last_name ?? ""
             }`.trim(),
         );
         const infRes = await api.get("/api/instructor/inf/");
         const inf = infRes.data;
+        console.log(inf);
+        //
         if (inf.profile_image_url) setAvatarPreview(inf.profile_image_url);
         if (inf.video_url) setVideoPreview(inf.video_url);
         setBio(inf.bio ?? "");
@@ -101,45 +103,33 @@ export default function InstructorEditForm() {
   return (
     <div className="w-full">
       <div className="mx-auto w-full max-w-5xl rounded-3xl bg-[#D1F8EF] p-6 sm:p-10 shadow-sm">
-        <form onSubmit={onSubmit} className="space-y-6">
-          <div className="text-left">
-            <h1 className="text-[#215993] text-3xl sm:text-5xl font-semibold leading-tight">
+        <form onSubmit={onSubmit} className="space-y-8">
+          {/* ime + slika + biografija*/}
+          <div className="flex flex-col md:flex-row gap-5">
+            {/* ime na mobitelu */}
+            <h1 className="md:hidden text-[#215993] text-3xl font-semibold">
               {fullName}
             </h1>
-          </div>
-
-          <div className="w-full text-[#3674B5]">
-            <span className="font-bold text-lg">Biografija:</span>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Upiši biografiju..."
-              rows={4}
-              required
-              className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5] outline-none focus:bg-white resize-none shadow-sm"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
-            <div className="flex flex-col">
-              <label htmlFor="avatarUpload" className="cursor-pointer h-full">
-                <div className="relative h-56 w-full bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white shadow-sm group">
+            {/* slika */}
+            <div className="w-full md:w-56">
+              <label htmlFor="avatarUpload" className="cursor-pointer block">
+                <div className="relative h-48 md:h-56 w-full bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white shadow-sm group">
                   <img
                     src={avatarPreview || defaultAvatar}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-sm font-bold uppercase text-center px-2">
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                    <span className="text-white text-sm font-bold uppercase">
                       Promijeni sliku
                     </span>
                   </div>
                 </div>
               </label>
               <input
+                id="avatarUpload"
                 type="file"
                 accept="image/*"
-                id="avatarUpload"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files[0];
@@ -150,120 +140,149 @@ export default function InstructorEditForm() {
                 }}
               />
             </div>
-            <div className="relative rounded-2xl bg-[#215993] p-5 text-[#D1F8EF] flex flex-col shadow-sm h-56">
-              <div className="flex-1">
-                <h2 className="text-xl font-bold">Područja</h2>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {SUBJECT_OPTIONS.map((s) => {
-                    const active = subjects.includes(s);
-                    return (
-                      <button
-                        type="button"
-                        key={s}
-                        onClick={() =>
-                          setSubjects((prev) =>
-                            prev.includes(s)
-                              ? prev.filter((x) => x !== s)
-                              : [...prev, s],
-                          )
-                        }
-                        className={`rounded-full px-3 py-1.5 text-sm font-medium border transition ${
-                          active
-                            ? "border-white/40 bg-white/20 ring-1 ring-[#D1F8EF]"
-                            : "border-white/25 bg-white/10 hover:bg-white/15"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
 
-              <div className="flex items-center justify-center gap-2 bg-white/10 p-2 rounded-xl border border-white/20 mt-auto">
-                <input
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  type="number"
-                  placeholder="10"
+            {/* ime + bio – desktop */}
+            <div className="flex flex-col flex-1 gap-4">
+              <h1 className="hidden md:block text-[#215993] text-5xl font-semibold">
+                {fullName}
+              </h1>
+
+              <div className="text-[#3674B5]">
+                <span className="font-bold text-lg">Biografija:</span>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  rows={4}
                   required
-                  className="w-12 bg-transparent outline-none text-[#D1F8EF] font-bold text-lg text-center"
+                  placeholder="Unesite nešto o sebi..."
+                  className="mt-2 w-full rounded-2xl bg-white/70 px-4 py-3 outline-none resize-none shadow-sm"
                 />
-                <span className="text-sm font-semibold text-[#D1F8EF]">
-                  € / sat
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="h-56 w-full bg-white/40 rounded-3xl overflow-hidden border-4 border-white shadow-sm relative group">
-                {videoPreview ? (
-                  <video
-                    src={videoPreview}
-                    controls
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center italic text-[#3674B5]/50 text-sm p-4 text-center">
-                    Dodaj video prezentaciju
-                  </div>
-                )}
-                <label className="absolute bottom-2 right-2 cursor-pointer bg-[#3674B5] p-2 rounded-full text-white shadow-lg hover:bg-[#215993] transition">
-                  <span className="text-[10px] font-bold uppercase px-2">
-                    Upload Video
-                  </span>
-                  <input
-                    type="file"
-                    accept="video/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file && file.size <= 50 * 1024 * 1024) {
-                        setVideoFile(file);
-                        setVideoPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
-            <div className="md:col-span-8 space-y-2">
-              <span className="font-bold text-[#3674B5]">Lokacija:</span>
+          {/* područja + cijena */}
+          <div className="rounded-2xl bg-[#215993] p-5 text-[#D1F8EF] flex flex-col md:flex-row gap-4 md:justify-between">
+            <div className="flex-1 ">
+              <h2 className="text-xl font-bold">Područja</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SUBJECT_OPTIONS.map((s) => {
+                  const active = subjects.includes(s);
+                  return (
+                    <button
+                      type="button"
+                      key={s}
+                      onClick={() =>
+                        setSubjects((prev) =>
+                          prev.includes(s)
+                            ? prev.filter((x) => x !== s)
+                            : [...prev, s],
+                        )
+                      }
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium border transition ${
+                        active
+                          ? "border-white/40 bg-white/20 ring-1 ring-[#D1F8EF]"
+                          : "border-white/25 bg-white/10 hover:bg-white/15"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+                
+              </div>
+              {subjectsError !== "" && (<p className="pt-3">{subjectsError}</p>)}
+            </div>
+
+            <div className="flex items-center gap-2 bg-white/10 p-3 rounded-xl border border-white/20 self-start">
+              <input
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                type="number"
+                min={0}
+                placeholder="10"
+                required
+                className="w-14 bg-transparent outline-none text-[#D1F8EF] font-bold text-lg text-center"
+              />
+              <span className="text-sm font-semibold">€ / sat</span>
+            </div>
+          </div>
+
+          {/* video + lokacija */}
+          <div className="flex flex-col md:flex-row gap-5 md:h-56 md:items-stretch">
+            {/* video */}
+            <div className="w-full md:w-1/2 h-48 md:h-full bg-white/40 rounded-3xl overflow-hidden border-4 border-white shadow-sm relative">
+              {videoPreview ? (
+                <video
+                  src={videoPreview}
+                  controls
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center italic text-[#3674B5]/50 text-sm">
+                  Dodaj video prezentaciju
+                </div>
+              )}
+
+              <label className="absolute bottom-2 right-2 cursor-pointer bg-[#3674B5] p-2 rounded-full text-white shadow-lg hover:bg-[#215993] transition">
+                <span className="text-[10px] font-bold uppercase px-2">
+                  Upload Video
+                </span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file && file.size <= 50 * 1024 * 1024) {
+                      setVideoFile(file);
+                      setVideoPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* lokacija */}
+            <div className="w-full md:w-1/2 flex flex-col">
+              <span className="font-bold text-[#3674B5] mb-2">Lokacija:</span>
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="npr. Zagreb"
+                className="mb-3 rounded-2xl px-4 py-3"
                 required
-                className="w-full rounded-2xl bg-white/70 px-4 py-3 text-[#3674B5] outline-none focus:bg-white shadow-sm mb-3"
               />
-              {location && (
-                <div className="h-56 rounded-3xl overflow-hidden border-4 border-white shadow-sm">
+              <div className="md:h-56 h-48 rounded-3xl overflow-hidden border-4 border-white shadow-sm">
+                {location ? (
                   <GoogleMapEmbed
                     location={location}
-                    className="h-full w-full"
+                    className="w-full h-full"
                   />
-                </div>
-              )}
-            </div>
-            <div className="md:col-span-4 space-y-4">
-              <div className="rounded-3xl bg-[#3674B5] p-5 shadow-sm space-y-3">
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-[#D1F8EF] px-4 py-3 text-[#3674B5] font-bold hover:brightness-105 transition shadow-md"
-                >
-                  Spremi promjene
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/home/instructor")}
-                  className="w-full rounded-xl bg-[#215993] px-4 py-3 text-white font-semibold hover:brightness-105 transition"
-                >
-                  Odustani
-                </button>
+                ) : (
+                  <div className="h-full flex items-center justify-center italic text-[#3674B5]/50 text-sm">
+                    Unesi lokaciju za prikaz mape
+                  </div>
+                )}
               </div>
             </div>
+          </div>
+
+          {/* gumbi */}
+          <div className="space-y-4">
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-[#3674B5] px-4 py-3 text-white font-bold shadow-md hover:brightness-105 transition"
+            >
+              Spremi promjene
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/home/instructor")}
+              className="w-full rounded-xl bg-[#215993] px-4 py-3 text-white font-semibold hover:brightness-105 transition"
+            >
+              Odustani
+            </button>
           </div>
         </form>
       </div>

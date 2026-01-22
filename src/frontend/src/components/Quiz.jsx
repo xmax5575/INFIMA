@@ -4,10 +4,11 @@ import api from "../api";
 import LogoBulbLoader from "../components/LogoBulbProgress";
 import QuizSolve from "./QuizSolve";
 
-export default function Quiz({subject}) {
+export default function Quiz({subject, rend}) {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
   const pickRandomQuestions = (questions, count = 3) => {
   return [...questions]
     .sort(() => Math.random() - 0.5)
@@ -32,13 +33,13 @@ export default function Quiz({subject}) {
   };
 
   loadQuizzes();
-}, [subject]);
+}, [subject, rend]);
+
 return (
   <div className="bg-[#3674B5] p-12 px-4 rounded-xl">
     <h1 className="text-white text-2xl font-semibold mb-4">
       {subject} – kvizovi
     </h1>
-
     {loading && <LogoBulbLoader />}
 
     {error && <p className="text-red-200">{error}</p>}
@@ -47,7 +48,6 @@ return (
       
         <div className="text-sm text-gray-500">
           <QuizSolve questions={quizzes} subject={subject} />
-
         </div>
     
     )}

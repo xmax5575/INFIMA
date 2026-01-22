@@ -14,7 +14,6 @@ export default function Payment() {
   // kada se završi Stripe
   useEffect(() => {
     if (!sessionId) return;
-
     const complete = async () => {
       setLoading(true);
       setError(null);

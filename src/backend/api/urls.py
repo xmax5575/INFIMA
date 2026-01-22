@@ -71,10 +71,17 @@ urlpatterns = [
     path("admin/analytics/", views.AdminAnalyticsView.as_view()),
     path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
     
+    
+    # Plaćeno, zabilježi to 
     path("payments/<int:lesson_id>/complete/", views.CompletePaymentView.as_view(), name="payment-complete"),
+    
+    # Provjera je li dopušteno ići na recenziju, je li plaćeno i je li obavljen poziv?
     path("reviews/<int:lesson_id>/allowed/", views.ReviewAccessView.as_view(), name="review-allowed"),
+    # Provjera je li studentu dopušteno ići na plaćanje? 
     path("payments/<int:lesson_id>/allowed/", views.PaymentAccessView.as_view(), name="payment-allowed"),
+    # Provjera je li instruktoru dopušteno postaviti sažetak? 
     path("lesson/<int:lesson_id>/summary/allowed/", views.SummaryAccessView.as_view(), name="summary-allowed"),
+    # Provjera je li student preskočio plaćanje ili recenzije, ili instruktor sažetak
     path("flow/next/", views.FlowNextActionView.as_view(), name="flow-next"),
 
 ]

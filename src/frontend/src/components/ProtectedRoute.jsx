@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import api from "../api";
 import { ACCESS_TOKEN } from "../constants";
-import LoadingPage from "../pages/LoadingPage"
+import LoadingPage from "../pages/LoadingPage";
 const norm = (v) => (v ? String(v).toLowerCase() : "");
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
@@ -24,18 +24,18 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         setRole(null);
         setIsProfileComplete(false);
         setLoading(false);
-        return; 
+        return;
       }
 
       try {
-        // 1) rola
+        // uloga
         const roleRes = await api.get("/api/user/role/");
         const r = norm(roleRes.data?.role);
 
         if (!alive) return;
         setRole(r || "");
 
-        // 2) profil (instruktor + student)
+        // profil (instruktor + student)
         if (r === "instructor") {
           try {
             const profileRes = await api.get("/api/instructor/inf/");
@@ -53,7 +53,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
             } else {
               console.error(
                 "Greška pri dohvaćanju instructor profila:",
-                err?.response?.data || err
+                err?.response?.data || err,
               );
               if (alive) setIsProfileComplete(savedFlag);
             }
@@ -75,7 +75,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
             } else {
               console.error(
                 "Greška pri dohvaćanju student profila:",
-                err?.response?.data || err
+                err?.response?.data || err,
               );
               if (alive) setIsProfileComplete(savedFlag);
             }
@@ -87,7 +87,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         // Greška na role endpointu (npr. 401/403) -> tu ima smisla fallback
         console.error(
           "Greška pri dohvaćanju role:",
-          err?.response?.data || err
+          err?.response?.data || err,
         );
         if (!alive) return;
         setRole(""); // nema role / neautorizirano / sl.
@@ -147,52 +147,65 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }, [location.pathname, navigate]);
 
   useEffect(() => {
-  // loading gotov, ali nema role → redirect
-  if (!loading && role === null) {
-    navigate("/", { replace: true });
-  }
-}, [loading, role, navigate]); 
-useEffect(() => {
-  // čekaj da se sve učita
-  if (loading) return;
-  if (!token) return;
-
-  // ako nije odabrao rolu ili profil nije kompletan, ne enforce-aj još
-  if (!role || role === "" || !isProfileComplete) return;
-
-  // dok je na /role ili edit profilu, nemoj ga prekidati
-  if (location.pathname === "/role" || location.pathname.startsWith("/profile/")) return;
-
-  let alive = true;
-
-  (async () => {
-    try {
-      // backend kaže što je "na redu"
-      const res = await api.get("/api/flow/next/");
-      if (!alive) return;
-
-      const target = res.data?.redirect_to; // npr. "/payment/306" ili "/review/306" ili "/summary/306"
-      if (!target) return;
-
-      // ako već je tamo, ne diraj
-      if (location.pathname === target) return;
-
-      // inače ga vrati na to što je na redu
-      navigate(target, { replace: true });
-    } catch (e) {
-      // ignore (ne želimo rušiti routing ako flow endpoint padne)
+    // loading gotov, ali nema role → redirect
+    if (!loading && role === null) {
+      navigate("/", { replace: true });
     }
-  })();
+  }, [loading, role, navigate]);
 
-  return () => {
-    alive = false;
-  };
-}, [loading, token, role, isProfileComplete, location.pathname, navigate, location.pathname, location]);
+  useEffect(() => {
+    // čekaj da se sve učita
+    if (loading) return;
+    if (!token) return;
 
-if (loading || role === null){
-    return <LoadingPage/>
+    // ako nije odabrao role ili profil nije kompletan, ne prisiljavaj ga na neku stranicu
+    if (!role || role === "" || !isProfileComplete) return;
+
+    // dok je na /role ili edit profilu, nemoj ga prekidati
+    if (
+      location.pathname === "/role" ||
+      location.pathname.startsWith("/profile/")
+    )
+      return;
+
+    let alive = true;
+
+    (async () => {
+      try {
+        // backend kaže što je na redu, odnosno ako je nešto pokušano izbjeći
+        const res = await api.get("/api/flow/next/");
+        if (!alive) return;
+
+        const target = res.data?.redirect_to; // npr. /payment/306 ili /review/306 ili /summary/306
+        if (!target) return;
+
+        // ako već je tamo, ne diraj
+        if (location.pathname === target) return;
+
+        // inače ga vrati na to što je na redu
+        navigate(target, { replace: true });
+      } catch (e) {
+        // ignore 
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [
+    loading,
+    token,
+    role,
+    isProfileComplete,
+    location.pathname,
+    navigate,
+    location.pathname,
+    location,
+  ]);
+
+  if (loading || role === null) {
+    return <LoadingPage />;
   }
-
 
   const pathname = location.pathname;
   const isRolePage = pathname === "/role";
@@ -200,13 +213,13 @@ if (loading || role === null){
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
 
-  // 1) Nema role -> /role
+  // 1) Nema role, idi na /role
   if (role === "") {
     if (isRolePage) return children;
     return <Navigate to="/role" replace />;
   }
 
-  // 2) Instruktor bez profila/bio -> na edit
+  // 2) Instruktor bez profila/bio, ide na edit
   if (!isProfileComplete) {
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;
