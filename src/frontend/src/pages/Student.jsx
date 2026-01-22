@@ -22,19 +22,12 @@ function Student() {
   const [summariesLoading, setSummariesLoading] = useState(false);
   const [summariesErr, setSummariesErr] = useState(null);
   const [rend, setRend] = useState(false);
-  const getFileName = (url) => {
-    try {
-      return decodeURIComponent(url.split("/").pop());
-    } catch {
-      return "dokument.pdf";
-    }
-  };
 
   const [filters, setFilters] = useState({
-    format: null, // "online" | "uzivo"
-    subject: [], // "matematika" | "fizika" | "informatika"
-    days: null, // 7 | 14
-    rating: null, // 4 | 5
+    format: null, // online/uzivo
+    subject: [], // matematika/fizika/informatika
+    days: null, // 7/14
+    rating: null, // 3/4/5
   });
 
   useEffect(() => {
@@ -60,6 +53,7 @@ function Student() {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       try {
+        // Dohvaćamo dve dostupne termine 
         const res = await fetch(`${API_BASE_URL}/api/lessons/`, {
           headers: {
             "Content-Type": "application/json",
@@ -81,6 +75,7 @@ function Student() {
 
         // Ako nam backend vrati odgovor, spremi u data i tu imamo sve potrebne podatke za slati u TerminCard.
         const data = await res.json();
+        console.log("Podatci o lekciji: ", data);
         const list = Array.isArray(data) ? data : [];
 
         // Spremi listu termina.
@@ -94,12 +89,15 @@ function Student() {
     };
 
     load();
-  }, []);
+  }, [tab]);
+  // Pokreni svaki put kad se promijeni tab i ako je mine učitaj termine tog studenta 
   useEffect(() => {
+    if (tab !== "mine") return; 
     const loadMine = async () => {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       try {
+        // Učitaj "moje" termine
         const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -113,9 +111,11 @@ function Student() {
 
     loadMine();
   }, [tab]);
+
   useEffect(() => {
     if (tab !== "summaries") return;
 
+    // Učitaj sažetke koji su dostupni tom učeniku, isto svaki put kad se tab promijeni
     const loadSummaries = async () => {
       setSummariesLoading(true);
       setSummariesErr(null);
@@ -177,13 +177,17 @@ function Student() {
     } catch (err) {}
   };
 
+  // Ubaci u myLessons id samo id-jeve lekcija tog student, zbog filtriranja
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
+
+  // Datum u obliku 23.1.2026.
   const dateFormatter = (date) => {
     return (
       date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear()
     );
   };
 
+  // Koliko će termini dugo biti vidljivi, ako je rezerviran, nek ostane 15 min duže nego što je termin 
   const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
     const isMyLesson = myLessonIds.has(t.lesson_id);
     const lessonDateTime = new Date(`${t.date}T${t.time}`);
@@ -201,8 +205,7 @@ function Student() {
     tab === "all"
       ? visibleTermini.filter((t) => {
           if (filters.format && t.format !== filters.format) return false;
-
-          /*KAD FABO NAPRAVI OVO CE RADIT*/
+          
           if (
             filters.subject.length > 0 &&
             !filters.subject.includes(t.subject)
@@ -227,21 +230,23 @@ function Student() {
         })
       : visibleTermini;
 
-  const [sortBy, setSortBy] = useState(null); // "date_asc" | "date_desc" | "rating_desc" | "price_asc" | "price_desc"
+  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno) "rating_desc" 
   const toggleSort = (key) => {
     setSortBy((prev) => (prev === key ? null : key));
   };
+
   const downloadFile = async (url, filename = "summary.pdf") => {
-    const res = await fetch(url);
-    const blob = await res.blob();
-    const a = document.createElement("a");
+    const res = await fetch(url);           // Dobijemo odgovor
+    const blob = await res.blob();          // Pretvaramo u binarne podatke
+    const a = document.createElement("a");  // Kreiramo dinamički objekt koji sadrži privremeni url iz binarne datoteke
     a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    a.download = filename;                  // Spremi file
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);
+    URL.revokeObjectURL(a.href);            // Oslobodi memoriju
   };
+
   const sortedTermini = [...filteredTermini].sort((a, b) => {
     if (!sortBy) return 0;
 

@@ -71,6 +71,8 @@ urlpatterns = [
     path("admin/analytics/", views.AdminAnalyticsView.as_view()),
     path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
     
+    
+    # Plaćeno, zabilježi to 
     path("payments/<int:lesson_id>/complete/", views.CompletePaymentView.as_view(), name="payment-complete"),
     
     # Provjera je li dopušteno ići na recenziju, je li plaćeno i je li obavljen poziv?
