@@ -12,6 +12,7 @@ from .models import (
     Summary
 )
 
+# registracija svih modela za Django admina
 admin.site.register(User)
 admin.site.register(Subject)
 admin.site.register(Instructor)

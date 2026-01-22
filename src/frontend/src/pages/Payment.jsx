@@ -11,7 +11,7 @@ export default function Payment() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ✅ Kad se vratiš sa Stripe-a
+  // kada se završi Stripe
   useEffect(() => {
     if (!sessionId) return;
 
@@ -19,8 +19,8 @@ export default function Payment() {
       setLoading(true);
       setError(null);
       try {
-        // Ako ti api baseURL već ima "/api", makni "/api" ovdje:
         await api.post(`/api/payments/${lessonId}/complete/`, { session_id: sessionId });
+        // nakon uspješne potvrde plaćanja, idemo na review stranicu
         navigate(`/review/${lessonId}`);
       } catch (err) {
         if (err?.response?.status === 403) navigate("/home/student", { replace: true });
@@ -33,12 +33,12 @@ export default function Payment() {
     complete();
   }, [sessionId, lessonId, navigate]);
 
+  // kada stisnemo na plati, redirecta se na Stripe
   const handlePayment = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // Ako ti api baseURL već ima "/api", makni "/api" ovdje:
       const res = await api.post(`/api/payments/${lessonId}/confirm/`);
       window.location.href = res.data.checkout_url;
     } catch (err) {

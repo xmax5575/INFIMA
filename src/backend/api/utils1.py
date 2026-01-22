@@ -1,23 +1,18 @@
 from datetime import timedelta, datetime
 from datetime import timezone as dt_timezone
-
 from django.utils import timezone
 from django.db import transaction
-
-from api.models import Attendance
 from api.utils.mail import send_email
-from datetime import datetime, timedelta
-from django.utils import timezone
 from django.conf import settings
 from api.models import Attendance, Lesson
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
-
+# funkcija pomoću koje šaljemo mailove za podsjetnike 24 sata i sat vremena prije termina instrukcija i koja se pokreće pomoću cron-a
 def send_24h_lesson_reminders():
     now = timezone.now()
 
-    # vremenski prozori
+    # vremenski prozori za provjeru
     window_24h_start = now + timedelta(hours=23)
     window_24h_end = now + timedelta(hours=25)
 
@@ -28,33 +23,39 @@ def send_24h_lesson_reminders():
         "lesson",
         "student",
         "student__student_id",
-        "lesson__instructor_id",
-        "lesson__instructor_id__instructor_id",
+        "lesson__instructor_id",  # dohvaćamo instructor_id
+        "lesson__instructor_id__instructor_id",  # dohvaćamo user_id da možemo doć do maila
     )
 
     for att in attendances:
 
         lesson = att.lesson
+
+        # ako termin nema datum ili vrijeme, ne šaljemo podsjetnik, preskačemo
         if not lesson.date or not lesson.time:
             continue
-
+        
+        # spajamo datum i vrijeme i dodajemo vremensku zonu
         lesson_local = timezone.make_aware(
             datetime.combine(lesson.date, lesson.time),
             timezone.get_current_timezone(),
         )
+
+        # prebacujemo u utc vrijeme radi lakše usporedbe
         lesson_utc = lesson_local.astimezone(dt_timezone.utc)
 
+        # ako termin upada u vremenski period od 24 sata
         if window_24h_start <= lesson_utc <= window_24h_end:
             try:
                 with transaction.atomic():
                     att_locked = Attendance.objects.select_for_update().get(id=att.id)
 
+                    # provjeravamo je li se mail već poslao
                     if att_locked.reminder_sent:
-                        print(f">>> 24H ALREADY SENT for {att.id}")
+                        continue
                     else:
-                        print(f">>> 📧 SENDING 24H MAIL for {att.id}")
 
-                        # STUDENT
+                        # mail koji se šalje učeniku
                         send_email(
                             to_email=att_locked.student.student_id.email,
                             subject="Podsjetnik: termin za 24 sata",
@@ -70,7 +71,7 @@ def send_24h_lesson_reminders():
                             ),
                         )
 
-                        # INSTRUKTOR
+                        # mail koji se šalje instruktoru
                         send_email(
                             to_email=att_locked.lesson.instructor_id.instructor_id.email,
                             subject="Podsjetnik: termin za 24 sata",
@@ -92,24 +93,18 @@ def send_24h_lesson_reminders():
                         att_locked.reminder_sent = True
                         att_locked.save(update_fields=["reminder_sent"])
 
-                        print(f">>> ✅ 24H MARKED AS SENT for {att.id}")
             except Exception as e:
-                print("!!! EMAIL ERROR 24H:", e)
-        else:
-            print(">>> ❌ NOT IN 24H WINDOW")
+                print(f"Greška kod slanja 24h podsjetnika za attendance {att.id}:", e)
 
         if window_1h_start <= lesson_utc <= window_1h_end:
-            print(">>> 🔔 MATCH 1H WINDOW")
             try:
                 with transaction.atomic():
                     att_locked = Attendance.objects.select_for_update().get(id=att.id)
 
                     if att_locked.reminder_1h_sent:
-                        print(f">>> 1H ALREADY SENT for {att.id}")
+                        continue
                     else:
-                        print(f">>> 📧 SENDING 1H MAIL for {att.id}")
-
-                        # STUDENT
+                        # mail koji se šalje učeniku
                         send_email(
                             to_email=att_locked.student.student_id.email,
                             subject="Podsjetnik: termin za 1 sat",
@@ -123,10 +118,9 @@ def send_24h_lesson_reminders():
                                 f"Lijep pozdrav,\n"
                                 f"INFIMA"
                             ),
-
                         )
 
-                        # INSTRUKTOR
+                        # maill koji se šalje instruktoru
                         send_email(
                             to_email=att_locked.lesson.instructor_id.instructor_id.email,
                             subject="Podsjetnik: termin za 1 sat",
@@ -148,12 +142,8 @@ def send_24h_lesson_reminders():
                         att_locked.reminder_1h_sent = True
                         att_locked.save(update_fields=["reminder_1h_sent"])
 
-                        print(f">>> ✅ 1H MARKED AS SENT for {att.id}")
             except Exception as e:
-                print("!!! EMAIL ERROR 1H:", e)
-        else:
-            print(">>> ❌ NOT IN 1H WINDOW")
-
+                print(f"Greška kod slanja 1h podsjetnika za attendance {att.id}:", e)
 
 def create_google_calendar_event(instructor, lesson):
     creds = Credentials(

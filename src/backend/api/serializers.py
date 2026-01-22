@@ -1,7 +1,11 @@
+#datetime
 from datetime import datetime
+# Django
 from django.contrib.auth import get_user_model
 from django.db.models import Avg
+# DRF
 from rest_framework import serializers
+#models
 from .models import Instructor, Lesson, Review, Subject, Student, Question, Summary
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.validators import UniqueValidator
@@ -96,10 +100,12 @@ class LessonSerializer(serializers.ModelSerializer):
         """
         return self.get_instructor_name(obj)
     
+
 ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
 ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
 ALLOWED_SCHOOL_LEVELS = {"osnovna", "srednja"}
 
+# Serializer za kreiranje ili update profila instruktora
 class InstructorUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više predmeta
     subjects = serializers.SlugRelatedField(
@@ -127,6 +133,7 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(f"Predmet {s.name} nije dozvoljen.")
         return value
 
+# Serializer za kreiranje ili update profila studenta
 class StudentUpdateSerializer(serializers.ModelSerializer):
     # omogućava odabir više instruktora
     favorite_instructors = serializers.PrimaryKeyRelatedField(
@@ -233,6 +240,7 @@ class CalendarLessonSerializer(serializers.ModelSerializer):
     def get_subject_name(self, obj):
         return obj.subject.name if obj.subject else None
 
+#serializer za dohvaćanje informacija o instruktoru
 class MyInstructorProfileSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id_id", read_only=True)
     full_name = serializers.SerializerMethodField()
@@ -241,7 +249,6 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
     calendar = serializers.SerializerMethodField()
     subjects = SubjectMiniSerializer(many=True, read_only=True)
     price_eur = serializers.IntegerField(source="price", read_only=True)
-
     google_calendar_email = serializers.EmailField(read_only=True)
 
     class Meta:
@@ -268,8 +275,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
         last = getattr(u, "last_name", "") or ""
         return f"{first} {last}".strip()
 
-    def get_avg_rating(self, obj):
-        # prosjek samo po recenzijama koje imaju rating
+    def get_avg_rating(self, obj):  #izračun prosječnog ratinga
         qs = Review.objects.filter(instructor=obj, rating__isnull=False)
         val = qs.aggregate(a=Avg("rating"))["a"]
         return round(val, 2) if val is not None else None
@@ -278,14 +284,14 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
         qs = Review.objects.filter(instructor=obj).order_by("-id")
         return ReviewMiniSerializer(qs, many=True).data
 
-    def get_calendar(self, obj):
-        # dostupni termini instruktora
+    def get_calendar(self, obj):    #dostupni termini instruktora
         qs = Lesson.objects.filter(
             instructor_id=obj,
             is_available=True
         ).order_by("date", "time")
         return CalendarLessonSerializer(qs, many=True).data
-    
+
+#serializer za dodavanje favorite instruktora   
 class FavoriteInstructorMiniSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
     last_name = serializers.CharField(source="instructor_id.last_name", read_only=True)
@@ -294,7 +300,7 @@ class FavoriteInstructorMiniSerializer(serializers.ModelSerializer):
         model = Instructor
         fields = ["instructor_id", "first_name", "last_name"]
 
-
+#serializer za dohvaćnje informacija o studentu
 class StudentProfileSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="student_id_id", read_only=True)
     first_name = serializers.CharField(source="student_id.first_name", read_only=True)
@@ -317,13 +323,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             "profile_image_url"
         ]
 
-class InstructorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Instructor
-        fields = [
-            # ostala polja
-            "google_calendar_email",
-        ]
+#serializer za dohvaćnje svih instruktora
 class InstructorListSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="instructor_id.id", read_only=True)
     first_name = serializers.CharField(source="instructor_id.first_name", read_only=True)
@@ -336,7 +336,7 @@ class InstructorListSerializer(serializers.ModelSerializer):
 class AttendanceCreateSerializer(serializers.Serializer):
     lesson_id = serializers.IntegerField()
 
-
+#serializer za recenzije
 class InstructorReviewSerializer(serializers.ModelSerializer):
     student_id = serializers.IntegerField(source="student.student_id_id", read_only=True)
     student_first_name = serializers.CharField(source="student.student_id.first_name", read_only=True)
@@ -353,6 +353,7 @@ class InstructorReviewSerializer(serializers.ModelSerializer):
             "student_last_name",
         ]
 
+# Serializer za kreiranje i validaciju pojedinačnog pitanja
 class QuestionSerializer(serializers.ModelSerializer):
     subject = serializers.SlugRelatedField(
         slug_field="name",
@@ -409,10 +410,12 @@ class QuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Unknown question type")
 
         return data
-
+    
+# Serializer za upload više pitanja odjednom
 class QuestionBulkSerializer(serializers.Serializer):
     questions = QuestionSerializer(many=True)
 
+# Serializer za prikaz pitanja studenta u kvizu
 class StudentQuestionSerializer(serializers.ModelSerializer):
     subject = serializers.SlugRelatedField(
         slug_field="name",
@@ -434,6 +437,7 @@ class StudentQuestionSerializer(serializers.ModelSerializer):
             "correct_answer",
         ]
 
+# Serializer za kreiranje i prikaz summary-ja lekcije
 class SummarySerializer(serializers.ModelSerializer):
     lesson_date = serializers.DateField(source="lesson.date", read_only=True)
     lesson_subject = serializers.CharField(source="lesson.subject.name", read_only=True)
