@@ -152,12 +152,13 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
       navigate("/", { replace: true });
     }
   }, [loading, role, navigate]);
+
   useEffect(() => {
     // čekaj da se sve učita
     if (loading) return;
     if (!token) return;
 
-    // ako nije odabrao role ili profil nije kompletan, ne enforce-aj još
+    // ako nije odabrao role ili profil nije kompletan, ne prisiljavaj ga na neku stranicu
     if (!role || role === "" || !isProfileComplete) return;
 
     // dok je na /role ili edit profilu, nemoj ga prekidati
@@ -171,11 +172,11 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
     (async () => {
       try {
-        // backend kaže što je "na redu"
+        // backend kaže što je na redu, odnosno ako je nešto pokušano izbjeći
         const res = await api.get("/api/flow/next/");
         if (!alive) return;
 
-        const target = res.data?.redirect_to; // npr. "/payment/306" ili "/review/306" ili "/summary/306"
+        const target = res.data?.redirect_to; // npr. /payment/306 ili /review/306 ili /summary/306
         if (!target) return;
 
         // ako već je tamo, ne diraj
@@ -184,7 +185,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         // inače ga vrati na to što je na redu
         navigate(target, { replace: true });
       } catch (e) {
-        // ignore (ne želimo rušiti routing ako flow endpoint padne)
+        // ignore 
       }
     })();
 
@@ -212,13 +213,13 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
 
-  // 1) Nema role -> /role
+  // 1) Nema role, idi na /role
   if (role === "") {
     if (isRolePage) return children;
     return <Navigate to="/role" replace />;
   }
 
-  // 2) Instruktor bez profila/bio -> na edit
+  // 2) Instruktor bez profila/bio, ide na edit
   if (!isProfileComplete) {
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;

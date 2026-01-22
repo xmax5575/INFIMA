@@ -18,7 +18,6 @@ export default function Payment() {
       setLoading(true);
       setError(null);
       try {
-
         await api.post(`/api/payments/${lessonId}/complete/`, { session_id: sessionId });
         navigate(`/review/${lessonId}`);
       } catch (err) {
