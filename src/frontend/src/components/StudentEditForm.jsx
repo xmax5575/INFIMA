@@ -23,7 +23,6 @@ const HOURS = Array.from({ length: 14 }, (_, i) =>
   String(8 + i).padStart(2, "0")
 );
 const MINUTES = ["00", "15", "30", "45"];
-
 const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
 const LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"];
 const DEFAULT_SLOT = { day: "Ponedjeljak", from: "08:00", to: "09:00" };
@@ -54,14 +53,9 @@ async function uploadStudentAvatar(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = `students/pictures/${fileName}`;
-
-
   const { error } = await supabase.storage.from("media").upload(path, file);
-
   if (error) throw error;
-
   const { data } = supabase.storage.from("media").getPublicUrl(path);
-
   return data.publicUrl;
 }
 
@@ -81,11 +75,10 @@ export default function StudentEditPage({update}) {
   const [instructorDetailLoading, setInstructorDetailLoading] = useState(false);
   const [instructorDetailError, setInstructorDetailError] = useState("");
 
-  // notifikacije
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-
   // Osnovna / Srednja -> razredi
   const [schoolLevel, setSchoolLevel] = useState(""); // "osnovna" | "srednja"
+
+  // svaki put kad se promijeni school level "izračuna se grade options"
   const gradeOptions = useMemo(() => {
     if (schoolLevel === "osnovna")
       return Array.from({ length: 8 }, (_, i) => String(i + 1));
@@ -109,7 +102,8 @@ export default function StudentEditPage({update}) {
 
   // termini: [{ day, from:"HH:MM", to:"HH:MM" }]
   const [timeSlots, setTimeSlots] = useState([DEFAULT_SLOT]);
-  // ---------- modal helpers ----------
+
+  // kad zatvorimo podatke o instruktoru
   const closeInstructorModal = () => {
     setIsInstructorModalOpen(false);
     setSelectedInstructor(null);
@@ -120,6 +114,7 @@ export default function StudentEditPage({update}) {
   const [avatarFile, setAvatarFile] = useState(null);
 
   const openInstructorModal = async (ins) => {
+  
     const id = ins?.id;
     if (!id) return;
 
@@ -129,33 +124,10 @@ export default function StudentEditPage({update}) {
 
     // pokaži odmah osnovne podatke iz liste
     setSelectedInstructor(ins);
-
-    // fallback endpointi (da preživi 404)
-    const urls = [
-      `/api/instructor/${id}/`,
-      `/api/instructors/${id}/`,
-      `/api/instructors/detail/${id}/`,
-    ];
-
     try {
-      let ok = false;
-
-      for (const url of urls) {
-        try {
-          const res = await api.get(url);
+          const res = await api.get(`/api/instructor/${id}/`);
           setSelectedInstructor(res.data);
-          ok = true;
-          break;
-        } catch (e) {
-          if (e?.response?.status !== 404) throw e;
-        }
-      }
-
-      if (!ok) {
-        setInstructorDetailError(
-          "Ne mogu dohvatiti detalje instruktora (endpoint 404)."
-        );
-      }
+        
     } catch (err) {
       setInstructorDetailError("Ne mogu dohvatiti detalje instruktora.");
     } finally {
@@ -173,7 +145,6 @@ export default function StudentEditPage({update}) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isInstructorModalOpen]);
 
   // block scroll dok je modal otvoren
@@ -191,17 +162,13 @@ export default function StudentEditPage({update}) {
     );
   };
 
-  // ---------- load profile ----------
-  // ---------- load profile ----------
+  //učitavanje podataka koji su već pohranjeni za tog studenta
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // ✅ koristi student endpoint
         const res = await api.get("/api/student/inf/");
         const data = res.data || {};
-        // ✅ full_name složimo iz first/last (jer student serializer vraća first_name/last_name)
         const full_name =
-          data.full_name ||
           `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim();
 
         setFormData({
@@ -211,24 +178,15 @@ export default function StudentEditPage({update}) {
 
         });
 
-        // ✅ ako ti backend još nema school_level, ostavi ovo - neće smetati
         if (
           data.school_level === "osnovna" ||
           data.school_level === "srednja"
         ) {
           setSchoolLevel(data.school_level);
         }
-        // 👇 AKO backend vraća profile_image_url
         if (data.profile_image_url) {
           setAvatarPreview(data.profile_image_url);
         }
-
-        // ✅ notifikacije
-        setNotificationsEnabled(
-          data.notifications_enabled ?? data.notify_new_slots ?? false
-        );
-
-        // ✅ preferred_times: podrži i objekt i string format
         const fromApi = Array.isArray(data.preferred_times)
           ? data.preferred_times
           : [];
@@ -280,18 +238,14 @@ export default function StudentEditPage({update}) {
         }
         setSubjectLevels(nextMap);
 
-        // ✅ favorite_instructors: [{instructor_id, first_name, last_name}]
         const favRaw =
           data.favorite_instructors ??
-          data.favorites ??
-          data.favorite_instructor_ids ??
           [];
 
         const favIds = Array.isArray(favRaw)
           ? favRaw
               .map((x) => {
                 if (typeof x === "number") return x;
-                // backend ti vraća instructor_id
                 return x?.instructor_id ?? x?.id;
               })
               .filter((n) => typeof n === "number")
@@ -302,19 +256,16 @@ export default function StudentEditPage({update}) {
     };
 
     fetchProfile();
-    // 2️⃣ svaki put kad se vratiš na stranicu
   
   }, [update]);
 
-  // load instructors
   useEffect(() => {
     const fetchInstructors = async () => {
       setInstructorsLoading(true);
       setInstructorsError("");
       try {
-        // ako ti je endpoint točan, ostavi ovako
+        // uzmi sve instruktore i prikaži ih studentu
         const res = await api.get("/api/instructors/all/");
-
         const list = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.results)
@@ -336,12 +287,12 @@ export default function StudentEditPage({update}) {
   useEffect(() => {
     if (!schoolLevel) return;
     if (!formData.grade) return;
-
     const ok = gradeOptions.includes(String(formData.grade));
     if (!ok) setFormData((p) => ({ ...p, grade: "" }));
+
   }, [schoolLevel, gradeOptions, formData.grade]);
 
-  // ---------- slot handlers ----------
+ 
   const handleSlotChange = (index, field, value) => {
     setTimeSlots((prev) =>
       prev.map((slot, i) => (i === index ? { ...slot, [field]: value } : slot))
@@ -407,7 +358,6 @@ export default function StudentEditPage({update}) {
         learning_goals: formData.learning_goals,
         preferred_times,
         knowledge_level,
-        notifications_enabled: notificationsEnabled,
         favorite_instructors: favoriteIds,
         ...(profileImageUrl && { profile_image_url: profileImageUrl }),
       });
@@ -428,7 +378,6 @@ export default function StudentEditPage({update}) {
           })
         );
       }
-
       navigate("/home/student");
     } catch (err) {
     } finally {
@@ -469,8 +418,8 @@ export default function StudentEditPage({update}) {
                   const file = e.target.files[0];
                   if (!file) return;
 
-                  setAvatarFile(file); // 👈 ovo ide backendu
-                  setAvatarPreview(URL.createObjectURL(file)); // 👈 ovo je za UI
+                  setAvatarFile(file); 
+                  setAvatarPreview(URL.createObjectURL(file)); 
                 }}
               />
 
@@ -516,13 +465,13 @@ export default function StudentEditPage({update}) {
               </div>
             </div>
 
-            {/* Desno: podaci */}
+            {/* desno: podaci */}
             <div className="flex-1 space-y-5">
               <h2 className="mt-4 text-4xl font-bold text-[#215993]">
                 {formData.full_name || "Student"}
               </h2>
 
-              {/* Predmeti + razina */}
+              {/* predmeti + razina */}
               <div>
                 <label className={labelStyle}>Predmeti i razina znanja:</label>
 
@@ -716,41 +665,6 @@ export default function StudentEditPage({update}) {
                 </div>
               </div>
 
-              {/* Notifikacije toggle */}
-              <div className="rounded-2xl bg-white/50 border border-white/60 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-[#215993] font-semibold">
-                      Obavijesti
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setNotificationsEnabled((p) => !p)}
-                    className={
-                      "relative h-10 w-28 rounded-full border transition shadow-sm " +
-                      (notificationsEnabled
-                        ? "bg-[#215993] border-white/30"
-                        : "bg-white/70 border-white/60")
-                    }
-                    aria-pressed={notificationsEnabled}
-                    aria-label="Uključi/Isključi obavijesti"
-                  >
-                    {/* Klizač (thumb) */}
-                    <span
-                      className={
-                        "absolute top-1 h-8 w-14 rounded-full grid place-items-center font-extrabold text-xs tracking-wider transition-all shadow " +
-                        (notificationsEnabled
-                          ? "left-14 bg-[#D1F8EF] text-[#215993]"
-                          : "left-1 bg-[#215993] text-[#D1F8EF]")
-                      }
-                    >
-                      {notificationsEnabled ? "ON" : "OFF"}
-                    </span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -877,7 +791,7 @@ export default function StudentEditPage({update}) {
 
               <button
                 type="button"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/home/student")}
                 className="w-full py-3 bg-[#215993] text-[#D1F8EF] font-bold rounded-xl hover:bg-[#1a4a7a] transition-all border border-white/10"
               >
                 Odustani

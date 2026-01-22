@@ -1,38 +1,39 @@
 import { useEffect, useState } from "react";
 
-function LogoBulbLoader() {
-  const total = 5; // koliko žaruljica u "crti"
-  const [active, setActive] = useState(1);
+export default function LogoBulbLoader() {
+  const total = 5; // koliko žaruljica se učitava
+  const [active, setActive] = useState(1); //koliko je "upaljenih" žaruljica
 
   useEffect(() => {
+    // svakih 400ms povećaj broj aktivnih žaruljica, ili smanji na 1 ako je active == 5
     const interval = setInterval(() => {
-      setActive(prev => (prev >= total ? 1 : prev + 1));
+      setActive((prev) => (prev >= total ? 1 : prev + 1));
     }, 400);
 
+    // očisti interval kad se komponenta prestane koristiti
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="flex flex-col items-center gap-5">
-      
-
-      {/* PROGRESS OD LOGO ŽARULJICA */}
+      {/* progress od logo žaruljica*/}
       <div className="flex gap-3">
-        {Array.from({ length: total }).map((_, i) => (
-          <img
-            key={i}
-            src="../../public/images/infima.png"
-            alt=""
-            className={`w-8 transition-all duration-300 ${
-              i < active
-                ? "opacity-100 drop-shadow-[0_0_10px_#3674B5]"
-                : "opacity-30 grayscale"
-            }`}
-          />
-        ))}
+        {
+          /* value ne koristimo pa je _ */
+          Array.from({ length: total }).map((_, i) => (
+            <img
+              key={i}
+              src="../../public/images/infima.png"
+              alt=""
+              className={`w-8 transition-all duration-300 ${
+                i < active
+                  ? "opacity-100 drop-shadow-[0_0_10px_#3674B5]"
+                  : "opacity-30 grayscale"
+              }`}
+            />
+          ))
+        }
       </div>
     </div>
   );
 }
-
-export default LogoBulbLoader;

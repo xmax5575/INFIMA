@@ -2,7 +2,7 @@ import { JaaSMeeting } from "@jitsi/react-sdk";
 
 export default function JaasMeeting({ appId, roomName, jwt, onMeetingEnd }) {
   return (
-    <div style={{ width: "100%", height: "80vh" }}>
+    <div style={{ width: "100%", height: "100vh" }}>
       <JaaSMeeting
         appId={appId}
         roomName={roomName}

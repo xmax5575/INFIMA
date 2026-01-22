@@ -13,10 +13,10 @@ export default function PaymentGuard({ children }) {
       try {
         const res = await api.get(`/api/payments/${lessonId}/allowed/`);
         const allowed = !!res.data?.allowed;
-        const to = "/home/student";
+        const to =  res.data?.redirect_to || "/home/student";
         setState({ loading: false, allowed, to });
       } catch {
-        setState({ loading: false, allowed: false, to: "/home/student" });
+        setState({ loading: false, allowed: false, to: "/home/student"});
       }
     };
     run();

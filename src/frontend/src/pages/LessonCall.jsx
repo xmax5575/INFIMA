@@ -31,23 +31,23 @@ export default function LessonCall() {
   }, [lessonId, navigate]);
 
   const handleMeetingEnd = async () => {
-  try {
-    const response = await api.post(`/api/lessons/${lessonId}/end/`);
-    console.log("END response:", response.data);
+    try {
+      const response = await api.post(`/api/lessons/${lessonId}/end/`);
+      console.log("END response:", response.data);
 
-    const targetUrl = response.data?.redirect_to;
-    console.log("redirect_to:", targetUrl);
+      const targetUrl = response.data?.redirect_to;
+      console.log("redirect_to:", targetUrl);
 
-    navigate(targetUrl || "/");
-  } catch (err) {
-    console.error("Greška pri završetku lekcije:", err?.response?.status, err?.response?.data);
-    navigate("/");
-  }
-};
+      navigate(targetUrl || "/");
+    } catch (err) {
+      console.error("Greška pri završetku lekcije:", err?.response?.status, err?.response?.data);
+      navigate("/");
+    }
+  };
 
 
   if (error) return <p className="text-red-600">{error}</p>;
-  if (!meeting) return <p><LoadingPage/></p>;
+  if (!meeting) return <LoadingPage />;
 
   return (
     <JaasMeeting

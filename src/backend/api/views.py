@@ -34,6 +34,7 @@ from api.utils1 import create_google_calendar_event, sync_existing_lessons_to_go
 
 
 User = get_user_model()
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 def expire_lessons():
     now = timezone.localtime()
@@ -860,9 +861,6 @@ class ReviewAccessView(APIView):
 
         return Response({"allowed": True}, status=200)
     
-import stripe
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class ConfirmPaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -923,20 +921,20 @@ class ConfirmPaymentView(APIView):
         )
 
         return Response({"checkout_url": session.url})
-#sta je na redu???
+
 class FlowNextActionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
 
-        # -------- STUDENT --------
+        # student
         if user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
             if not student:
                 return Response({"next_action": None})
 
-            # 1) neplaćeno -> PAYMENT
+            # ako nije plaćeno na PAYMENT
             pending_payment = (
                 Payment.objects
                 .filter(
@@ -956,7 +954,7 @@ class FlowNextActionView(APIView):
                     "redirect_to": f"/payment/{lid}",
                 })
 
-            # 2) plaćeno, ali review nije -> REVIEW
+            # plaćeno, ali review nije na REVIEW
             pending_review = (
                 Attendance.objects
                 .filter(
@@ -979,7 +977,7 @@ class FlowNextActionView(APIView):
 
             return Response({"next_action": None})
 
-        # -------- INSTRUCTOR --------
+        # instructor
         if user.role == User.Role.INSTRUCTOR:
             instructor = getattr(user, "instructor", None)
             if not instructor:
@@ -1025,7 +1023,8 @@ class PaymentAccessView(APIView):
         student = getattr(request.user, "student", None)
         if not student:
             return Response({"allowed": False}, status=status.HTTP_404_NOT_FOUND)
-
+        
+        # je li student bio na toj lekciji
         attendance = Attendance.objects.filter(lesson=lesson, student=student).first()
         if not attendance:
             return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
@@ -1379,11 +1378,11 @@ class SummaryAccessView(APIView):
         if lesson.instructor_id.instructor_id != request.user:
             return Response({"allowed": False}, status=status.HTTP_403_FORBIDDEN)
 
-        # ✅ NOVO: call_ended mora biti True
+        # poziv mora završiti
         if not Attendance.objects.filter(lesson=lesson, call_ended=True).exists():
             return Response({"allowed": False, "redirect_to": f"/lesson/{lesson_id}/call"}, status=200)
 
-        # ✅ ako summary već postoji
+        # ako sažetak već postoji
         if Summary.objects.filter(lesson=lesson).exists():
             return Response({"allowed": False, "redirect_to": "/home/instructor"}, status=200)
 
