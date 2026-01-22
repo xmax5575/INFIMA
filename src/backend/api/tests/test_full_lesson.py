@@ -12,6 +12,7 @@ class ReserveLessonEdgeCaseTest(TestCase):
         self.client = APIClient()
         self.url = "/api/lessons/reserve/"
 
+        # Priprema instruktora i termina sa max jednim studentom
         self.subject = Subject.objects.create(name="Matematika")
 
         self.instructor_user = User.objects.create_user(
@@ -36,6 +37,7 @@ class ReserveLessonEdgeCaseTest(TestCase):
             status="ACTIVE"
         )
 
+        # Prvi student zauzima jedino mjesto
         self.student1_user = User.objects.create_user(
             email="student1@test.com",
             password="test123",
@@ -51,6 +53,7 @@ class ReserveLessonEdgeCaseTest(TestCase):
             student=self.student1
         )
 
+        # Drugi student pokusava rezervirati puni termin
         self.student2_user = User.objects.create_user(
             email="student2@test.com",
             password="test123",
@@ -62,6 +65,7 @@ class ReserveLessonEdgeCaseTest(TestCase):
         self.student2 = Student.objects.create(student_id=self.student2_user)
 
     def test_student_cannot_reserve_full_lesson(self):
+        # Rezervacija punog termina mora biti odbijena
         self.client.force_authenticate(user=self.student2_user)
 
         response = self.client.post(

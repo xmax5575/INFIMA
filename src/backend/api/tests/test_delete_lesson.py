@@ -10,6 +10,7 @@ class LessonDeletePermissionTest(TestCase):
     def setUp(self):
         self.client = APIClient()
 
+        # Priprema instruktora i termina
         self.subject = Subject.objects.create(name="Matematika")
 
         self.inst_a_user = User.objects.create_user(
@@ -48,9 +49,11 @@ class LessonDeletePermissionTest(TestCase):
             max_students=1,
         )
 
+        # Endpoint za brisanje termina
         self.delete_url = f"/api/termin/delete/{self.lesson.lesson_id}/"
 
     def test_instructor_cannot_delete_other_instructors_lesson(self):
+        # Drugi instruktor ne smije obrisati termin
         self.client.force_authenticate(user=self.inst_b_user)
 
         response = self.client.delete(self.delete_url)
@@ -60,6 +63,7 @@ class LessonDeletePermissionTest(TestCase):
         self.assertTrue(Lesson.objects.filter(lesson_id=self.lesson.lesson_id).exists())
 
     def test_instructor_can_delete_own_lesson(self):
+        # Vlasnik termina smije obrisati svoj termin
         self.client.force_authenticate(user=self.inst_a_user)
 
         response = self.client.delete(self.delete_url)
