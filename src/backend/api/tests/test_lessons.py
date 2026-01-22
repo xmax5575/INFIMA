@@ -1,0 +1,76 @@
+from django.test import TestCase
+from rest_framework.test import APIClient
+from api.models import Lesson, Instructor, Subject, Student
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class LessonCreatePermissionTest(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = "/api/lessons/"
+
+        # Priprema predmeta i podataka za kreiranje termina
+        self.subject = Subject.objects.create(name="Matematika")
+
+        self.payload = {
+            "subject": self.subject.name,
+            "price": 20,
+            "duration_min": 60,
+            "max_students": 1,
+            "format": "Online",
+        }
+
+    def test_anonymous_user_cannot_create_lesson(self):
+        response = self.client.post(self.url, self.payload, format="json")
+        # Anonimni korisnik ne smije kreirati termin
+        self.assertIn(response.status_code, [401, 403])
+        self.assertEqual(Lesson.objects.count(), 0)
+
+    def test_student_cannot_create_lesson(self):
+        # Student ne smije kreirati termin
+        user = User.objects.create_user(
+            email="student@test.com",
+            password="test123",
+            first_name="Karlo",
+            last_name="Student")
+        user.role = "STUDENT"
+        user.save()
+
+        Student.objects.create(student_id=user)
+
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(self.url, self.payload, format="json")
+
+        self.assertIn(response.status_code, [400, 401, 403])
+        self.assertEqual(Lesson.objects.count(), 0)
+
+    def test_instructor_can_create_lesson(self):
+        # Instruktor moze kreirati termin
+        user = User.objects.create_user(
+            email="inst@test.com",
+            password="test123",
+            first_name="Karlo",
+            last_name="Instruktor"
+        )
+        user.role = "INSTRUCTOR"
+        user.save()
+
+        instructor = Instructor.objects.create(
+        instructor_id=user,
+        price=20,  
+        )
+
+        self.client.force_authenticate(user=user)
+
+        response = self.client.post(self.url, self.payload, format="json")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Lesson.objects.count(), 1)
+        response = self.client.post(self.url, self.payload, format="json")
+        
+
+
+
+

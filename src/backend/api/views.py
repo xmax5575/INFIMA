@@ -52,6 +52,15 @@ class CreateUserView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
+    def perform_create(self, serializer):
+        # provjera da nema ekstra fields
+        extra_fields = set(self.request.data.keys()) - set(serializer.fields.keys())
+        if extra_fields:
+            raise serializers.ValidationError(
+                {field: "This field is not allowed." for field in extra_fields}
+            )
+        serializer.save()
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from datetime import date, datetime
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 # klasa za upravljanje stavki korisnika
 class UserManager(BaseUserManager):
@@ -9,6 +10,7 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("Email must be set")
         email = self.normalize_email(email)
+        extra_fields.setdefault("username", email)
         user = self.model(email=email, first_name=first_name, last_name=last_name, role=role, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -64,6 +66,10 @@ class User(AbstractUser, PermissionsMixin):
 
 # model koji predstavlja predmet u bazi podataka
 class Subject(models.Model):
+    def clean(self):
+        super().clean()
+        if self.name not in ["Matematika", "Fizika", "Informatika"]:
+            raise ValidationError("Matematika, fizika i informatika su trenutno jedini podržani predmeti.")
     subject_id = models.AutoField(primary_key=True) # primarni ključ 
     name = models.TextField(unique=True)
 
@@ -164,6 +170,12 @@ class Payment(models.Model):
 
 # model koji predstavlja pitanja u bazi podataka
 class Question(models.Model):
+    def clean(self):
+        super().clean()
+        if self.type == self.QuestionType.TRUE_FALSE:
+            if len(self.correct_answer) != 1:
+                raise ValidationError("True/False pitanje mora imati točno jedan točan odgovor.")
+            
     class QuestionType(models.TextChoices):
         TRUE_FALSE = "true_false", "True / False"
         MULTIPLE_CHOICE = "multiple_choice", "Multiple Choice"
