@@ -17,7 +17,6 @@ class UserCreationTest(TestCase):
             "password": "StrongPass123!",
         }
 
-    # Testira uspješno kreiranje korisnika sa validnim podacima
     def test_user_creation_success(self):
         response = self.client.post(
             self.url,
@@ -32,7 +31,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(user.email, "test@test.com")
         self.assertTrue(user.check_password("StrongPass123!"))
 
-    # Testira da loša lozinka (prekratka) vraća error
     def test_user_creation_invalid_password(self):
         invalid_payload = {
             "email": "bad@test.com",
@@ -51,7 +49,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(User.objects.count(), 0)
         self.assertIn("password", response.data)
 
-    # Testira kreiranje korisnika bez emaila
     def test_user_creation_missing_email(self):
         payload = {
             "first_name": "No",
@@ -65,7 +62,6 @@ class UserCreationTest(TestCase):
         self.assertIn("email", response.data)
         self.assertEqual(User.objects.count(), 0)
 
-    # Testira kreiranje korisnika sa nevalidnim email formatom
     def test_user_creation_invalid_email_format(self):
         payload = {
             "email": "not-an-email",
@@ -79,7 +75,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("email", response.data)
 
-    # Testira da duplicirani email vraća error
     def test_user_creation_duplicate_email(self):
         self.client.post(self.url, self.valid_payload, format="json")
         response = self.client.post(self.url, self.valid_payload, format="json")
@@ -88,7 +83,6 @@ class UserCreationTest(TestCase):
         self.assertIn("email", response.data)
         self.assertEqual(User.objects.count(), 1)
 
-    # Testira da prazna lozinka vraća error
     def test_user_creation_empty_password(self):
         payload = {
             "email": "empty@test.com",
@@ -102,7 +96,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("password", response.data)
 
-    # Testira da null lozinka vraća error
     def test_user_creation_null_password(self):
         payload = {
             "email": "null@test.com",
@@ -116,7 +109,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("password", response.data)
 
-    # Testira kreiranje korisnika bez first_name
     def test_user_creation_missing_first_name(self):
         payload = {
             "email": "nofirst@test.com",
@@ -129,7 +121,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("first_name", response.data)
 
-    # Testira kreiranje korisnika bez last_name
     def test_user_creation_missing_last_name(self):
         payload = {
             "email": "nolast@test.com",
@@ -142,7 +133,6 @@ class UserCreationTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("last_name", response.data)
 
-    # Testira da dodatni nepoznati field vraća error
     def test_user_creation_with_extra_field(self):
         payload = {
             "email": "extra@test.com",
@@ -156,12 +146,10 @@ class UserCreationTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    # Testira da prazan payload vraća error
     def test_user_creation_empty_payload(self):
         response = self.client.post(self.url, {}, format="json")
         self.assertEqual(response.status_code, 400)
 
-    # Testira da GET metoda na endpointu register nije dozvoljena
     def test_user_creation_get_not_allowed(self):
         response = self.client.get(self.url)
         self.assertIn(response.status_code, [400, 401, 403, 405])

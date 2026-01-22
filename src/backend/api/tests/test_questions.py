@@ -14,13 +14,11 @@ class questionTest(TestCase):
             role="INSTRUCTOR",
             password="Question123"
         )
-
         self.instructor = Instructor.objects.create(
             instructor_id=self.user,
             price=10,
             bio="Question test instruktor"
         )
-
         self.math = Subject.objects.create(name="Matematika")
         self.physics = Subject.objects.create(name="Fizika")
         self.informatics = Subject.objects.create(name="Informatika")
@@ -37,17 +35,13 @@ class questionTest(TestCase):
             text="Radi li true/false?",
             correct_answer=[True]
         )
-
-        # ! Provjerava je li tip pitanja true/false
+        # ? Provjerava je li tip pitanja true/false
         self.assertEqual(question.type, "true_false")
-
-        # ! Provjerava je li tekst pitanja "Radi li ovaj test?"
+        # ? Provjerava je li tekst pitanja "Radi li ovaj test?"
         self.assertEqual(question.text, "Radi li true/false?")
-
-        # ! Provjerava je li true u tocnim odgovorima
+        # ? Provjerava je li true u tocnim odgovorima
         self.assertIn(True, question.correct_answer)
-
-        # ! Provjerava je li u bazi točno jedno pitanje
+        # ? Provjerava je li u bazi točno jedno pitanje
         self.assertEqual(Question.objects.count(), 1)
 
     # * Test za neispravan true/false (ima dva točna odgovora)
@@ -77,17 +71,14 @@ class questionTest(TestCase):
             correct_answer=["Da", "Naravno"]
         )
 
-        # ! Provjerava je li tip pitanja multiple choice
+        # ? Provjerava je li tip pitanja multiple choice
         self.assertEqual(question.type, "multiple_choice")
-
-        # ! Provjerava je li tekst pitanja "Radi li multiple choice?"
+        # ? Provjerava je li tekst pitanja "Radi li multiple choice?"
         self.assertEqual(question.text, "Radi li multiple choice?")
-
-        # ! Provjerava jesu li točni odgovori dobro postavljeni
+        # ? Provjerava jesu li točni odgovori dobro postavljeni
         self.assertIn("Da", question.correct_answer)
         self.assertIn("Naravno", question.correct_answer)
-
-        # ! Provjerava je li u bazi točno jedno pitanje
+        # ? Provjerava je li u bazi točno jedno pitanje
         self.assertEqual(Question.objects.count(), 1)
 
     # * Test u kojem je subject u questionu nevaljan field

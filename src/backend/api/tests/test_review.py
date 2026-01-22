@@ -1,1 +1,0 @@
-    # TODO: implementirati testove za validaciju reviewova

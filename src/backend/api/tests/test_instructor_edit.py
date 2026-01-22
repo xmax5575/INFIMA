@@ -10,7 +10,6 @@ class InstructorUpdateEndpointTest(TestCase):
         self.client = APIClient()
         self.url = "/api/instructor/me/"
 
-        # kreiramo korisnika i dodajemo mu ulogu instruktora
         self.user = User.objects.create_user(
             email="instr@test.com",
             first_name="Instr",
@@ -20,13 +19,11 @@ class InstructorUpdateEndpointTest(TestCase):
         self.user.role = User.Role.INSTRUCTOR
         self.user.save()
 
-        # kreiramo 3 predmeta iz baze
         self.subjects = []
         for name in ["Matematika", "Fizika", "Informatika"]:
             subj = Subject.objects.create(name=name)
             self.subjects.append(subj)
 
-    # testira uspješan update instruktorskog profila s 3 predmeta i URL slike
     def test_instructor_can_update_profile_successfully(self):
         self.client.force_authenticate(user=self.user)
 
@@ -51,7 +48,6 @@ class InstructorUpdateEndpointTest(TestCase):
         self.assertEqual(instructor.profile_image_url, data["profile_image_url"])
         self.assertEqual(instructor.video_url, data["video_url"])
 
-    # testira da instruktor ne može dodati više od 3 predmeta
     def test_cannot_add_more_than_three_subjects(self):
         self.client.force_authenticate(user=self.user)
 
@@ -63,7 +59,6 @@ class InstructorUpdateEndpointTest(TestCase):
         response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, 400)
 
-    # testira da korisnik koji nije instruktor ne može update profila
     def test_non_instructor_cannot_update_profile(self):
         student = User.objects.create_user(
             email="student@test.com",
@@ -80,7 +75,6 @@ class InstructorUpdateEndpointTest(TestCase):
         response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, 403)
 
-    # testira partial update instruktorskog profila (samo pojedina polja)
     def test_partial_update_fields(self):
         self.client.force_authenticate(user=self.user)
 
@@ -93,6 +87,5 @@ class InstructorUpdateEndpointTest(TestCase):
 
         instructor = Instructor.objects.get(instructor_id=self.user)
         self.assertEqual(instructor.bio, data["bio"])
-        # ostala polja ostaju prazna/default
         self.assertEqual(instructor.price, 0)
         self.assertEqual(list(instructor.subjects.all()), [])

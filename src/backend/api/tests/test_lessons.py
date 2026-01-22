@@ -10,7 +10,6 @@ class LessonCreatePermissionTest(TestCase):
         self.client = APIClient()
         self.url = "/api/lessons/"
 
-        # subject je obavezan foreign key u lessonu
         self.subject = Subject.objects.create(name="Matematika")
 
         self.payload = {

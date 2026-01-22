@@ -10,7 +10,6 @@ class StudentUpdateEndpointTest(TestCase):
         self.client = APIClient()
         self.url = "/api/student/me/"
 
-        # Kreiramo korisnika i dodajemo ulogu studenta
         self.user = User.objects.create_user(
             email="student@test.com",
             first_name="Stud",
@@ -20,7 +19,6 @@ class StudentUpdateEndpointTest(TestCase):
         self.user.role = User.Role.STUDENT
         self.user.save()
 
-        # Kreiramo instruktore za favorite_instructors
         self.instructors = []
         for i in range(3):
             instr_user = User.objects.create_user(
@@ -34,7 +32,6 @@ class StudentUpdateEndpointTest(TestCase):
             instr = Instructor.objects.create(instructor_id=instr_user, price=100)
             self.instructors.append(instr)
 
-    # # Student može uspješno update profila
     def test_student_can_update_profile_successfully(self):
         self.client.force_authenticate(user=self.user)
 
@@ -51,7 +48,6 @@ class StudentUpdateEndpointTest(TestCase):
                 {"day": "Srijeda", "start": "14:00", "end": "16:00"}
             ],
             "notifications_enabled": True,
-            # slanje samo primarnih ključeva instruktora, ne User objekata
             "favorite_instructors": [i.instructor_id_id for i in self.instructors],
             "profile_image_url": "https://example.com/student.jpg"
         }
@@ -70,7 +66,6 @@ class StudentUpdateEndpointTest(TestCase):
                          data["favorite_instructors"])
         self.assertEqual(student.profile_image_url, data["profile_image_url"])
 
-    # # Student koji nije ulogiran ili nije student ne može update profila
     def test_non_student_cannot_update_profile(self):
         other_user = User.objects.create_user(
             email="instr_non@test.com",
@@ -87,7 +82,6 @@ class StudentUpdateEndpointTest(TestCase):
         response = self.client.post(self.url, data, format="json")
         self.assertEqual(response.status_code, 403)
 
-    # # Student može update samo dijela polja (partial update)
     def test_partial_update_fields(self):
         self.client.force_authenticate(user=self.user)
 
@@ -97,7 +91,6 @@ class StudentUpdateEndpointTest(TestCase):
 
         student = Student.objects.get(student_id=self.user)
         self.assertEqual(student.learning_goals, data["learning_goals"])
-        # Ostala polja ostaju prazna/default
         self.assertEqual(student.grade, None)
         self.assertEqual(student.school_level, None)
         self.assertEqual(student.knowledge_level, [])

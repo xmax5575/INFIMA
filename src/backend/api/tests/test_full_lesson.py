@@ -12,10 +12,8 @@ class ReserveLessonEdgeCaseTest(TestCase):
         self.client = APIClient()
         self.url = "/api/lessons/reserve/"
 
-        # Subject
         self.subject = Subject.objects.create(name="Matematika")
 
-        # Instructor
         self.instructor_user = User.objects.create_user(
             email="inst@test.com",
             password="test123",
@@ -30,7 +28,6 @@ class ReserveLessonEdgeCaseTest(TestCase):
             price=20
         )
 
-        # Lesson s kapacitetom 1
         self.lesson = Lesson.objects.create(
             instructor_id=self.instructor,
             subject=self.subject,
@@ -39,7 +36,6 @@ class ReserveLessonEdgeCaseTest(TestCase):
             status="ACTIVE"
         )
 
-        # Prvi student (zauzima mjesto)
         self.student1_user = User.objects.create_user(
             email="student1@test.com",
             password="test123",
@@ -55,7 +51,6 @@ class ReserveLessonEdgeCaseTest(TestCase):
             student=self.student1
         )
 
-        # Drugi student (rubni slučaj)
         self.student2_user = User.objects.create_user(
             email="student2@test.com",
             password="test123",
@@ -78,7 +73,6 @@ class ReserveLessonEdgeCaseTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["error"], "Lesson is full")
 
-        # sigurnosna provjera: nema novog Attendance-a
         self.assertEqual(
             Attendance.objects.filter(lesson=self.lesson).count(),
             1

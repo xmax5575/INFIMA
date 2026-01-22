@@ -12,7 +12,6 @@ class LessonDeletePermissionTest(TestCase):
 
         self.subject = Subject.objects.create(name="Matematika")
 
-        # Instructor A (owner)
         self.inst_a_user = User.objects.create_user(
             email="inst_a@test.com",
             password="test123",
@@ -27,7 +26,6 @@ class LessonDeletePermissionTest(TestCase):
             price=20,
         )
 
-        # Instructor B (attacker)
         self.inst_b_user = User.objects.create_user(
             email="inst_b@test.com",
             password="test123",
@@ -42,7 +40,6 @@ class LessonDeletePermissionTest(TestCase):
             price=25,
         )
 
-        # Lesson owned by Instructor A
         self.lesson = Lesson.objects.create(
             instructor_id=self.inst_a,
             subject=self.subject,
@@ -60,7 +57,6 @@ class LessonDeletePermissionTest(TestCase):
 
         self.assertIn(response.status_code, [403, 404])
 
-        # Lekcija mora ostati u bazi
         self.assertTrue(Lesson.objects.filter(lesson_id=self.lesson.lesson_id).exists())
 
     def test_instructor_can_delete_own_lesson(self):

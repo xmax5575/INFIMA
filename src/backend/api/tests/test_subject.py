@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
-class questionTest(TestCase):
+class subjectTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             email="subject@test.com",
@@ -33,9 +33,7 @@ class questionTest(TestCase):
         )
 
         retrieved = Subject.objects.get(name="Matematika")
-
         # ! Provjeri je li ime predmeta "Matematika"
         self.assertEqual(retrieved.name, "Matematika")
-
         # ! Provjeri je li se subject napravio u bazi
         self.assertTrue(Subject.objects.filter(subject_id=2).exists())

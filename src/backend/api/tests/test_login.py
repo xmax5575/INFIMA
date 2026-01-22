@@ -20,7 +20,6 @@ class UserLoginTest(TestCase):
             password=self.password,
         )
 
-    # uspješan login
     def test_login_success(self):
         response = self.client.post(
             self.url,
@@ -35,7 +34,6 @@ class UserLoginTest(TestCase):
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
-    # kriva lozinka
     def test_login_wrong_password(self):
         response = self.client.post(
             self.url,
@@ -48,7 +46,6 @@ class UserLoginTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
-    # nepostojeći user
     def test_login_non_existing_user(self):
         response = self.client.post(
             self.url,
@@ -61,7 +58,6 @@ class UserLoginTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
-    # missing password
     def test_login_missing_password(self):
         response = self.client.post(
             self.url,
@@ -73,7 +69,6 @@ class UserLoginTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    # missing email
     def test_login_missing_email(self):
         response = self.client.post(
             self.url,
@@ -85,17 +80,14 @@ class UserLoginTest(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    # prazan payload
     def test_login_empty_payload(self):
         response = self.client.post(self.url, {}, format="json")
         self.assertEqual(response.status_code, 400)
 
-    # GET nije dozvoljen
     def test_login_get_not_allowed(self):
         response = self.client.get(self.url)
         self.assertIn(response.status_code, [400, 401, 403, 405])
 
-    # inactive user
     def test_login_inactive_user(self):
         self.user.is_active = False
         self.user.save()
@@ -111,7 +103,6 @@ class UserLoginTest(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
-    # token radi (protected endpoint)
     def test_access_profile_with_token(self):
         login = self.client.post(
             self.url,
