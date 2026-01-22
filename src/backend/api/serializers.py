@@ -47,6 +47,7 @@ class LessonSerializer(serializers.ModelSerializer):
     instructor_name = serializers.SerializerMethodField(read_only=True)
     title = serializers.SerializerMethodField(read_only=True)
     instructor_display = serializers.SerializerMethodField(read_only=True)
+    avg_rating = serializers.SerializerMethodField(read_only=True)
     location = serializers.CharField(source="instructor_id.location", read_only=True)
     price = serializers.IntegerField(source="instructor_id.price", read_only=True)
     subject = serializers.SlugRelatedField(
@@ -95,6 +96,12 @@ class LessonSerializer(serializers.ModelSerializer):
         Može se kasnije proširiti (npr. dodati titulu, predmet i sl.).
         """
         return self.get_instructor_name(obj)
+
+    def get_avg_rating(self, obj):
+        # prosjek samo po recenzijama koje imaju rating
+        qs = Review.objects.filter(instructor=obj.instructor_id, rating__isnull=False)
+        val = qs.aggregate(a=Avg("rating"))["a"]
+        return round(val, 2) if val is not None else None
     
 ALLOWED_SUBJECTS = {"Matematika", "Fizika", "Informatika"}
 ALLOWED_LEVELS = {"loša", "dovoljna", "dobra", "vrlo dobra", "odlična"}
