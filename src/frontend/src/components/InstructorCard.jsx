@@ -37,7 +37,7 @@ export default function InstructorCard({
 
   const ratingRaw = user?.avg_rating ?? "-";
   const rating = String(ratingRaw).replace(".", ",");
-  const priceLabel = (user?.price_eur != null ? `${user.price_eur}€` : "—");
+  const priceLabel =(user?.price_eur != null ? `${user.price_eur}€` : "—");
   const avatarUrl = user?.profile_image_url || null;
   const videoUrl = user?.video_url || null;
   const lessons = Array.isArray(user?.calendar) ? user.calendar : [];
@@ -84,9 +84,7 @@ export default function InstructorCard({
           <Star
             key={i}
             className={`h-4 w-4 ${
-              i < rounded
-                ? "text-[#3674B5] fill-[#3674B5]"
-                : "text-[#3674B5]/30"
+              i < rating? "text-[#3674B5] fill-[#3674B5]" : "text-[#3674B5]/30"
             }`}
           />
         ))}
