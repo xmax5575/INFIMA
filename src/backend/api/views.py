@@ -379,7 +379,7 @@ class InstructorUpdateView(APIView):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-
+#view za dohvaćanje podataka logiranog instruktora
 class MyInstructorProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -391,7 +391,8 @@ class MyInstructorProfileView(APIView):
 
         serializer = MyInstructorProfileSerializer(instructor)
         return Response(serializer.data)
-    
+
+#view za dohvaćanje podataka instruktora po pk
 class InstructorPublicProfileView(APIView):
     permission_classes = [AllowAny]
 
@@ -450,7 +451,7 @@ class StudentUpdateView(APIView):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
 
-
+#view za dohvaćanje podataka logiranog studenta
 class MyStudentProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -466,7 +467,7 @@ class MyStudentProfileView(APIView):
         serializer = StudentProfileSerializer(student)
         return Response(serializer.data)
     
-
+#view za dohvaćanje podataka studenta po pk
 class StudentPublicProfileView(APIView):
     permission_classes = [AllowAny]
 
@@ -485,7 +486,7 @@ class StudentPublicProfileView(APIView):
         )
         return Response(serializer.data)
     
-
+#view za dohvaćanje podataka svih instruktora
 class InstructorListView(APIView):
     permission_classes = [AllowAny]
 
@@ -494,7 +495,7 @@ class InstructorListView(APIView):
         serializer = InstructorListSerializer(instructors, many=True)
         return Response(serializer.data)
     
-
+#view za dohvaćanje svih lekcija logiranog studenta
 class StudentMyLessonsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -627,6 +628,7 @@ class CancelLessonView(APIView):
             status=status.HTTP_200_OK
         )
 
+#view za pokretanje jitsi meeting sobe za instruktora i studenta
 class LessonJitsiRoomView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -638,8 +640,7 @@ class LessonJitsiRoomView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # 👨‍🏫 INSTRUKTOR
-        if user.role == User.Role.INSTRUCTOR:
+        if user.role == User.Role.INSTRUCTOR: #samo instruktor čija je lekcija može otvoriti sobu
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
@@ -649,11 +650,10 @@ class LessonJitsiRoomView(APIView):
 
             return Response({"room": lesson.jitsi_room})
 
-        # 👨‍🎓 STUDENT
         if user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
 
-            if not Attendance.objects.filter(
+            if not Attendance.objects.filter(     #samo student prijavljen u lekciju može uci u sobu
                 lesson=lesson,
                 student=student
             ).exists():
@@ -670,7 +670,7 @@ class LessonJitsiRoomView(APIView):
         return Response({"error": "Forbidden"}, status=403)
     
 
-
+#view za dohvaćanje jaas tokena za meeting
 class LessonJaasTokenView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -682,16 +682,16 @@ class LessonJaasTokenView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # room mora postojati (instruktor “starta” meeting)
+        # room mora postojati (instruktor starta meeting)
         if not lesson.jitsi_room:
             return Response({"error": "Meeting not started yet"}, status=400)
 
-        # instr. smije ako je njegov
+        # instruktor smije samo za svoje lekcije
         if user.role == User.Role.INSTRUCTOR:
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
-        # student smije ako ima Attendance
+        # student mora biti prijavljen u lekciju
         elif user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
             if not Attendance.objects.filter(lesson=lesson, student=student).exists():
@@ -714,7 +714,7 @@ class LessonJaasTokenView(APIView):
                     "id": str(user.id),
                     "name": f"{user.first_name} {user.last_name}".strip() or user.email,
                     "email": user.email,
-                    # moderator true samo za instruktora (ako želiš)
+                    # moderator je samo instruktor
                     "moderator": "true" if user.role == User.Role.INSTRUCTOR else "false",
                 }
             },
@@ -1075,7 +1075,7 @@ class CompletePaymentView(APIView):
 
         return Response({"ok": True})
 
-
+#view za dohvaćanje recenzija za logiranog instruktora
 class MyInstructorReviewsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1100,7 +1100,8 @@ class MyInstructorReviewsView(APIView):
 
         serializer = InstructorReviewSerializer(reviews, many=True)
         return Response(serializer.data)
-    
+
+#view za dohvaćanje recenzija za instruktora po pk   
 class InstructorReviewsView(APIView):
     permission_classes = [AllowAny]
 
@@ -1264,6 +1265,7 @@ class QuestionDeleteView(generics.DestroyAPIView):
         if user.is_superuser:
             return Question.objects.all()
         return Question.objects.none()
+    
 class GoogleCalendarConnectView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1399,10 +1401,11 @@ class StudentSummariesView(APIView):
         return Response(serializer.data)
     
 
-
+#razine znanja studenta u polju
 LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"]
 DEFAULT_LEVEL = "dovoljna"
 
+#pretvaramo razine znanja u dict
 def knowledge_to_dict(value):
     
     if not value:
@@ -1412,7 +1415,6 @@ def knowledge_to_dict(value):
         return value
 
     if isinstance(value, list):
-        # očekujemo npr. [{"subject": "Matematika", "level": "dobra"}, ...]
         out = {}
         for item in value:
             if isinstance(item, dict):
@@ -1424,7 +1426,7 @@ def knowledge_to_dict(value):
 
     return {}
 
-
+#view za dizanje ili spuštanje razine znanja studenta ovisno o rješenim kvizovima
 class UpdateKnowledgeLevelView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1459,7 +1461,7 @@ class UpdateKnowledgeLevelView(APIView):
         new_level = LEVELS[idx]
         knowledge[subject] = new_level
 
-        # spremamo kao dict (preporučeni format)
+        # spremamo kao dict
         student.knowledge_level = knowledge
         student.save(update_fields=["knowledge_level"])
 

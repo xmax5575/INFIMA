@@ -26,9 +26,9 @@ urlpatterns = [
     path("lessons/reserve/", views.ReserveLessonView.as_view()),
     # Endpoint za cancel termmina za instrukcije
     path("lessons/cancel/", views.CancelLessonView.as_view()),
-    
+    # Endpoint za jitsi meeting sobu
     path("lessons/<int:lesson_id>/jitsi/", views.LessonJitsiRoomView.as_view()),
-
+    # Endpoint za jaas token za meeting
     path("lessons/<int:lesson_id>/jaas-token/", views.LessonJaasTokenView.as_view()),
 
     path("lessons/<int:lesson_id>/end/", views.EndLessonView.as_view(), name="lesson-end"),
@@ -57,7 +57,7 @@ urlpatterns = [
     path("lesson/<int:lesson_id>/summary/", views.LessonSummaryView.as_view(), name="lesson-summary"),
 
     path("student/summaries/", views.StudentSummariesView.as_view()),
-
+    # Endpoint za ažuriranje razine znanja studenta
     path("student/knowledge/", views.UpdateKnowledgeLevelView.as_view()),
 
     path("review/delete/<int:id>/", views.ReviewDeleteView.as_view(), name="review-delete"),
