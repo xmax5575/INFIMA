@@ -68,7 +68,7 @@ Za administratorski pristup moguće je:
 
 - prijaviti se putem frontenda  
 - ili direktno putem Django admin sučelja:  
-  👉 https://infima.onrender.com/admin
+  https://infima.onrender.com/admin
 
 **Admin korisnički podaci:**
 
