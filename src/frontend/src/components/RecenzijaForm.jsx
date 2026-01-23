@@ -1,31 +1,40 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Star } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 
 export default function RecenzijaForm() {
-  const { lessonId } = useParams();
+  const { lessonId } = useParams(); //uzme iz parametara iz url
   const [rating, setRating] = useState(0);
   const [description, setDescription] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
+  const navigate = useNavigate();
 
   const submitReview = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-
+    if (!rating) {
+      setError("Ocjena je obavezna.");
+      return;
+    }
+    setLoading(true);
     try {
-      const res = await api.post(`/api/reviews/${lessonId}/submit/`, {
+      await api.post(`/api/reviews/${lessonId}/submit/`, {
         rating,
-        description ,
+        description,
       });
-
-      navigate("/home/student"); 
+      navigate("/home/student");
     } catch (err) {
-      setError("Neuspjelo slanje recenzije.");
+      console.error(err);
+      if (err?.response?.status === 403) {
+        setError(
+          "Ne možeš ostaviti recenziju prije plaćanja ili prije završetka poziva.",
+        );
+      } else {
+        setError("Neuspjelo slanje recenzije.");
+      }
     } finally {
       setLoading(false);
     }
@@ -37,18 +46,15 @@ export default function RecenzijaForm() {
         onSubmit={submitReview}
         className="rounded-2xl bg-white/70 p-6 space-y-6"
       >
-        {/* NASLOV */}
         <h2 className="text-center text-2xl sm:text-3xl font-semibold text-[#215993]">
           Ostavi recenziju
         </h2>
-         {error && <p className="text-red-600 mb-4">{error}</p>}
-
-        {/* OCJENA */}
+        {error && <p className="text-red-600 mb-4">{error}</p>}
+        {/* ocjena */}
         <div>
           <div className="mb-2 text-sm sm:text-base font-semibold text-[#3674B5]">
             Ocjena
           </div>
-
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((v) => (
               <button
@@ -71,12 +77,11 @@ export default function RecenzijaForm() {
           </div>
         </div>
 
-        {/* KOMENTAR */}
+        {/* komentar o ocjeni */}
         <div>
           <div className="mb-2 text-sm sm:text-base font-semibold text-[#3674B5]">
             Komentar
           </div>
-
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -86,13 +91,11 @@ export default function RecenzijaForm() {
           />
         </div>
 
-        {/* SUBMIT */}
+        {/* submit */}
         <button
           type="submit"
           disabled={!rating || loading}
           className="w-full rounded-xl bg-[#215993] px-4 py-3 font-semibold text-[#D1F8EF] hover:brightness-110 disabled:opacity-40"
-        
-            
         >
           {loading ? "Spremanje..." : "Pošalji recenziju"}
         </button>

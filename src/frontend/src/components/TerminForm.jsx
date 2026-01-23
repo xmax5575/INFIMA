@@ -3,8 +3,7 @@ import { ACCESS_TOKEN } from "../constants";
 import api from "../api";
 
 // Forma koja se otvara kad instruktor stisne plus, odnosno kad želi dodati termin.
-
-function TerminForm({ onCreated, onClose }) {
+export default function TerminForm({ onCreated, onClose }) {
   const [subject, setSubject] = useState("");
   const [level, setLevel] = useState("");
   const [maxStudents, setMaxStudents] = useState("");
@@ -79,7 +78,6 @@ function TerminForm({ onCreated, onClose }) {
       date, // "YYYY-MM-DD".
       time: timeHHMMSS, // "HH:MM:SS".
       level: levelMapped, // "OSNOVNA" | "SREDNJA".
-      // is_available: true,     // default.
     };
 
     try {
@@ -100,11 +98,7 @@ function TerminForm({ onCreated, onClose }) {
       onCreated && onCreated(res.data);
       onClose && onClose();
     } catch (err) {
-      const msg = err?.response?.data
-        ? typeof err.response.data === "string"
-          ? err.response.data
-          : JSON.stringify(err.response.data)
-        : err.message;
+      const msg = err.message;
       setValidationError(`Greška pri spremanju: ${msg}`);
     }
   };
@@ -246,5 +240,3 @@ function TerminForm({ onCreated, onClose }) {
     </form>
   );
 }
-
-export default TerminForm;

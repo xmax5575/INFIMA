@@ -9,7 +9,6 @@ export default function MultipleChoiceEditor({ question, onChange }) {
             onChange={() => onChange({ correctAnswer: opt.id })}
             className="accent-[#3674B5]"
           />
-
           <input
             value={opt.text}
             onChange={(e) =>
@@ -24,7 +23,6 @@ export default function MultipleChoiceEditor({ question, onChange }) {
           />
         </div>
       ))}
-
       <button
         onClick={() =>
           onChange({

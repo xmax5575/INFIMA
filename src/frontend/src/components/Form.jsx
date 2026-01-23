@@ -1,13 +1,11 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState} from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { REFRESH_TOKEN, ACCESS_TOKEN } from "../constants";
-import { useGoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 // Forma koja se prikazuje pri prijavi/registraciji i dobiva informaciju o čemu se radi.
-function Form({ route, method }) {
+function Form({method}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordAgain, setPasswordAgain] = useState("");
@@ -40,7 +38,7 @@ function Form({ route, method }) {
         });
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        //alert("Prijava uspješna!");
+        //spremimo jwt token u localstorage
         const res_role = await api.get("/api/user/role/", {
           headers: { Authorization: `Bearer ${res.data.access}` },
           withCredentials: true,
@@ -61,8 +59,7 @@ function Form({ route, method }) {
           password: password,
         });
         if (res.status === 201) {
-          //alert("Registracija uspješna! Možete se prijaviti.");
-          // Registracija uspješna, korisnik se mora prijaviti.
+          //Registracija uspješna, korisnik se mora prijaviti.
           navigate("/login");
         }
       }
@@ -124,6 +121,7 @@ function Form({ route, method }) {
           </button>
         </div>
       </div>
+      {/*ako je registracija prikazuju se i polja za potvrdu lozinke, kao i polje imena i prezimena*/}
       {method === "register" && (
         <>
           <div>

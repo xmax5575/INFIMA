@@ -16,27 +16,23 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import dj_database_url
 from whitenoise.storage import CompressedManifestStaticFilesStorage
+import sys
 
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 if DEBUG:
-    # Allows all for local development when DEBUG=True
     ALLOWED_HOSTS = ["*"]
     INTERNAL_IPS = ["127.0.0.1"]
 else:
-    # In production, pull a comma-separated list of allowed hosts from the environment
     ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
     INTERNAL_IPS = []
 
@@ -54,7 +50,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-# Application definition
 
 SITE_ID=3
 
@@ -73,7 +68,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google", #dodajemo drige providere ovdje ako ćemo trebati
+    "allauth.socialaccount.providers.google", #omogućuje rad s googleovim računima
 ]
 
 SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scopeove ovdje
@@ -81,6 +76,7 @@ SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scop
         "SCOPE": {
             "profile",
             "email",
+           #calendar.events -> dozvola za kreiranje/uređivanje događaja u Google kalendaru.
             "https://www.googleapis.com/auth/calendar.events"
         },
         "AUTH_PARAMS": {
@@ -129,7 +125,6 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 if os.environ.get('DATABASE_URL'):
-    # Use environment variable if present (for production on Render)
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
@@ -138,7 +133,6 @@ if os.environ.get('DATABASE_URL'):
         )
     }
 else:
-    # Use your original hardcoded settings for local testing only
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -170,7 +164,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-AUTH_USER_MODEL = 'api.User' # Zamijenili smo običnog usera s našim prilagođenim modelom koji ima još i role i nema username
+AUTH_USER_MODEL = 'api.User' # Zamijenili smo običnog usera s našim prilagođenim modelom koji ima još i role i mail za username
 
 
 # Internationalization
@@ -198,21 +192,18 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 if DEBUG:
-    # Allows all origins in development (for easier testing)
-    CORS_ALLOW_ALL_ORIGINS = False # Must be False for credentials
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        'http://localhost:5173', # Your frontend URL
+        'http://localhost:5173',
         'http://127.0.0.1:5173',
     ]
     CORS_ALLOW_CREDENTIALS = True
 else:
-    # In production, only allow specific Vercel domain(s)
     CORS_ALLOW_ALL_ORIGINS = False
-    # Fetch the allowed origins from a comma-separated environment variable (set on Render)
     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     CORS_ALLOW_CREDENTIALS = True
 
-# specificiramo kako koristimo i django i allauth backend
+# specificiramo kako koristimo i django i allauth
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend"
@@ -226,48 +217,22 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") 
 
-# Stripe
+# plaćanje
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 
-# Frontend (za Stripe redirecte)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-'''
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-
-EMAIL_HOST_USER = os.getenv("GMAIL_USER")
-EMAIL_HOST_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
-'''
-#EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
-
-'''
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-
-SENDGRID_SANDBOX_MODE_IN_DEBUG = False
-'''
-# settings.py
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp-relay.brevo.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-
-# Tvoj mail s kojim si se ulogirala na Brevo
 EMAIL_HOST_USER = 'infima.instrukcije@gmail.com' 
 
-# Ovdje zalijepi onaj dugi ključ koji si upravo kopirala (xkeysib...)
-#EMAIL_HOST_PASSWORD = os.getenv("BREVO_SMTP_KEY")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
-# Mora biti ISTO kao pošiljatelj na tvojoj zadnjoj slici
 DEFAULT_FROM_EMAIL = 'infima.instrukcije@gmail.com'
 
-# OVO MORA BITI TOČNO OVAKO (bez razmaka i malim slovima)
-#DEFAULT_FROM_EMAIL = 'infima.instrukcije@gmail.com'
 SERVER_EMAIL = 'infima.instrukcije@gmail.com'
 CRON_SECRET = os.getenv("CRON_SECRET")
 
@@ -287,3 +252,11 @@ else:
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 SENDGRID_FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL")
+
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
+    }

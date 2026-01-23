@@ -3,12 +3,11 @@ import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import defaultAvatar from "../images/avatar.jpg";
 import api from "../api";
+import LogoBulbLoader from "./LogoBulbProgress";
 
 function getFullName(user) {
   return (
-    user?.full_name ||
-    `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() ||
-    "Učenik"
+    `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() || "Učenik"
   );
 }
 
@@ -18,45 +17,42 @@ const levelLabel = (lvl) => {
 };
 
 export default function StudentCard({
-
   onClose,
   canEdit = true,
   editTo = "/profile/student/edit",
-  renderData
-   
+  renderData,
 }) {
   const [student, setStudent] = useState(null);
-const [loading, setLoading] = useState(false);
-const [errMsg, setErrMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
 
-useEffect(() => {
-  let cancelled = false;
+  useEffect(() => {
+    let cancelled = false;
 
-  const fetchStudent = async () => {
-    setLoading(true);
-    setErrMsg("");
+    const fetchStudent = async () => {
+      setLoading(true);
+      setErrMsg("");
 
-    try {
-      const res = await api.get("/api/student/inf/");
-      if (!cancelled) {
-        setStudent(res.data);
+      try {
+        const res = await api.get("/api/student/inf/");
+        if (!cancelled) {
+          setStudent(res.data);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (e) {
-      if (!cancelled) {
-        setErrMsg("Ne mogu dohvatiti podatke o učeniku.");
-      }
-    } finally {
-      if (!cancelled) setLoading(false);
-    }
-  };
+    };
 
-  fetchStudent();
+    fetchStudent();
 
-  return () => {
-    cancelled = true;
-  };
-}, [renderData]);
-
+    return () => {
+      cancelled = true;
+    };
+  }, [renderData]);
 
   const u = student;
 
@@ -66,50 +62,41 @@ useEffect(() => {
     schoolLevel === "osnovna"
       ? "Osnovna škola"
       : schoolLevel === "srednja"
-      ? "Srednja škola"
-      : "";
+        ? "Srednja škola"
+        : "";
 
-  const grade =
-    u?.grade ?? u?.school_grade ?? u?.semester ?? u?.class_label ?? "—";
-
-  const notificationsEnabled =
-    u?.notifications_enabled ?? u?.notify_new_slots ?? false;
+  const grade = u?.grade ?? "—";
 
   const avatarUrl = u?.profile_image_url || null;
 
-  // ✅ knowledge_level: [{subject, level}]
   const subjects = useMemo(() => {
-  const raw = student?.knowledge_level;
+    const raw = student?.knowledge_level;
 
-  if (!raw) return [];
+    if (!raw) return [];
+    if (!Array.isArray(raw) && typeof raw === "object") {
+      return Object.entries(raw).map(([name, level]) => ({
+        name,
+        level,
+      }));
+    }
 
-  // 🔥 AKO JE OBJECT (tvoj slučaj)
-  if (!Array.isArray(raw) && typeof raw === "object") {
-    return Object.entries(raw).map(([name, level]) => ({
-      name,
-      level,
-    }));
-  }
+    // ako dode array
+    if (Array.isArray(raw)) {
+      return raw
+        .map((s) => {
+          if (typeof s === "string") return { name: s, level: null };
+          return {
+            name: s?.subject ?? s?.name ?? "",
+            level: s?.level ?? null,
+          };
+        })
+        .filter((s) => s.name);
+    }
 
-  // (fallback ako ikad dođe array)
-  if (Array.isArray(raw)) {
-    return raw
-      .map((s) => {
-        if (typeof s === "string") return { name: s, level: null };
-        return {
-          name: s?.subject ?? s?.name ?? "",
-          level: s?.level ?? null,
-        };
-      })
-      .filter((s) => s.name);
-  }
+    return [];
+  }, [student]);
 
-  return [];
-}, [student]);
-
- 
-
-  // ✅ preferred_times: [{day, start, end}] ili string
+  // preferred_times: [{day, start, end}] ili string
   const preferredSlots = useMemo(() => {
     const raw = u?.preferred_slots ?? u?.preferred_times ?? [];
     return Array.isArray(raw) ? raw : [];
@@ -126,16 +113,16 @@ useEffect(() => {
     return day || "Termin";
   };
 
-  // ✅ learning_goals: string
+  // learning_goals: string
   const goals = useMemo(() => {
     const raw = u?.goals ?? u?.learning_goals ?? "";
     if (Array.isArray(raw)) return raw.filter(Boolean);
     return raw ? [raw] : [];
   }, [u]);
 
-  // ✅ favorite_instructors: [{instructor_id, first_name, last_name}] ili id-evi
+  // favorite_instructors: [{instructor_id, first_name, last_name}] ili id-evi
   const favorites = useMemo(() => {
-    const raw = u?.favorite_instructors ?? u?.favorites ?? [];
+    const raw = u?.favorite_instructors ?? [];
     if (!Array.isArray(raw)) return [];
     return raw
       .map((x) => {
@@ -144,7 +131,6 @@ useEffect(() => {
         return {
           id: x?.instructor_id ?? x?.id,
           full_name:
-            x?.full_name ||
             `${x?.first_name ?? ""} ${x?.last_name ?? ""}`.trim() ||
             "Instruktor",
         };
@@ -167,7 +153,7 @@ useEffect(() => {
 
         {loading && (
           <div className="mb-4 rounded-xl bg-white/80 p-3 text-[#215993] font-semibold">
-            Učitavam učenika...
+            <LogoBulbLoader/>
           </div>
         )}
 
@@ -192,12 +178,6 @@ useEffect(() => {
                     alt="Avatar učenika"
                     className="h-full w-full object-cover"
                   />
-                </div>
-
-                {/* Badge */}
-                <div className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white/70 border border-white/60 px-4 py-3 text-[#215993] font-bold">
-                  Obavijesti:{" "}
-                  {notificationsEnabled ? "UKLJUČENE" : "ISKLJUČENE"}
                 </div>
               </div>
 
@@ -324,7 +304,6 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* ✅ SAMO JEDAN GUMB NA DNU */}
             {canEdit && (
               <div className="mt-6">
                 <Link
@@ -333,7 +312,7 @@ useEffect(() => {
                   onClick={onClose}
                 >
                   Uredi profil
-                </Link>   
+                </Link>
               </div>
             )}
           </>

@@ -8,11 +8,11 @@ import StudentCard from "../components/StudentCard";
 
 function Header() {
   const [user, setUser] = useState(null);
-  const [instructor, setInstructor] = useState(null); // <-- instruktorski detalji
+  const [instructor, setInstructor] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
-  const [renderData, setRenderData] = useState(0);
+  const [renderData, setRenderData] = useState(false);
 
   const menuRef = useRef(null);
   const location = useLocation();
@@ -22,11 +22,12 @@ function Header() {
   }, [location.pathname, profileVersion]);
 
   useEffect(() => {
+    // ako stisnes van menua / zatvori ga
     const onPointerDown = (e) => {
       if (!menuRef.current) return;
       if (!menuRef.current.contains(e.target)) setMenuOpen(false);
     };
-
+    // esc zatvara meni
     const onKeyDown = (e) => {
       if (e.key === "Escape") setMenuOpen(false);
     };
@@ -74,7 +75,7 @@ function Header() {
     fetchUser();
   }, [location.pathname]);
 
-  // Klik na "Profil" -> povuci instruktorske detalje pa otvori modal
+  // Klik na "Profil" -> povuci instruktorske detalje
   const openProfile = async () => {
     setMenuOpen(false);
 
@@ -92,7 +93,7 @@ function Header() {
     } catch (err) {
       setInstructor(null);
     } finally {
-      setRenderData((v) => v + 1);
+      setRenderData((v) => !v);
       setShowProfile(true);
     }
   };
@@ -180,7 +181,6 @@ function Header() {
           >
             {user.role?.toLowerCase() === "instructor" ? (
               <InstructorCard
-                // merge: user (ime/role) + instructor (bio/price/subjects...)
                 user={{ ...user, ...(instructor || {}) }}
                 canEdit={true}
                 editTo={`/profile/${user.role.toLowerCase()}/edit`}
@@ -190,6 +190,7 @@ function Header() {
                 }}
               />
             ) : (
+              /* svaki put kad se otvara pošalji različit bool da se refresha i povuče nove podatke */
               <StudentCard renderData={renderData}/>
             )}
           </div>

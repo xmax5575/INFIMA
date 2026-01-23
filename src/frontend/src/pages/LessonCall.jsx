@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../api";
 import JaasMeeting from "../components/JaaSMeeting";
+import LoadingPage from "./LoadingPage";
 
 export default function LessonCall() {
   const { lessonId } = useParams();
@@ -12,43 +13,41 @@ export default function LessonCall() {
   useEffect(() => {
     (async () => {
       try {
-        // 1) dohvati room (tvoja postojeća logika)
-        const r = await api.get(`/api/lessons/${lessonId}/jitsi/`);
-        const room = r.data.room;
-
-        // 2) dohvati JaaS JWT za taj room
+        await api.get(`/api/lessons/${lessonId}/jitsi/`);
         const t = await api.get(`/api/lessons/${lessonId}/jaas-token/`);
-
-        setMeeting(t.data); // {appId, roomName, jwt}
+        setMeeting(t.data);
       } catch (err) {
-        setError(err.response?.data?.error ?? "Ne mogu otvoriti meeting");
+        const status = err?.response?.status;
+
+        if (status === 403) {
+          navigate("/home/student", { replace: true }); // ili "/"
+          return;
+        }
+
+        setError("Ne mogu otvoriti meeting. Pokušaj ponovno.");
+        console.error(err);
       }
     })();
-  }, [lessonId]);
+  }, [lessonId, navigate]);
 
   const handleMeetingEnd = async () => {
     try {
-      // 1) Pozovi backend da označiš kraj i dobiješ uputu kamo dalje
       const response = await api.post(`/api/lessons/${lessonId}/end/`);
+      console.log("END response:", response.data);
 
-      // 2) Backend vraća npr. { "redirect_to": "/payment/12" } za studenta
-      // ili { "redirect_to": "/home/instructor" } za instruktora
-      const targetUrl = response.data.redirect_to;
+      const targetUrl = response.data?.redirect_to;
+      console.log("redirect_to:", targetUrl);
 
-      if (targetUrl) {
-        navigate(targetUrl);
-      } else {
-        // Fallback ako se nešto čudno dogodi
-        navigate("/");
-      }
+      navigate(targetUrl || "/");
     } catch (err) {
-      console.error("Greška pri završetku lekcije:", err);
+      console.error("Greška pri završetku lekcije:", err?.response?.status, err?.response?.data);
       navigate("/");
     }
   };
 
+
   if (error) return <p className="text-red-600">{error}</p>;
-  if (!meeting) return <p>Učitavanje meetinga…</p>;
+  if (!meeting) return <LoadingPage />;
 
   return (
     <JaasMeeting

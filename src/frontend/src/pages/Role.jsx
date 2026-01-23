@@ -9,7 +9,7 @@ function normalizeRole(r) {
   return String(r).toLowerCase();
 }
 
-function Role() {
+export default function Role() {
   const [role, setRole] = useState("");
   const [error, setError] = useState(false);
   const navigate = useNavigate();
@@ -26,9 +26,6 @@ function Role() {
       .then((res) => {
         const existingRole = normalizeRole(res.data?.role);
         if (existingRole) {
-          // ✅ Ako korisnik već ima ulogu, ProtectedRoute će ga automatski
-          // usmjeriti na Home (student) ili Edit (instruktor bez bio).
-          // Ovdje ga šaljemo na home, a ProtectedRoute će odraditi ostalo.
           navigate(`/home/${existingRole}`, { replace: true });
         }
       })
@@ -37,7 +34,6 @@ function Role() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!role) {
       setError(true);
       return;
@@ -45,15 +41,11 @@ function Role() {
 
     try {
       const res = await api.post("/api/select-role/", { role });
-      const newRole = normalizeRole(res.data?.role) || normalizeRole(role);
-
-      // ✅ NOVA LOGIKA NAVIGACIJE:
+      const newRole = normalizeRole(res.data?.role);
       if (newRole === "student") {
-        // Studenti nemaju bio -> šalji ih odmah na Home
         navigate(`/home/student`, { replace: true });
       } else {
-        // Instruktori moraju na Edit zbog biografije
-        navigate(`/profile/instructor/edit`, { replace: true });
+        navigate(`/home/instructor`, { replace: true });
       }
     } catch (err) {}
   };
@@ -62,7 +54,6 @@ function Role() {
     <div className="min-h-screen bg-gradient-to-b from-[#3674B5] to-[#A1E3F9] text-[#D1F8EF] flex flex-col items-center justify-center font-[Outfit]">
       <Header />
       <h1 className="text-3xl mb-6 font-bold">Odaberite svoju ulogu</h1>
-
       <div className="flex gap-6 mb-5">
         <button
           type="button"
@@ -78,7 +69,6 @@ function Role() {
         >
           Učenik
         </button>
-
         <button
           type="button"
           className={`w-44 h-12 rounded-full font-semibold transition-all duration-300 ease-in-out ${
@@ -94,7 +84,6 @@ function Role() {
           Instruktor
         </button>
       </div>
-
       <button
         type="button"
         onClick={handleSubmit}
@@ -109,5 +98,3 @@ function Role() {
     </div>
   );
 }
-
-export default Role;

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
@@ -14,8 +13,11 @@ import Profile from "./pages/Profile";
 import LessonCall from "./pages/LessonCall";
 import Payment from "./pages/Payment";
 import Review from "./pages/Review";
-import QuizBuilder from "./components/QuizBuilder";
 import SummaryUpload from "./pages/SummaryUpload";
+import Admin from "./pages/Admin";
+import ReviewGuard from "./components/ReviewGuard";
+import PaymentGuard from "./components/PaymentGuard";
+import SummaryGuard from "./components/SummaryGuard";
 
 function Logout() {
   localStorage.clear();
@@ -56,11 +58,13 @@ function App() {
           />
           <Route path="/register" element={<RegisterAndLogout />} />
           <Route path="/logout" element={<Logout />} />
-          
+
           <Route
             path="/role"
             element={
-                  <Role />
+              <ProtectedRoute>
+                <Role />
+              </ProtectedRoute>
             }
           />
           <Route
@@ -80,53 +84,67 @@ function App() {
             }
           />
           <Route
+            path="/home/admin"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile/instructor/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
-                  <Profile role = "instructor"/>
+                <Profile role="instructor" />
               </ProtectedRoute>
-            }/>
-            <Route
+            }
+          />
+          <Route
             path="/profile/student/edit"
-            element = {
+            element={
               <ProtectedRoute allowedRoles={["STUDENT"]}>
-                  <Profile role = "student"/>
+                <Profile role="student" />
               </ProtectedRoute>
-            }/>
-          
+            }
+          />
 
-            <Route
-              path="/lesson/:lessonId/call"
-              element={
-                <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
-                  <LessonCall />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-            path="/summary/:lessonId"
-            element = {<SummaryUpload/>}
-            />
+          <Route path="/summary/:lessonId" element={
+             <ProtectedRoute allowedRoles={["INSTRUCTOR"]}>
+              <SummaryGuard>
+            <SummaryUpload />
+            </SummaryGuard>
+            </ProtectedRoute>}/>
 
-            <Route
-              path="/payment/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
+          <Route
+            path="/lesson/:lessonId/call"
+            element={
+              <ProtectedRoute allowedRoles={["INSTRUCTOR", "STUDENT"]}>
+                <LessonCall />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <PaymentGuard>
                   <Payment />
-                </ProtectedRoute>
-              }
-            />
+                </PaymentGuard>
+              </ProtectedRoute>
+            }
+          />
 
-            <Route
-              path="/review/:lessonId"
-              element={
-                <ProtectedRoute allowedRoles={["STUDENT"]}>
+          <Route
+            path="/review/:lessonId"
+            element={
+              <ProtectedRoute allowedRoles={["STUDENT"]}>
+                <ReviewGuard>
                   <Review />
-                </ProtectedRoute>
-              }
-            />
-
-
+                </ReviewGuard>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </>

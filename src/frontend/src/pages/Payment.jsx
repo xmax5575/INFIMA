@@ -1,27 +1,51 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Payment() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const sessionId = sp.get("session_id");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-    const handlePayment = async () => {
+  // kada se završi Stripe
+  useEffect(() => {
+    if (!sessionId) return;
+    const complete = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await api.post(`/api/payments/${lessonId}/complete/`, { session_id: sessionId });
+        // nakon uspješne potvrde plaćanja, idemo na review stranicu
+        navigate(`/review/${lessonId}`);
+      } catch (err) {
+        if (err?.response?.status === 403) navigate("/home/student", { replace: true });
+  else setError("Plaćanje nije uspjelo.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    complete();
+  }, [sessionId, lessonId, navigate]);
+
+  // kada stisnemo na plati, redirecta se na Stripe
+  const handlePayment = async () => {
     setLoading(true);
     setError(null);
 
     try {
-        const res = await api.post(`/api/payments/${lessonId}/confirm/`);
-        window.location.href = res.data.checkout_url; 
+      const res = await api.post(`/api/payments/${lessonId}/confirm/`);
+      window.location.href = res.data.checkout_url;
     } catch (err) {
-        setError("Plaćanje nije uspjelo.");
+      setError("Plaćanje nije uspjelo.");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
-
+  };
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 border rounded">
@@ -31,14 +55,15 @@ export default function Payment() {
         Lekcija ID: <strong>{lessonId}</strong>
       </p>
 
+      {sessionId && <p className="mb-4 text-sm opacity-80">Potvrđujem plaćanje...</p>}
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
       <button
         onClick={handlePayment}
-        disabled={loading}
-        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        disabled={loading || !!sessionId}
+        className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-60"
       >
-        {loading ? "Obrada..." : "Plati"}
+        {loading ? "Obrada..." : sessionId ? "Potvrđujem..." : "Plati"}
       </button>
     </div>
   );
