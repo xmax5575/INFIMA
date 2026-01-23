@@ -59,7 +59,7 @@ export default function TerminCard({
     subject,
   } = termin || {};
 
-  const effectivePrice = price != null ? price : instructor?.price_eur ?? 0;
+  const effectivePrice = price != null ? price : instructor?.price ?? 0;
 
   const navigate = useNavigate();
 

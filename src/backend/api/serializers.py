@@ -116,14 +116,14 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
         queryset=Subject.objects.all(),
         slug_field='name'  
     )
-    price_eur = serializers.IntegerField(source='price', required=False, allow_null=True)
+    price = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = Instructor
         # uključujemo samo polja koja želimo da instruktor može mijenjati
         fields = ['bio',
                   'location', 
-                  'price_eur', 
+                  'price', 
                   'subjects',
                   'video_url',
                   'profile_image_url'
@@ -252,7 +252,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
     reviews = serializers.SerializerMethodField()
     calendar = serializers.SerializerMethodField()
     subjects = SubjectMiniSerializer(many=True, read_only=True)
-    price_eur = serializers.IntegerField(source="price", read_only=True)
+    price = serializers.IntegerField(read_only=True)
     google_calendar_email = serializers.EmailField(read_only=True)
 
     class Meta:
@@ -263,7 +263,7 @@ class MyInstructorProfileSerializer(serializers.ModelSerializer):
             "bio",
             "location",
             "subjects",
-            "price_eur",
+            "price",
             "video_url",
             "profile_image_url",
             "avg_rating",

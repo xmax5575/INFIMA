@@ -63,7 +63,7 @@ export default function InstructorEditForm() {
         if (inf.video_url) setVideoPreview(inf.video_url);
         setBio(inf.bio ?? "");
         setLocation(inf.location ?? "");
-        setPrice(inf.price_eur != null ? String(inf.price_eur) : "");
+        setPrice(inf.price != null ? String(inf.price) : "");
         setSubjects(
           Array.isArray(inf.subjects)
             ? inf.subjects.map((s) => s.name).filter(Boolean)
@@ -90,7 +90,7 @@ export default function InstructorEditForm() {
       await api.post("/api/instructor/me/", {
         bio,
         location,
-        price_eur: price === "" ? null : Number(price),
+        price: price === "" ? null : Number(price),
         subjects,
         ...(profileImageUrl && { profile_image_url: profileImageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
