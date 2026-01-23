@@ -80,6 +80,7 @@ export default function StudentCard({
       }));
     }
 
+    // ako dode array
     if (Array.isArray(raw)) {
       return raw
         .map((s) => {
@@ -95,6 +96,7 @@ export default function StudentCard({
     return [];
   }, [student]);
 
+  // preferred_times: [{day, start, end}] ili string
   const preferredSlots = useMemo(() => {
     const raw = u?.preferred_slots ?? u?.preferred_times ?? [];
     return Array.isArray(raw) ? raw : [];
@@ -111,12 +113,14 @@ export default function StudentCard({
     return day || "Termin";
   };
 
+  // learning_goals: string
   const goals = useMemo(() => {
     const raw = u?.goals ?? u?.learning_goals ?? "";
     if (Array.isArray(raw)) return raw.filter(Boolean);
     return raw ? [raw] : [];
   }, [u]);
 
+  // favorite_instructors: [{instructor_id, first_name, last_name}] ili id-evi
   const favorites = useMemo(() => {
     const raw = u?.favorite_instructors ?? [];
     if (!Array.isArray(raw)) return [];
@@ -209,8 +213,11 @@ export default function StudentCard({
               </div>
             </div>
 
+            {/* MAIN */}
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
+              {/* LEFT */}
               <div className="lg:col-span-5">
+                {/* Predmeti */}
                 <div className="rounded-2xl bg-[#215993] p-5 text-[#D1F8EF]">
                   <h2 className="text-lg sm:text-xl font-semibold">
                     Predmeti i razina znanja
@@ -233,6 +240,7 @@ export default function StudentCard({
                   </div>
                 </div>
 
+                {/* Omiljeni instruktori (broj + lista) */}
                 <div className="mt-5 rounded-2xl bg-white p-5">
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-full bg-[#3674B5]">
@@ -267,6 +275,7 @@ export default function StudentCard({
                 </div>
               </div>
 
+              {/* RIGHT */}
               <div className="lg:col-span-7">
                 <div className="rounded-2xl bg-[#3674B5] p-5 sm:p-6 text-[#D1F8EF]">
                   <div className="text-lg sm:text-xl font-semibold text-center">

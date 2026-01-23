@@ -30,11 +30,11 @@ urlpatterns = [
     path("lessons/<int:lesson_id>/jitsi/", views.LessonJitsiRoomView.as_view()),
     # Endpoint za jaas token za meeting
     path("lessons/<int:lesson_id>/jaas-token/", views.LessonJaasTokenView.as_view()),
-    # Endpoint za kraj meetinga
+
     path("lessons/<int:lesson_id>/end/", views.EndLessonView.as_view(), name="lesson-end"),
-    # Endpoint za potvrdu plaćanja
+
     path("payments/<int:lesson_id>/confirm/", views.ConfirmPaymentView.as_view(), name="payment-confirm"),
-    # Endpoint za potvrdu recenzije
+
     path("reviews/<int:lesson_id>/submit/", views.SubmitReviewView.as_view(), name="review-submit"),
     # Endpoint za dohvacanje recenzija logiranog instruktora
     path("instructor/reviews/my/",views.MyInstructorReviewsView.as_view(), name="my-instructor-reviews" ),
@@ -46,33 +46,35 @@ urlpatterns = [
     path("instructor/questions/upload/", views.InstructorQuestionUploadView.as_view(), name="instructor-question-upload"),
     # Endpoint za dohvat pitanja za kviz studenta prema predmetu i znanju
     path("student/quiz/<str:subject_name>/", views.StudentQuizView.as_view(), name="student-quiz"),
-    # Endpoint za mail remindere
+
     path("cron/reminders/", views.ReminderCronView.as_view()),
     # Endpoint za dohvacanje instruktorovih pitanja
     path("instructor/questions/my/", views.InstructorQuestionsListView.as_view(), name="my-instructor-questions"),
     # Endpoint za brisanje pitanja
     path("question/delete/<int:id>/", views.QuestionDeleteView.as_view(), name="instructor-question-delete"),
-    # Endpoint za povezivanje Google kalendara
     path("google/calendar/connect/", views.GoogleCalendarConnectView.as_view(),name="google-calendar-connect"),
     # Endpoint za kreiranje summaryja lekcije od strane instruktora
     path("lesson/<int:lesson_id>/summary/", views.LessonSummaryView.as_view(), name="lesson-summary"),
-    # Endpoint za dohvaćanje studentovih sažetaka
+
     path("student/summaries/", views.StudentSummariesView.as_view()),
     # Endpoint za ažuriranje razine znanja studenta
     path("student/knowledge/", views.UpdateKnowledgeLevelView.as_view()),
-    # Endpoint za brisanje recenzije
+
     path("review/delete/<int:id>/", views.ReviewDeleteView.as_view(), name="review-delete"),
-    # Endpoint za prikaz pitanja za admina
+
     path("admin/questions/", views.AdminQuestionsListView.as_view()),
-    # Endpoint za prikaz recenzija za admina
+
     path("admin/reviews/", views.AdminReviewsListView.as_view()),
     # ADMIN
     path("admin/lessons/", views.AdminLessonsListView.as_view()),
     path("admin/lesson/<int:lesson_id>/delete/", views.LessonDeleteView.as_view()),
     path("admin/analytics/", views.AdminAnalyticsView.as_view()),
     path("admin/review/<int:id>/delete/", views.ReviewDeleteView.as_view()),
+    
+    
     # Plaćeno, zabilježi to 
     path("payments/<int:lesson_id>/complete/", views.CompletePaymentView.as_view(), name="payment-complete"),
+    
     # Provjera je li dopušteno ići na recenziju, je li plaćeno i je li obavljen poziv?
     path("reviews/<int:lesson_id>/allowed/", views.ReviewAccessView.as_view(), name="review-allowed"),
     # Provjera je li studentu dopušteno ići na plaćanje? 
@@ -81,4 +83,5 @@ urlpatterns = [
     path("lesson/<int:lesson_id>/summary/allowed/", views.SummaryAccessView.as_view(), name="summary-allowed"),
     # Provjera je li student preskočio plaćanje ili recenzije, ili instruktor sažetak
     path("flow/next/", views.FlowNextActionView.as_view(), name="flow-next"),
+
 ]

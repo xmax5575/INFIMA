@@ -13,7 +13,7 @@ async function uploadLessonSummary(file, lessonId) {
   const { data } = supabase.storage.from("media").getPublicUrl(path);
   return {
     publicUrl: data.publicUrl,
-    originalName: file.name,
+    originalName: file.name, // ovo spremamo u bazu skupa s publicUrlom kako bismo znali kako se dokument zove
   };
 }
 
@@ -74,12 +74,14 @@ export default function SummaryUpload() {
             onSubmit={submitSummary}
             className="rounded-2xl bg-white/70 p-6 space-y-6"
           >
+            {/* NASLOV */}
             <h2 className="text-center text-2xl sm:text-3xl font-semibold text-[#215993]">
               Upload sažetka instrukcija
             </h2>
 
             {error && <p className="text-red-600">{error}</p>}
 
+            {/* FILE INPUT */}
             <div>
               <div className="mb-2 text-sm sm:text-base font-semibold text-[#3674B5]">
                 Dokument (PDF ili Word)
@@ -98,6 +100,7 @@ export default function SummaryUpload() {
               </label>
             </div>
 
+            {/* PREVIEW */}
             {file && (
               <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 text-[#215993]">
                 <FileText className="h-5 w-5 text-[#3674B5]" />
@@ -105,6 +108,7 @@ export default function SummaryUpload() {
               </div>
             )}
 
+            {/* SUBMIT */}
             <button
               type="submit"
               disabled={loading || !file}

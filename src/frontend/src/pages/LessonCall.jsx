@@ -20,7 +20,7 @@ export default function LessonCall() {
         const status = err?.response?.status;
 
         if (status === 403) {
-          navigate("/home/student", { replace: true });
+          navigate("/home/student", { replace: true }); // ili "/"
           return;
         }
 

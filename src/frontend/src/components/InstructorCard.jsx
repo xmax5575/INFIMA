@@ -44,6 +44,7 @@ export default function InstructorCard({
 
   // Google Login Logika
   const connectCalendar = useGoogleLogin({
+    //dobivanje autorizacijskog koda, dozvole za upravljanje te prosljeđivanje backendu
     flow: "auth-code",
     scope: "https://www.googleapis.com/auth/calendar.events",
     onSuccess: async (codeResponse) => {
@@ -57,6 +58,7 @@ export default function InstructorCard({
     },
   });
 
+  // useEffect za recenzije
   useEffect(() => {
     if (!instructor_id) return;
     const fetchReviews = async () => {
@@ -73,6 +75,7 @@ export default function InstructorCard({
     fetchReviews();
   }, [instructor_id]);
 
+  // renderStars funkcija
   const renderStars = (rating) => {
     const maxStars = 5;
     return (
@@ -88,7 +91,7 @@ export default function InstructorCard({
       </div>
     );
   };
-
+  // formatiranje termina iz liste
   const formatSlot = (slot) => {
     const t = (slot.time || "").slice(0, 5);
     const d = slot.date || "";
@@ -146,6 +149,7 @@ export default function InstructorCard({
           </div>
         </div>
 
+        {/* Dugme za Google (samo za instruktora) */}
         {user?.role === "INSTRUCTOR" &&(<button
           onClick={() => connectCalendar()}
           className="mt-6 w-full rounded-xl bg-white px-4 py-3 text-[#3674B5] font-semibold hover:bg-white/90 shadow-sm transition-all"
@@ -226,6 +230,7 @@ export default function InstructorCard({
                     title="Google Calendar"
                     src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(user.google_calendar_email)}&ctz=Europe/Zagreb`}
                     className="w-full h-full border-0"
+                    scrolling="no"
                   />
                 </div>
               ) : (

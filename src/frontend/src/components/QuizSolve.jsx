@@ -43,6 +43,7 @@ export default function QuizSolve({ questions, subject }) {
 
   const correctCount = questions.filter(isCorrect).length;
 
+  // postavljanje razine znanja učenika
   useEffect(() => {
     if (!finished) return;
     const percentage = (correctCount / questions.length) * 100;

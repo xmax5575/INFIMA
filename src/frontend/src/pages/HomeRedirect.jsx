@@ -32,7 +32,7 @@ export default function HomeRedirect() {
         if (!role) {
           navigate("/role", { replace: true });
         } else {
-          navigate(`/home/${role}`, { replace: true });
+          navigate(`/home/${role}`, { replace: true }); // admin -> /home/admin
         }
       } catch {
         navigate("/login", { replace: true });

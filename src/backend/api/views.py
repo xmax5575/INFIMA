@@ -132,6 +132,8 @@ class GoogleAuthCodeExchangeView(APIView):
                     "password": make_password(uuid.uuid4().hex),
                 },
             )
+
+            # 🔴 KLJUČNI DIO — SPREMANJE CALENDAR ID-a
             try:
                 instructor = Instructor.objects.get(instructor_id=user)
                 instructor.google_calendar_email = email  # primary calendar
@@ -170,6 +172,7 @@ class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
+        # Return the user's current role or null
         return Response({
             'role': request.user.role,
             'has_role': request.user.has_role
@@ -199,19 +202,30 @@ class CreateRoleView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """
+        Render the role selection page for HTML forms.
+        """
+        # For HTML rendering, you can pass context if needed
         return render(request, 'users/select_role.html')
 
     def post(self, request):
+        """
+        Set the user's role via POST.
+        Accepts either form data (HTML) or JSON (API).
+        """
         role = request.data.get('role') or request.POST.get('role')
 
+        # Map valid input to model Role choices
         valid_roles = {
             'student': User.Role.STUDENT,
             'instructor': User.Role.INSTRUCTOR
         }
 
         if role not in valid_roles:
+            # For API request, return JSON error
             if request.content_type == 'application/json':
                 return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
+            # For HTML, re-render with error message
             return render(request, 'users/select_role.html', {'error': 'Invalid role'})
 
         user = request.user
@@ -219,8 +233,9 @@ class CreateRoleView(APIView):
         if user.role:
             if request.content_type == 'application/json':
                 return Response({'error': 'Role already set'}, status=status.HTTP_400_BAD_REQUEST)
-            return redirect('home')
+            return redirect('home')  # already set, redirect to home
 
+        # Save the role
         user.role = valid_roles[role]
         user.save()
 
@@ -231,10 +246,11 @@ class CreateRoleView(APIView):
         elif user.role == User.Role.INSTRUCTOR:
             Instructor.objects.get_or_create(instructor_id=user, defaults={'price': 0, 'bio': '', 'location': ''})
 
+        # Redirect depending on request type
         if request.content_type == 'application/json':
             return Response({'role': user.role}, status=status.HTTP_200_OK)
         else:
-            return redirect('home')
+            return redirect('home')  # redirect to homepage/dashboard
 
     
 class LessonListCreateView(generics.ListCreateAPIView):
@@ -253,7 +269,7 @@ class LessonListCreateView(generics.ListCreateAPIView):
         if instructor.google_refresh_token:
             create_google_calendar_event(instructor, lesson)
     def get_queryset(self):
-        # Prikazuje lekcije ovisno o ulozi korisnika
+        """Prikazuje lekcije ovisno o ulozi korisnika."""
         user = self.request.user
 
         expire_lessons()
@@ -297,6 +313,7 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
+        """Dodatna zaštita — svatko vidi ono što smije."""
         user = self.request.user
 
         expire_lessons()
@@ -314,6 +331,7 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InstructorUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    # Kreira ili ažurira instruktora za trenutno prijavljenog korisnika
     def post(self, request):
 
         if request.user.role != 'INSTRUCTOR':
@@ -332,12 +350,13 @@ class InstructorUpdateView(APIView):
             }
         )
 
+        # zapamti staru lokaciju da znamo je li se promijenila
         old_location = instructor.location
 
         serializer = InstructorUpdateSerializer(
             instructor,
             data=request.data,
-            partial=True
+            partial=True  # dopušta slanje samo dijela polja
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -348,7 +367,7 @@ class InstructorUpdateView(APIView):
         # ako imamo novu (drugačiju) lokaciju, probamo ju geokodirati
         if new_location and new_location != old_location:
             api_key = getattr(settings, "GOOGLE_MAPS_API_KEY", None)
-            # kad se promijeni lokacija, pretvaramo adresu u lat/lng i spremamo koordinate
+            #kad se promijeni lokacija, pretvaramo adresu u lat/lng i spremamo koordinate
             if api_key:
                 try:
                     resp = requests.get(
@@ -363,6 +382,7 @@ class InstructorUpdateView(APIView):
                         instructor.lng = loc.get("lng")
                         instructor.save(update_fields=["lat", "lng"])
                 except Exception as e:
+                    # ne rušimo zahtjev ako geokodiranje faila – samo ispišemo u konzolu
                     None
 
         return Response(
@@ -407,6 +427,9 @@ class StudentUpdateView(APIView):
 
     # Kreira ili ažurira studenta za trenutno prijavljenog korisnika
     def post(self, request):
+        """
+        CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
+        """
 
         if request.user.role != 'STUDENT':
             return Response(
@@ -429,7 +452,7 @@ class StudentUpdateView(APIView):
         serializer = StudentUpdateSerializer(
             student,
             data=request.data,
-            partial=True
+            partial=True  # dopušta slanje samo dijela polja
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -732,13 +755,15 @@ class EndLessonView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
+        # 👨‍🏫 instruktor -> označi call_ended za sve attendances + summary
         if user.role == User.Role.INSTRUCTOR:
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
-            Attendance.objects.filter(lesson=lesson).update(call_ended=True)
+            Attendance.objects.filter(lesson=lesson).update(call_ended=True)  # ✅
             return Response({"redirect_to": f"/summary/{lesson.lesson_id}"})
 
+        # 👨‍🎓 student -> označi call_ended za svog attendance + payment
         if user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
             if not student:
@@ -886,6 +911,7 @@ class ConfirmPaymentView(APIView):
                 },
                 "quantity": 1,
             }],
+            # ✅ VRATI NA PAYMENT STRANICU S SESSION ID-om
             success_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}",
             metadata={
@@ -962,7 +988,7 @@ class FlowNextActionView(APIView):
                 .filter(
                     instructor_id=instructor,
                     attendance__call_ended=True,
-                    summary__isnull=True,
+                    summary__isnull=True,   # Summary je OneToOne (related_name="summary")
                 )
                 .distinct()
                 .order_by("date", "time")
@@ -1050,6 +1076,9 @@ class CompletePaymentView(APIView):
         if session.payment_status != "paid":
             return Response({"error": "Payment not completed"}, status=409)
 
+        # (Opcionalno) dodatna provjera metadata
+        # if str(session.metadata.get("lesson_id")) != str(lesson_id): ...
+
         payment.is_paid = True
         payment.save(update_fields=["is_paid"])
 
@@ -1081,7 +1110,7 @@ class MyInstructorReviewsView(APIView):
         serializer = InstructorReviewSerializer(reviews, many=True)
         return Response(serializer.data)
 
-#view za dohvaćanje recenzija za instruktora
+#view za dohvaćanje recenzija za instruktora po pk   
 class InstructorReviewsView(APIView):
     permission_classes = [AllowAny]
 
@@ -1250,7 +1279,7 @@ class QuestionDeleteView(generics.DestroyAPIView):
 class GoogleCalendarConnectView(APIView):
     permission_classes = [IsAuthenticated]
 
-    # Prima authorization code s frontenda i sprema refresh token u instructor profil.
+    #Prima authorization code s frontenda i sprema refresh token u instructor profil.
     def post(self, request):
         if request.user.role != User.Role.INSTRUCTOR:
             return Response(
@@ -1297,14 +1326,17 @@ class LessonSummaryView(APIView):
 
     # Upload summary za lekciju, samo instruktor
     def post(self, request, lesson_id):
+        # samo instruktor
         if request.user.role != User.Role.INSTRUCTOR:
             return Response({"error": "Only instructors can upload summaries"}, status=403)
 
+        # instructor profil
         try:
             instructor = Instructor.objects.get(instructor_id=request.user)
         except Instructor.DoesNotExist:
             return Response({"error": "Instructor profile not found"}, status=404)
 
+        # lesson (kod tebe pk je lesson_id, ali ovako je jasnije i konzistentno)
         try:
             lesson = Lesson.objects.get(lesson_id=lesson_id)
         except Lesson.DoesNotExist:
@@ -1318,7 +1350,7 @@ class LessonSummaryView(APIView):
         if not Attendance.objects.filter(lesson=lesson, call_ended=True).exists():
             return Response({"error": "Call not ended"}, status=403)
 
-        # summary već postoji
+        # summary već postoji -> 409
         if Summary.objects.filter(lesson=lesson).exists():
             return Response({"error": "Summary already exists"}, status=409)
 
@@ -1329,6 +1361,7 @@ class LessonSummaryView(APIView):
         try:
             serializer.save(author=instructor, lesson=lesson)
         except IntegrityError:
+            # safety net ako se desi race condition
             return Response({"error": "Summary already exists"}, status=409)
 
         return Response(serializer.data, status=201)

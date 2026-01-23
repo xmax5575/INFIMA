@@ -85,7 +85,7 @@ export default function TerminForm({ onCreated, onClose }) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Reset forme kad instruktor doda termin
+      // Reset forme kad instruktor doda termin.
       setSubject("");
       setLevel("");
       setMaxStudents("");
@@ -94,6 +94,7 @@ export default function TerminForm({ onCreated, onClose }) {
       setDate("");
       setTime("");
 
+      // javi parentu i zatvori modal
       onCreated && onCreated(res.data);
       onClose && onClose();
     } catch (err) {
