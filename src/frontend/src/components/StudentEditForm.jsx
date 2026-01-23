@@ -670,7 +670,7 @@ export default function StudentEditPage({update}) {
 
           {/* Donji dio */}
           <div className="mt-8 space-y-4">
-            {/* Ciljevi učenja - full width */}
+            {/* Ciljevi učenja */}
             <div className="bg-[#215993] rounded-2xl p-6 border border-white/10">
               <label className="block text-[13px] font-bold text-[#D1F8EF] mb-2 uppercase tracking-wider">
                 Ciljevi učenja

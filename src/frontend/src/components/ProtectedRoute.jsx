@@ -113,7 +113,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         if (!detail || !detail.role) return;
         const r = String(detail.role).toLowerCase();
 
-        // If we don't yet know the role, set it so the routing logic can proceed.
+        // Ako još ne znamo ulogu, postavi ju da routing logika može nastaviti.
         setRole((current) => (current === null ? r : current));
 
         if (typeof detail.isProfileComplete === "boolean") {
@@ -123,11 +123,11 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
           setIsProfileComplete(savedFlag);
         }
 
-        // Remove the temporary saved flag so it can't be reused.
+        // Ukloni privremeni flag pohrane profila kako se ne bi ponovno koristio.
         try {
           localStorage.removeItem(`profile_saved_${r}`);
         } catch (e) {
-          console.error("Failed to remove profile_saved flag:", e);
+          console.error("Neuspjelo uklanjanje profile_saved flag-a:", e);
         }
 
         const editPathForRole = `/profile/${r}/edit`;
@@ -185,7 +185,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         // inače ga vrati na to što je na redu
         navigate(target, { replace: true });
       } catch (e) {
-        // ignore 
+        // ignore
       }
     })();
 

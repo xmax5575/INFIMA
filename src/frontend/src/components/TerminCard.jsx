@@ -46,7 +46,7 @@ export default function TerminCard({
   const {
     level,
     format,
-    price, // može biti null ili 0
+    price,
     date,
     duration_min,
     time,
@@ -196,7 +196,6 @@ export default function TerminCard({
                 </button>
               )}
 
-              {/* Premješteno unutar istog flex div-a */}
               {reserved && format === "Online" && (
                 <button
                   onClick={goToMeeting}

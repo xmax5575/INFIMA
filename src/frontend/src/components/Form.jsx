@@ -38,7 +38,6 @@ function Form({method}) {
         });
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        //alert("Prijava uspješna!");
         //spremimo jwt token u localstorage
         const res_role = await api.get("/api/user/role/", {
           headers: { Authorization: `Bearer ${res.data.access}` },
@@ -60,7 +59,6 @@ function Form({method}) {
           password: password,
         });
         if (res.status === 201) {
-          //alert("Registracija uspješna! Možete se prijaviti.");
           //Registracija uspješna, korisnik se mora prijaviti.
           navigate("/login");
         }

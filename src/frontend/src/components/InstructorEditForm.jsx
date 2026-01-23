@@ -6,14 +6,13 @@ import defaultAvatar from "../images/avatar.jpg";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import { supabase } from "../supabaseClient";
 
-//Upload slike instruktora u Supabase Storage pod jedinstvenim imenom i vraća njen javni URL za spremanje u bazu
 async function uploadInstructorAvatar(file) {
-  const ext = file.name.split(".").pop();                 //ekstenzija filea
-  const fileName = `${crypto.randomUUID()}.${ext}`;       //unique id
+  const ext = file.name.split(".").pop();                 
+  const fileName = `${crypto.randomUUID()}.${ext}`;     
   const path = `instructors/pictures/${fileName}`;
   const { error } = await supabase.storage.from("media").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("media").getPublicUrl(path);     //generiramo javni url koji spremamo u bazu 
+  const { data } = supabase.storage.from("media").getPublicUrl(path);    
   return data.publicUrl;
 }
 //Upload odabranog videa instruktora i vraća javni URL videa

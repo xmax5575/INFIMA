@@ -5,7 +5,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 from django.db import IntegrityError
-from django.db.models import Count, F
+from django.db.models import Count, F, Q
+from django.shortcuts import get_object_or_404
 
 # DRF
 from rest_framework import generics, serializers, status, permissions
@@ -133,7 +134,6 @@ class GoogleAuthCodeExchangeView(APIView):
                 },
             )
 
-            # 🔴 KLJUČNI DIO — SPREMANJE CALENDAR ID-a
             try:
                 instructor = Instructor.objects.get(instructor_id=user)
                 instructor.google_calendar_email = email  # primary calendar
@@ -172,7 +172,7 @@ class UserRoleView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Return the user's current role or null
+        # Vrati trenutnu ulogu korisnika ili `null`
         return Response({
             'role': request.user.role,
             'has_role': request.user.has_role
@@ -202,30 +202,19 @@ class CreateRoleView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """
-        Render the role selection page for HTML forms.
-        """
-        # For HTML rendering, you can pass context if needed
         return render(request, 'users/select_role.html')
 
     def post(self, request):
-        """
-        Set the user's role via POST.
-        Accepts either form data (HTML) or JSON (API).
-        """
         role = request.data.get('role') or request.POST.get('role')
 
-        # Map valid input to model Role choices
         valid_roles = {
             'student': User.Role.STUDENT,
             'instructor': User.Role.INSTRUCTOR
         }
 
         if role not in valid_roles:
-            # For API request, return JSON error
             if request.content_type == 'application/json':
                 return Response({'error': 'Invalid role'}, status=status.HTTP_400_BAD_REQUEST)
-            # For HTML, re-render with error message
             return render(request, 'users/select_role.html', {'error': 'Invalid role'})
 
         user = request.user
@@ -233,9 +222,8 @@ class CreateRoleView(APIView):
         if user.role:
             if request.content_type == 'application/json':
                 return Response({'error': 'Role already set'}, status=status.HTTP_400_BAD_REQUEST)
-            return redirect('home')  # already set, redirect to home
+            return redirect('home')
 
-        # Save the role
         user.role = valid_roles[role]
         user.save()
 
@@ -246,16 +234,16 @@ class CreateRoleView(APIView):
         elif user.role == User.Role.INSTRUCTOR:
             Instructor.objects.get_or_create(instructor_id=user, defaults={'price': 0, 'bio': '', 'location': ''})
 
-        # Redirect depending on request type
         if request.content_type == 'application/json':
             return Response({'role': user.role}, status=status.HTTP_200_OK)
         else:
-            return redirect('home')  # redirect to homepage/dashboard
+            return redirect('home')
 
     
 class LessonListCreateView(generics.ListCreateAPIView):
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     def perform_create(self, serializer):
         instructor = getattr(self.request.user, "instructor", None)
         if not instructor:
@@ -265,26 +253,42 @@ class LessonListCreateView(generics.ListCreateAPIView):
 
         lesson = serializer.save(instructor_id=instructor)
 
-        # Ako je instruktor povezao Google Calendar kreiramo event za novu lekciju.
+        # Ako je instruktor povezao Google Calendar kreiramo event za novu lekciju
         if instructor.google_refresh_token:
             create_google_calendar_event(instructor, lesson)
+
     def get_queryset(self):
-        """Prikazuje lekcije ovisno o ulozi korisnika."""
         user = self.request.user
 
+        # Poziv funkcije koja prebacuje stare lekcije u EXPIRED status
         expire_lessons()
 
-        # ADMIN -> vidi sve lekcije
+        # 1. ADMIN -> vidi sve lekcije
         if user.is_superuser or user.role == 'ADMIN':
             return Lesson.objects.all()
 
-        # INSTRUKTOR -> vidi samo svoje lekcije
+        # 2. INSTRUKTOR -> vidi samo svoje lekcije koje nisu istekle
         if user.role == 'INSTRUCTOR':
-            return Lesson.objects.filter(instructor_id__instructor_id=user).exclude(status="EXPIRED")
+            return Lesson.objects.filter(
+                instructor_id__instructor_id=user
+            ).exclude(status="EXPIRED")
 
-        # STUDENT -> vidi samo slobodne lekcije
+        # 3. STUDENT -> vidi samo aktivne i dostupne lekcije
         if user.role == 'STUDENT':
-            return Lesson.objects.filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED").annotate(occupied=Count("attendance")).filter(occupied__lt=F("max_students"))   
+            return Lesson.objects.filter(
+                is_available=True, 
+                status="ACTIVE"
+            ).exclude(
+                status="EXPIRED"
+            ).annotate(
+                active_occupied=Count(
+                    "attendance", 
+                    filter=Q(attendance__cancelled_at__isnull=True)
+                )
+            ).filter(
+                # Lekcija se prikazuje samo ako je broj aktivnih polaznika manji od max
+                active_occupied__lt=F("max_students")
+            )
 
         # Ostali (bez role) -> ništa
         return Lesson.objects.none()
@@ -313,7 +317,6 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        """Dodatna zaštita — svatko vidi ono što smije."""
         user = self.request.user
 
         expire_lessons()
@@ -427,9 +430,6 @@ class StudentUpdateView(APIView):
 
     # Kreira ili ažurira studenta za trenutno prijavljenog korisnika
     def post(self, request):
-        """
-        CREATE ili UPDATE studenta koji pripada trenutno prijavljenom korisniku.
-        """
 
         if request.user.role != 'STUDENT':
             return Response(
@@ -520,12 +520,12 @@ class StudentMyLessonsView(APIView):
 
         lessons = (
             Lesson.objects
-            .filter(attendance__student=student).filter(is_available=True, status="ACTIVE").exclude(status="EXPIRED")
-            .select_related(
-                "subject",
-                "instructor_id",
-                "instructor_id__instructor_id"
+            .filter(
+                attendance__student=student,
+                attendance__cancelled_at__isnull=True,
+                status="ACTIVE"  # Zadržavamo ovo da ne vidiš povijest (EXPIRED)
             )
+            .select_related("subject", "instructor_id", "instructor_id__instructor_id")
             .order_by("-date", "-time")
             .distinct()
         )
@@ -548,47 +548,60 @@ class ReserveLessonView(APIView):
 
         lesson_id = serializer.validated_data["lesson_id"]
 
-        # student
         try:
             student = Student.objects.get(student_id=request.user)
         except Student.DoesNotExist:
             return Response({"error": "Student profile not found"}, status=404)
 
-        # lesson
         try:
             lesson = Lesson.objects.get(
                 lesson_id=lesson_id,
-                status="ACTIVE",
-                is_available=True
+                status="ACTIVE"
             )
         except Lesson.DoesNotExist:
-            return Response({"error": "Lesson not available"}, status=404)
+            return Response({"error": "Lesson not found or inactive"}, status=404)
 
-        # već prijavljen?
-        if Attendance.objects.filter(lesson=lesson, student=student).exists():
+        active_attendance = Attendance.objects.filter(
+            lesson=lesson, 
+            student=student, 
+            cancelled_at__isnull=True
+        ).exists()
+
+        if active_attendance:
             return Response(
-                {"error": "Already reserved"},
+                {"error": "Already reserved and active"},
                 status=409
             )
 
-        # kapacitet
-        current_count = Attendance.objects.filter(lesson=lesson).count()
+        current_count = Attendance.objects.filter(
+            lesson=lesson, 
+            cancelled_at__isnull=True
+        ).count()
+        
         if current_count >= lesson.max_students:
             return Response(
                 {"error": "Lesson is full"},
                 status=400
             )
 
-        # upis
-        attendance = Attendance.objects.create(
+        attendance, created = Attendance.objects.update_or_create(
             lesson=lesson,
-            student=student
+            student=student,
+            defaults={
+                'cancelled_at': None,
+                'attended': False
+            }
         )
+
+        if current_count + 1 >= lesson.max_students:
+            lesson.is_available = False
+            lesson.save()
 
         return Response(
             {
                 "message": "Lesson reserved successfully",
-                "lesson_id": lesson.lesson_id
+                "lesson_id": lesson.lesson_id,
+                "reused_record": not created
             },
             status=201
         )
@@ -597,47 +610,37 @@ class CancelLessonView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # samo studenti smiju otkazivati
         if request.user.role != User.Role.STUDENT:
-            return Response(
-                {"error": "Only students can cancel lessons"},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "Only students can cancel lessons"}, status=403)
 
         serializer = AttendanceCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         lesson_id = serializer.validated_data["lesson_id"]
 
-        try:
-            student = Student.objects.get(student_id=request.user)
-        except Student.DoesNotExist:
-            return Response(
-                {"error": "Student profile not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        student = get_object_or_404(Student, student_id=request.user)
 
         attendance = Attendance.objects.filter(
             lesson_id=lesson_id,
             student=student,
             cancelled_at__isnull=True
-        )
+        ).first()
 
-        if not attendance.exists():
-            return Response(
-                {"error": "Reservation not found or already cancelled"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        if not attendance:
+            return Response({"error": "Reservation not found"}, status=404)
 
-        attendance.update(cancelled_at=timezone.now())
+        attendance.cancelled_at = timezone.now()
+        attendance.save()
 
-        return Response(
-            {
-                "message": "Lesson reservation cancelled successfully",
-                "lesson_id": lesson_id
-            },
-            status=status.HTTP_200_OK
-        )
+        lesson = attendance.lesson
+        active_count = Attendance.objects.filter(lesson=lesson, cancelled_at__isnull=True).count()
+
+        if active_count < lesson.max_students:
+            Lesson.objects.filter(pk=lesson.pk).update(is_available=True)
+
+        return Response({
+            "message": "Lesson reservation cancelled successfully",
+            "lesson_id": lesson_id
+        }, status=200)
 
 #view za pokretanje jitsi meeting sobe za instruktora i studenta
 class LessonJitsiRoomView(APIView):
@@ -755,15 +758,13 @@ class EndLessonView(APIView):
         except Lesson.DoesNotExist:
             return Response({"error": "Lesson not found"}, status=404)
 
-        # 👨‍🏫 instruktor -> označi call_ended za sve attendances + summary
         if user.role == User.Role.INSTRUCTOR:
             if lesson.instructor_id.instructor_id != user:
                 return Response({"error": "Forbidden"}, status=403)
 
-            Attendance.objects.filter(lesson=lesson).update(call_ended=True)  # ✅
+            Attendance.objects.filter(lesson=lesson).update(call_ended=True)
             return Response({"redirect_to": f"/summary/{lesson.lesson_id}"})
 
-        # 👨‍🎓 student -> označi call_ended za svog attendance + payment
         if user.role == User.Role.STUDENT:
             student = getattr(user, "student", None)
             if not student:
@@ -911,7 +912,6 @@ class ConfirmPaymentView(APIView):
                 },
                 "quantity": 1,
             }],
-            # ✅ VRATI NA PAYMENT STRANICU S SESSION ID-om
             success_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{settings.FRONTEND_URL}/payment/{lesson.lesson_id}",
             metadata={

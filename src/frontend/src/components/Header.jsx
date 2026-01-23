@@ -8,7 +8,7 @@ import StudentCard from "../components/StudentCard";
 
 function Header() {
   const [user, setUser] = useState(null);
-  const [instructor, setInstructor] = useState(null); // <-- instruktorski detalji
+  const [instructor, setInstructor] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
@@ -75,7 +75,7 @@ function Header() {
     fetchUser();
   }, [location.pathname]);
 
-  // Klik na "Profil" -> povuci instruktorske detalje pa otvori modal
+  // Klik na "Profil" -> povuci instruktorske detalje
   const openProfile = async () => {
     setMenuOpen(false);
 

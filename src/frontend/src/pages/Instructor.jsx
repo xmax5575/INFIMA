@@ -58,11 +58,10 @@ function Instructor() {
       setCurrentTime(new Date());
     }, 10000); // Osvježava svaku minutu
 
-    return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
+    return () => clearInterval(timer);
   }, []);
 
-  // Učitaj profil kad imamo accessToken - zbog instructor_id-a.
-  // Ako je odgovor dobar spremi ga u user
+  // Učitaj profil kad imamo accessToken
   useEffect(() => {
     if (!accessToken) return;
     fetch(`${API_BASE_URL}/api/user/profile/`, {
