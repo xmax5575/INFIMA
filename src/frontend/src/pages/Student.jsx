@@ -38,6 +38,61 @@ function Student() {
     return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
   }, []);
 
+  // Učitaj sve dostupne termine i moje rezervirane termine na početku
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true);
+      setErr(null);
+      const token = localStorage.getItem(ACCESS_TOKEN);
+
+      try {
+        // Dohvaćamo sve dostupne termine
+        const res = await fetch(`${API_BASE_URL}/api/lessons/`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          if (res.status === 401) {
+            setErr("Nisi prijavljen/a (401). Ulogiraj se pa pokušaj ponovno.");
+          } else {
+            setErr("Ne mogu dohvatiti termine. Probaj kasnije.");
+          }
+          setTermini([]);
+          return;
+        }
+
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : [];
+        setTermini(list);
+
+        // Također učitaj moje rezervirane termine ako je korisnik ulogiran
+        if (token) {
+          try {
+            const myRes = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const myData = await myRes.json();
+            setMyTermini(Array.isArray(myData) ? myData : []);
+          } catch (e) {
+          }
+        }
+      } catch (e) {
+        setErr("Mrežna greška. Provjeri backend ili konekciju.");
+        setTermini([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
   const filterBtnClass = (active) =>
     `px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200
    ${
@@ -53,7 +108,7 @@ function Student() {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       try {
-        // Dohvaćamo dve dostupne termine 
+        // Dohvaćamo dve dostupne termine
         const res = await fetch(`${API_BASE_URL}/api/lessons/`, {
           headers: {
             "Content-Type": "application/json",
@@ -79,6 +134,20 @@ function Student() {
 
         // Spremi listu termina.
         setTermini(list);
+
+        // Također učitaj moje rezervirane termine ako je korisnik ulogiran
+        if (token) {
+          try {
+            const myRes = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const myData = await myRes.json();
+            setMyTermini(Array.isArray(myData) ? myData : []);
+          } catch (e) {
+          }
+        }
       } catch (e) {
         setErr("Mrežna greška. Provjeri backend ili konekciju.");
         setTermini([]);
@@ -89,9 +158,9 @@ function Student() {
 
     load();
   }, [tab]);
-  // Pokreni svaki put kad se promijeni tab i ako je mine učitaj termine tog studenta 
+  // Pokreni svaki put kad se promijeni tab i ako je mine učitaj termine tog studenta
   useEffect(() => {
-    if (tab !== "mine") return; 
+    if (tab !== "mine") return;
     const loadMine = async () => {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
@@ -186,7 +255,7 @@ function Student() {
     );
   };
 
-  // Koliko će termini dugo biti vidljivi, ako je rezerviran, nek ostane 15 min duže nego što je termin 
+  // Koliko će termini dugo biti vidljivi, ako je rezerviran, nek ostane 15 min duže nego što je termin
   const visibleTermini = (tab === "all" ? termini : myTermini).filter((t) => {
     const isMyLesson = myLessonIds.has(t.lesson_id);
     const lessonDateTime = new Date(`${t.date}T${t.time}`);
@@ -204,7 +273,7 @@ function Student() {
     tab === "all"
       ? visibleTermini.filter((t) => {
           if (filters.format && t.format !== filters.format) return false;
-          
+
           if (
             filters.subject.length > 0 &&
             !filters.subject.includes(t.subject)
@@ -222,28 +291,27 @@ function Student() {
             if (diff > filters.days) return false;
           }
 
-          
           if (filters.rating && t.avg_rating <= filters.rating) return false;
 
           return true;
         })
       : visibleTermini;
 
-  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno), Ocjena (silazno) 
+  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno), Ocjena (silazno)
   const toggleSort = (key) => {
     setSortBy((prev) => (prev === key ? null : key));
   };
 
   const downloadFile = async (url, filename = "summary.pdf") => {
-    const res = await fetch(url);           // Dobijemo odgovor
-    const blob = await res.blob();          // Pretvaramo u binarne podatke
-    const a = document.createElement("a");  // Kreiramo dinamički objekt koji sadrži privremeni url iz binarne datoteke
+    const res = await fetch(url); // Dobijemo odgovor
+    const blob = await res.blob(); // Pretvaramo u binarne podatke
+    const a = document.createElement("a"); // Kreiramo dinamički objekt koji sadrži privremeni url iz binarne datoteke
     a.href = URL.createObjectURL(blob);
-    a.download = filename;                  // Spremi file
+    a.download = filename; // Spremi file
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);            // Oslobodi memoriju
+    URL.revokeObjectURL(a.href); // Oslobodi memoriju
   };
 
   const sortedTermini = [...filteredTermini].sort((a, b) => {
@@ -255,8 +323,8 @@ function Student() {
     const priceA = (parseFloat(a.price) * a.duration_min) / 60;
     const priceB = (parseFloat(b.price) * b.duration_min) / 60;
 
-    const ratingA = parseFloat(a.avg_rating || 0) ;
-    const ratingB = parseFloat(b.avg_rating || 0) ;
+    const ratingA = parseFloat(a.avg_rating || 0);
+    const ratingB = parseFloat(b.avg_rating || 0);
 
     switch (sortBy) {
       case "date_asc":
@@ -409,8 +477,9 @@ function Student() {
             {["Matematika", "Fizika", "Informatika"].map((subject) => (
               <button
                 key={subject}
-                onClick={() => {setSelectedSubject(subject)
-                                setRend(!rend);
+                onClick={() => {
+                  setSelectedSubject(subject);
+                  setRend(!rend);
                 }}
                 className="rounded-xl bg-white p-4 font-semibold text-[#215993]
                    hover:scale-105 transition "
@@ -421,7 +490,7 @@ function Student() {
           </div>
         )}
         {tab === "quiz" && selectedSubject && (
-          <Quiz subject={selectedSubject} rend = {rend} />
+          <Quiz subject={selectedSubject} rend={rend} />
         )}
         {!loading && !err && (tab === "all" || tab === "mine") && (
           <ul className="mt-6 space-y-3">
@@ -577,7 +646,8 @@ function Student() {
                       }
                       className={filterBtnClass(isActive)}
                     >
-                      ⭐ {r}{r != 5 && "+"}
+                      ⭐ {r}
+                      {r != 5 && "+"}
                     </button>
                   );
                 })}
