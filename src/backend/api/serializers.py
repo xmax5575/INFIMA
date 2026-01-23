@@ -116,13 +116,14 @@ class InstructorUpdateSerializer(serializers.ModelSerializer):
         queryset=Subject.objects.all(),
         slug_field='name'  
     )
+    price_eur = serializers.IntegerField(source='price', required=False, allow_null=True)
 
     class Meta:
         model = Instructor
         # uključujemo samo polja koja želimo da instruktor može mijenjati
         fields = ['bio',
                   'location', 
-                  'price', 
+                  'price_eur', 
                   'subjects',
                   'video_url',
                   'profile_image_url'

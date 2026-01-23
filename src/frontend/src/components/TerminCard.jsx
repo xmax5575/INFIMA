@@ -132,8 +132,8 @@ export default function TerminCard({
           </div>
 
           <div className="bg-white rounded-xl px-3 py-3 text-lg font-bold ring-1">
-            {price != null && duration_min
-              ? `${(price * duration_min) / 60} €`
+            {effectivePrice != null && duration_min
+              ? `${(effectivePrice * duration_min) / 60} €`
               : "—"}
           </div>
         </div>
