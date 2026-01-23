@@ -6,7 +6,6 @@ import GoogleMapEmbed from "./GoogleMapEmbed";
 import LogoBulbProgress from "./LogoBulbProgress";
 import { useNavigate } from "react-router-dom";
 
-/* Helperi */
 function initials(name) {
   if (!name) return "IN";
   return name
@@ -46,7 +45,7 @@ export default function TerminCard({
   const {
     level,
     format,
-    price, // može biti null ili 0
+    price,
     date,
     duration_min,
     time,
@@ -196,7 +195,6 @@ export default function TerminCard({
                 </button>
               )}
 
-              {/* Premješteno unutar istog flex div-a */}
               {reserved && format === "Online" && (
                 <button
                   onClick={goToMeeting}
@@ -226,7 +224,7 @@ export default function TerminCard({
         )}
       </article>
 
-      {/* MODAL: INSTRUKTOR */}
+      {/* INSTRUKTOR */}
       {showInstructor && (
         <div
           className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4"

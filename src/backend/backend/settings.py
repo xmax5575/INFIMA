@@ -27,17 +27,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY')
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 if DEBUG:
-    # Allows all for local development when DEBUG=True
     ALLOWED_HOSTS = ["*"]
     INTERNAL_IPS = ["127.0.0.1"]
 else:
-    # In production, pull a comma-separated list of allowed hosts from the environment
     ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
     INTERNAL_IPS = []
 
@@ -55,7 +51,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-# Application definition
 
 SITE_ID=3
 
@@ -74,15 +69,14 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google", #omogućuje rad s googleovim računima
+    "allauth.socialaccount.providers.google",
 ]
 
-SOCIALACCOUNT_PROVIDERS = { # ako dodajemo nove providere za njih upisujemo scopeove ovdje
+SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": {
             "profile",
             "email",
-           #calendar.events -> dozvola za kreiranje/uređivanje događaja u Google kalendaru.
             "https://www.googleapis.com/auth/calendar.events"
         },
         "AUTH_PARAMS": {
@@ -131,7 +125,6 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 if os.environ.get('DATABASE_URL'):
-    # Use environment variable if present (for production on Render)
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
@@ -140,7 +133,6 @@ if os.environ.get('DATABASE_URL'):
         )
     }
 else:
-    # Use your original hardcoded settings for local testing only
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -172,7 +164,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-AUTH_USER_MODEL = 'api.User' # Zamijenili smo običnog usera s našim prilagođenim modelom koji ima još i role i nema username
+AUTH_USER_MODEL = 'api.User'
 
 
 # Internationalization
@@ -200,38 +192,29 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 if DEBUG:
-    # Allows all origins in development (for easier testing)
-    CORS_ALLOW_ALL_ORIGINS = False # Must be False for credentials
+    CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = [
-        'http://localhost:5173', # Your frontend URL
+        'http://localhost:5173',
         'http://127.0.0.1:5173',
     ]
     CORS_ALLOW_CREDENTIALS = True
 else:
-    # In production, only allow specific Vercel domain(s)
     CORS_ALLOW_ALL_ORIGINS = False
-    # Fetch the allowed origins from a comma-separated environment variable (set on Render)
     CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',')
     CORS_ALLOW_CREDENTIALS = True
 
-# specificiramo kako koristimo i django i allauth backend
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend"
 )
 
-# dodajemo url-ove za login i logout
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-# Google OAuth Client ID - identificira tvoju aplikaciju prema Googleu, 
-# Google OAuth Client Secret - tajni ključ za mijenjanje code -> token
-#Google Maps API key - pozivi prema googleovim servisima za pretvaranje u koordinate
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") 
 
-# plaćanje
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 

@@ -3,7 +3,6 @@ const MultipleChoiceDisplay = ({ text, correctAnswer, options }) => (
     <p className="text-white font-medium">{text}</p>
     <div className="grid gap-2">
       {options.map((opt, index) => {
-        // Provjera ako je ID opcije u listi točnih odgovora
         const isCorrect = opt === correctAnswer;
         return (
           <div key={index} className={`p-3 rounded-xl border flex items-center gap-3 ${

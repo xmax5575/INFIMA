@@ -6,17 +6,16 @@ import defaultAvatar from "../images/avatar.jpg";
 import GoogleMapEmbed from "./GoogleMapEmbed";
 import { supabase } from "../supabaseClient";
 
-//Upload slike instruktora u Supabase Storage pod jedinstvenim imenom i vraća njen javni URL za spremanje u bazu
+
 async function uploadInstructorAvatar(file) {
-  const ext = file.name.split(".").pop();                 //ekstenzija filea
-  const fileName = `${crypto.randomUUID()}.${ext}`;       //unique id
+  const ext = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
   const path = `instructors/pictures/${fileName}`;
   const { error } = await supabase.storage.from("media").upload(path, file);
   if (error) throw error;
-  const { data } = supabase.storage.from("media").getPublicUrl(path);     //generiramo javni url koji spremamo u bazu 
+  const { data } = supabase.storage.from("media").getPublicUrl(path);
   return data.publicUrl;
 }
-//Upload odabranog videa instruktora i vraća javni URL videa
 async function uploadInstructorVideo(file) {
   const ext = file.name.split(".").pop();
   const fileName = `${crypto.randomUUID()}.${ext}`;
@@ -76,7 +75,7 @@ export default function InstructorEditForm() {
   }, []);
 
   //Na submit uploada nove medije ako postoje, validira da je odabran barem jedan predmet,
-  //šalje ažurirane podatke backendu i preusmjerava instruktora na njegov home.
+  //šalje ažurirane podatke backendu i preusmjerava instruktora na njegov home
   const onSubmit = async (e) => {
     e.preventDefault();
     let profileImageUrl = null;
@@ -106,7 +105,6 @@ export default function InstructorEditForm() {
         <form onSubmit={onSubmit} className="space-y-8">
           {/* ime + slika + biografija*/}
           <div className="flex flex-col md:flex-row gap-5">
-            {/* ime na mobitelu */}
             <h1 className="md:hidden text-[#215993] text-3xl font-semibold">
               {fullName}
             </h1>
@@ -141,7 +139,7 @@ export default function InstructorEditForm() {
               />
             </div>
 
-            {/* ime + bio – desktop */}
+            {/* ime + bio */}
             <div className="flex flex-col flex-1 gap-4">
               <h1 className="hidden md:block text-[#215993] text-5xl font-semibold">
                 {fullName}

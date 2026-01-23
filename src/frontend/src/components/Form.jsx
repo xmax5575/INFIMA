@@ -38,17 +38,13 @@ function Form({method}) {
         });
         localStorage.setItem(ACCESS_TOKEN, res.data.access);
         localStorage.setItem(REFRESH_TOKEN, res.data.refresh);
-        //alert("Prijava uspješna!");
-        //spremimo jwt token u localstorage
         const res_role = await api.get("/api/user/role/", {
           headers: { Authorization: `Bearer ${res.data.access}` },
           withCredentials: true,
         });
-        // Ako korisnik nema ulogu ide na biranje uloge.
         if (!res_role.data.role) {
           navigate("/role");
 
-          //Inače ide na stranicu povezanu s njegovom ulogom
         } else {
           navigate(`/home/${res_role.data.role.toLowerCase()}`);
         }
@@ -60,8 +56,6 @@ function Form({method}) {
           password: password,
         });
         if (res.status === 201) {
-          //alert("Registracija uspješna! Možete se prijaviti.");
-          //Registracija uspješna, korisnik se mora prijaviti.
           navigate("/login");
         }
       }
@@ -106,7 +100,7 @@ function Form({method}) {
                 "Lozinka mora imati minimalno 8 znakova, uključujući broj i veliko slovo."
               )
             }
-            onInput={(e) => e.currentTarget.setCustomValidity("")} // makni poruku čim korisnik tipka
+            onInput={(e) => e.currentTarget.setCustomValidity("")}
             placeholder="Unesite lozinku"
             required
           />
@@ -137,7 +131,7 @@ function Form({method}) {
                 type={showPasswordAgain ? "text" : "password"}
                 value={passwordAgain}
                 onChange={(e) => setPasswordAgain(e.target.value)}
-                onInput={(e) => e.currentTarget.setCustomValidity("")} // Makni upozorenje kad tipka
+                onInput={(e) => e.currentTarget.setCustomValidity("")}
                 placeholder="Ponovno unesite lozinku"
                 required
               />

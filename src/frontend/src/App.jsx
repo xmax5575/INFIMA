@@ -32,7 +32,7 @@ function isAuthenticated() {
   const token = localStorage.getItem(ACCESS_TOKEN);
   if (!token) return false;
   try {
-    const { exp } = jwtDecode(token); // exp je u sekundama
+    const { exp } = jwtDecode(token);
     return exp * 1000 > Date.now();
   } catch {
     return false;

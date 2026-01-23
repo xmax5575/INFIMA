@@ -24,18 +24,18 @@ function Student() {
   const [rend, setRend] = useState(false);
 
   const [filters, setFilters] = useState({
-    format: null, // online/uzivo
-    subject: [], // matematika/fizika/informatika
-    days: null, // 7/14
-    rating: null, // 3/4/5
+    format: null,
+    subject: [],
+    days: null,
+    rating: null,
   });
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 10000); // Osvježava svaku minutu
+    }, 10000);
 
-    return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
+    return () => clearInterval(timer);
   }, []);
 
   const filterBtnClass = (active) =>
@@ -61,7 +61,6 @@ function Student() {
           },
         });
 
-        // Ako ne možemo dohvatiti termine postavi error poruku.
         if (!res.ok) {
           const txt = await res.text();
           if (res.status === 401) {
@@ -73,7 +72,6 @@ function Student() {
           return;
         }
 
-        // Ako nam backend vrati odgovor, spremi u data i tu imamo sve potrebne podatke za slati u TerminCard.
         const data = await res.json();
         const list = Array.isArray(data) ? data : [];
 
@@ -96,7 +94,6 @@ function Student() {
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       try {
-        // Učitaj "moje" termine
         const res = await fetch(`${API_BASE_URL}/api/student/lessons/`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -114,7 +111,7 @@ function Student() {
   useEffect(() => {
     if (tab !== "summaries") return;
 
-    // Učitaj sažetke koji su dostupni tom učeniku, isto svaki put kad se tab promijeni
+    // Učitaj sažetke koji su dostupni tom studentu
     const loadSummaries = async () => {
       setSummariesLoading(true);
       setSummariesErr(null);
@@ -179,7 +176,6 @@ function Student() {
   // Ubaci u myLessons id samo id-jeve lekcija tog student, zbog filtriranja
   const myLessonIds = new Set(myTermini.map((t) => t.lesson_id));
 
-  // Datum u obliku 23.1.2026.
   const dateFormatter = (date) => {
     return (
       date.getDate() + "." + (date.getMonth() + 1) + "." + date.getFullYear()
@@ -229,21 +225,21 @@ function Student() {
         })
       : visibleTermini;
 
-  const [sortBy, setSortBy] = useState(null); // Datum (uzlazno/silazno), Cijena (uzlazno/silazno), Ocjena (silazno) 
+  const [sortBy, setSortBy] = useState(null);
   const toggleSort = (key) => {
     setSortBy((prev) => (prev === key ? null : key));
   };
 
   const downloadFile = async (url, filename = "summary.pdf") => {
-    const res = await fetch(url);           // Dobijemo odgovor
-    const blob = await res.blob();          // Pretvaramo u binarne podatke
-    const a = document.createElement("a");  // Kreiramo dinamički objekt koji sadrži privremeni url iz binarne datoteke
+    const res = await fetch(url);      
+    const blob = await res.blob();     
+    const a = document.createElement("a");  
     a.href = URL.createObjectURL(blob);
-    a.download = filename;                  // Spremi file
+    a.download = filename;               
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);            // Oslobodi memoriju
+    URL.revokeObjectURL(a.href);     
   };
 
   const sortedTermini = [...filteredTermini].sort((a, b) => {
@@ -450,13 +446,11 @@ function Student() {
       pt-32
     "
           >
-            {/* overlay click */}
             <div
               className="absolute inset-0"
               onClick={() => setShowFilters(false)}
             />
 
-            {/* modal */}
             <div
               className="
         relative
@@ -474,7 +468,6 @@ function Student() {
               <h2 className="text-lg font-semibold mb-4 text-[#3674B5]">
                 Filteri
               </h2>
-              {/* FORMAT */}
               <div className="mb-4">
                 <p className=" font-semibold tracking-wide text-[#3674B5] mb-2">
                   Način
@@ -502,7 +495,6 @@ function Student() {
                 </div>
               </div>
 
-              {/* SUBJECT */}
               <div className="mb-4">
                 <p className=" font-semibold tracking-wide text-[#3674B5] mb-2">
                   Predmet
@@ -531,7 +523,6 @@ function Student() {
                 </div>
               </div>
 
-              {/* DAYS */}
               <div className="mb-4">
                 <p className=" font-semibold tracking-wide text-[#3674B5] mb-2">
                   Dostupnost
@@ -558,7 +549,6 @@ function Student() {
                 </div>
               </div>
 
-              {/* RATING */}
               <div className="mb-6">
                 <p className=" font-semibold tracking-wide text-[#3674B5] mb-2">
                   Ocjena
@@ -583,7 +573,6 @@ function Student() {
                 })}
               </div>
 
-              {/* ACTIONS */}
               <div className="flex gap-3"></div>
               <button
                 onClick={() => setShowFilters(false)}
@@ -602,13 +591,11 @@ function Student() {
       pt-32
     "
           >
-            {/* overlay click */}
             <div
               className="absolute inset-0"
               onClick={() => setShowSort(false)}
             />
 
-            {/* modal */}
             <div
               className="
         relative

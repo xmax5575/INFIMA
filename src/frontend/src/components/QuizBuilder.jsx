@@ -82,9 +82,9 @@ export default function QuizBuilder({ onCreated, loadQuestions }) {
       questions: questions.map((q) => {
         const baseQuestion = {
           subject,
-          school_level: school.toLowerCase(), // "srednja" | "osnovna"
+          school_level: school.toLowerCase(),
           grade: Number(grade),
-          difficulty: q.difficulty, // ostaje "jako lagano"
+          difficulty: q.difficulty,
           type: q.type,
           text: q.text,
         };
@@ -108,7 +108,7 @@ export default function QuizBuilder({ onCreated, loadQuestions }) {
         if (q.type === "true_false") {
           return {
             ...baseQuestion,
-            correct_answer: q.correctAnswer, // true / false
+            correct_answer: q.correctAnswer,
           };
         }
 

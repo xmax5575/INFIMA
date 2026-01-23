@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 
 export default function RecenzijaForm() {
-  const { lessonId } = useParams(); //uzme iz parametara iz url
+  const { lessonId } = useParams();
   const [rating, setRating] = useState(0);
   const [description, setDescription] = useState("");
   const [error, setError] = useState(null);

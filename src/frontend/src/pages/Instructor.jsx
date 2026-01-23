@@ -61,8 +61,7 @@ function Instructor() {
     return () => clearInterval(timer); // Čisti timer kad se ode sa stranice
   }, []);
 
-  // Učitaj profil kad imamo accessToken - zbog instructor_id-a.
-  // Ako je odgovor dobar spremi ga u user
+
   useEffect(() => {
     if (!accessToken) return;
     fetch(`${API_BASE_URL}/api/user/profile/`, {
@@ -86,7 +85,6 @@ function Instructor() {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        // Ako odgovor s backenda nije dobar ispiši grešku
         if (!res.ok) {
           const txt = await res.text();
           setErr(`Greška ${res.status}`);
@@ -100,7 +98,7 @@ function Instructor() {
             ? data.filter(
                 (l) => String(l.instructor_id) === String(user.instructor_id)
               )
-            : data; // dok profil ne stigne, možeš privremeno prikazati sve ili prazno
+            : data;
         setTermini(mine);
       } catch (e) {
         setErr("Mrežna greška");
@@ -237,7 +235,6 @@ function Instructor() {
                 <TerminForm
                   onClose={() => setShowForm(false)}
                   onCreated={(novi) => {
-                    // Ako backend vraća instructor_id
                     setTermini((prev) => [novi, ...prev]);
                     setShowForm(false);
                   }}

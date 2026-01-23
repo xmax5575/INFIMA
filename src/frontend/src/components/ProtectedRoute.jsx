@@ -28,14 +28,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
       }
 
       try {
-        // uloga
         const roleRes = await api.get("/api/user/role/");
         const r = norm(roleRes.data?.role);
 
         if (!alive) return;
         setRole(r || "");
 
-        // profil (instruktor + student)
         if (r === "instructor") {
           try {
             const profileRes = await api.get("/api/instructor/inf/");
@@ -84,13 +82,12 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
           if (alive) setIsProfileComplete(true);
         }
       } catch (err) {
-        // Greška na role endpointu (npr. 401/403) -> tu ima smisla fallback
         console.error(
           "Greška pri dohvaćanju role:",
           err?.response?.data || err,
         );
         if (!alive) return;
-        setRole(""); // nema role / neautorizirano / sl.
+        setRole("");
         setIsProfileComplete(false);
       } finally {
         if (alive) setLoading(false);
@@ -105,7 +102,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     };
   }, [token, navigate]);
 
-  // Ako se triggera profileUpdated event, odmah se prelazi na home page.
   useEffect(() => {
     const onProfileUpdated = (e) => {
       try {
@@ -113,7 +109,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
         if (!detail || !detail.role) return;
         const r = String(detail.role).toLowerCase();
 
-        // If we don't yet know the role, set it so the routing logic can proceed.
         setRole((current) => (current === null ? r : current));
 
         if (typeof detail.isProfileComplete === "boolean") {
@@ -123,7 +118,6 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
           setIsProfileComplete(savedFlag);
         }
 
-        // Remove the temporary saved flag so it can't be reused.
         try {
           localStorage.removeItem(`profile_saved_${r}`);
         } catch (e) {
@@ -147,21 +141,17 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   }, [location.pathname, navigate]);
 
   useEffect(() => {
-    // loading gotov, ali nema role → redirect
     if (!loading && role === null) {
       navigate("/", { replace: true });
     }
   }, [loading, role, navigate]);
 
   useEffect(() => {
-    // čekaj da se sve učita
     if (loading) return;
     if (!token) return;
 
-    // ako nije odabrao role ili profil nije kompletan, ne prisiljavaj ga na neku stranicu
     if (!role || role === "" || !isProfileComplete) return;
 
-    // dok je na /role ili edit profilu, nemoj ga prekidati
     if (
       location.pathname === "/role" ||
       location.pathname.startsWith("/profile/")
@@ -172,20 +162,16 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
     (async () => {
       try {
-        // backend kaže što je na redu, odnosno ako je nešto pokušano izbjeći
         const res = await api.get("/api/flow/next/");
         if (!alive) return;
 
-        const target = res.data?.redirect_to; // npr. /payment/306 ili /review/306 ili /summary/306
+        const target = res.data?.redirect_to;
         if (!target) return;
 
-        // ako već je tamo, ne diraj
         if (location.pathname === target) return;
 
-        // inače ga vrati na to što je na redu
         navigate(target, { replace: true });
       } catch (e) {
-        // ignore 
       }
     })();
 
@@ -213,24 +199,20 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const homePath = `/home/${role}`;
   const isMyEditPage = pathname === editPath;
 
-  // 1) Nema role, idi na /role
   if (role === "") {
     if (isRolePage) return children;
     return <Navigate to="/role" replace />;
   }
 
-  // 2) Instruktor bez profila/bio, ide na edit
   if (!isProfileComplete) {
     if (isMyEditPage) return children;
     return <Navigate to={editPath} replace />;
   }
 
-  // 3) Ne dozvoli /role ili tuđi edit
   if (isRolePage || (pathname.startsWith("/profile/") && !isMyEditPage)) {
     return <Navigate to={homePath} replace />;
   }
 
-  // 4) Role-based zaštita
   if (allowed.length > 0 && !allowed.includes(role)) {
     return <Navigate to={homePath} replace />;
   }

@@ -1,25 +1,21 @@
 import { useEffect, useState } from "react";
 
 export default function LogoBulbLoader() {
-  const total = 5; // koliko žaruljica se učitava
-  const [active, setActive] = useState(1); //koliko je "upaljenih" žaruljica
+  const total = 5;
+  const [active, setActive] = useState(1);
 
   useEffect(() => {
-    // svakih 400ms povećaj broj aktivnih žaruljica, ili smanji na 1 ako je active == 5
     const interval = setInterval(() => {
       setActive((prev) => (prev >= total ? 1 : prev + 1));
     }, 400);
 
-    // očisti interval kad se komponenta prestane koristiti
     return () => clearInterval(interval);
   }, []);
 
   return (
     <div className="flex flex-col items-center gap-5">
-      {/* progress od logo žaruljica*/}
       <div className="flex gap-3">
         {
-          /* value ne koristimo pa je _ */
           Array.from({ length: total }).map((_, i) => (
             <img
               key={i}

@@ -8,7 +8,7 @@ import StudentCard from "../components/StudentCard";
 
 function Header() {
   const [user, setUser] = useState(null);
-  const [instructor, setInstructor] = useState(null); // <-- instruktorski detalji
+  const [instructor, setInstructor] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profileVersion, setProfileVersion] = useState(0);
@@ -22,12 +22,10 @@ function Header() {
   }, [location.pathname, profileVersion]);
 
   useEffect(() => {
-    // ako stisnes van menua / zatvori ga
     const onPointerDown = (e) => {
       if (!menuRef.current) return;
       if (!menuRef.current.contains(e.target)) setMenuOpen(false);
     };
-    // esc zatvara meni
     const onKeyDown = (e) => {
       if (e.key === "Escape") setMenuOpen(false);
     };
@@ -43,7 +41,6 @@ function Header() {
     };
   }, []);
 
-  // Dohvati usera
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem(ACCESS_TOKEN);
@@ -75,11 +72,9 @@ function Header() {
     fetchUser();
   }, [location.pathname]);
 
-  // Klik na "Profil" -> povuci instruktorske detalje pa otvori modal
   const openProfile = async () => {
     setMenuOpen(false);
 
-    // Ako nije loginan user, samo nemoj ništa
     if (!user) return;
 
     try {
@@ -190,7 +185,6 @@ function Header() {
                 }}
               />
             ) : (
-              /* svaki put kad se otvara pošalji različit bool da se refresha i povuče nove podatke */
               <StudentCard renderData={renderData}/>
             )}
           </div>

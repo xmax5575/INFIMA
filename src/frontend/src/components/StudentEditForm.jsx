@@ -7,7 +7,6 @@ import { Heart } from "lucide-react";
 import InstructorCard from "../components/InstructorCard";
 import { supabase } from "../supabaseClient";
 
-// Dani
 const DAYS = [
   "Ponedjeljak",
   "Utorak",
@@ -18,7 +17,6 @@ const DAYS = [
   "Nedjelja",
 ];
 
-// Sati 08–21
 const HOURS = Array.from({ length: 14 }, (_, i) =>
   String(8 + i).padStart(2, "0")
 );
@@ -27,7 +25,6 @@ const SUBJECTS = ["Matematika", "Fizika", "Informatika"];
 const LEVELS = ["loša", "dovoljna", "dobra", "vrlo dobra", "odlična"];
 const DEFAULT_SLOT = { day: "Ponedjeljak", from: "08:00", to: "09:00" };
 
-// "HH:MM" -> minute
 const toMinutes = (t) => {
   if (!t) return null;
   const [h, m] = t.split(":").map(Number);
@@ -36,7 +33,6 @@ const toMinutes = (t) => {
 };
 
 function parsePreferredRange(str) {
-  // očekujemo: "Ponedjeljak 18:00-19:30"
   if (typeof str !== "string") return null;
 
   const match = str.match(/^(\S+)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
@@ -63,22 +59,18 @@ export default function StudentEditPage({update}) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // instruktori + favorites
   const [instructors, setInstructors] = useState([]);
   const [instructorsLoading, setInstructorsLoading] = useState(false);
   const [instructorsError, setInstructorsError] = useState("");
   const [favoriteIds, setFavoriteIds] = useState([]);
 
-  // modal
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [isInstructorModalOpen, setIsInstructorModalOpen] = useState(false);
   const [instructorDetailLoading, setInstructorDetailLoading] = useState(false);
   const [instructorDetailError, setInstructorDetailError] = useState("");
 
-  // Osnovna / Srednja -> razredi
-  const [schoolLevel, setSchoolLevel] = useState(""); // "osnovna" | "srednja"
+  const [schoolLevel, setSchoolLevel] = useState("");
 
-  // svaki put kad se promijeni school level "izračuna se grade options"
   const gradeOptions = useMemo(() => {
     if (schoolLevel === "osnovna")
       return Array.from({ length: 8 }, (_, i) => String(i + 1));
@@ -93,14 +85,12 @@ export default function StudentEditPage({update}) {
     learning_goals: "",
   });
 
-  // subjects -> map: { Matematika: "dobra", Fizika: "..." ... }
   const [subjectLevels, setSubjectLevels] = useState(() => ({
     Matematika: "",
     Fizika: "",
     Informatika: "",
   }));
 
-  // termini: [{ day, from:"HH:MM", to:"HH:MM" }]
   const [timeSlots, setTimeSlots] = useState([DEFAULT_SLOT]);
 
   // kad zatvorimo podatke o instruktoru
@@ -135,7 +125,6 @@ export default function StudentEditPage({update}) {
     }
   };
 
-  // ESC zatvara modal
   useEffect(() => {
     if (!isInstructorModalOpen) return;
 
@@ -147,7 +136,6 @@ export default function StudentEditPage({update}) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isInstructorModalOpen]);
 
-  // block scroll dok je modal otvoren
   useEffect(() => {
     document.body.style.overflow = isInstructorModalOpen ? "hidden" : "";
     return () => {
@@ -155,14 +143,12 @@ export default function StudentEditPage({update}) {
     };
   }, [isInstructorModalOpen]);
 
-  // toggle favorite (srce)
   const toggleFavorite = (id) => {
     setFavoriteIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  //učitavanje podataka koji su već pohranjeni za tog studenta
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -193,7 +179,6 @@ export default function StudentEditPage({update}) {
 
         const parsedSlots = fromApi
           .map((x) => {
-            // novi format: {day, start, end}
             if (x && typeof x === "object") {
               const day = x.day;
               const from = x.start;
@@ -206,7 +191,6 @@ export default function StudentEditPage({update}) {
               };
             }
 
-            // stari format: "Ponedjeljak 18:00-19:30"
             if (typeof x === "string") return parsePreferredRange(x);
 
             return null;
@@ -264,7 +248,6 @@ export default function StudentEditPage({update}) {
       setInstructorsLoading(true);
       setInstructorsError("");
       try {
-        // uzmi sve instruktore i prikaži ih studentu
         const res = await api.get("/api/instructors/all/");
         const list = Array.isArray(res.data)
           ? res.data
@@ -283,7 +266,6 @@ export default function StudentEditPage({update}) {
     fetchInstructors();
   }, []);
 
-  // kad se promijeni schoolLevel, očisti grade ako više nije validan
   useEffect(() => {
     if (!schoolLevel) return;
     if (!formData.grade) return;
@@ -323,7 +305,6 @@ export default function StudentEditPage({update}) {
     "w-full p-2.5 rounded-xl border-none bg-white/80 focus:bg-white focus:outline-none text-[#215993] placeholder-[#3674B5]/40 transition-all";
   const labelStyle = "block text-[13px] font-bold text-[#3674B5] mb-1.5 ml-1";
 
-  // ---------- submit ----------
   const onSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -392,7 +373,6 @@ export default function StudentEditPage({update}) {
       <div className="w-full max-w-4xl rounded-[32px] bg-[#D1F8EF] p-8 shadow-xl border border-white/20">
         <form onSubmit={onSubmit} className="p-6">
           <div className="flex flex-col md:flex-row gap-8">
-            {/* Avatar / škola ispod */}
             <div className="w-full md:w-1/3 flex flex-col items-center">
               <label htmlFor="avatarUpload" className="cursor-pointer">
                 <div className="relative group w-56 h-56 bg-[#A8A8A8] rounded-3xl overflow-hidden border-4 border-white/50">
@@ -423,7 +403,6 @@ export default function StudentEditPage({update}) {
                 }}
               />
 
-              {/* Škola + Razred kartica */}
               <div className="w-full max-w-[224px] mt-6 rounded-2xl bg-white/50 border border-white/60 p-4 shadow-sm">
                 <div className="space-y-4">
                   <div>
@@ -670,7 +649,7 @@ export default function StudentEditPage({update}) {
 
           {/* Donji dio */}
           <div className="mt-8 space-y-4">
-            {/* Ciljevi učenja - full width */}
+            {/* Ciljevi učenja */}
             <div className="bg-[#215993] rounded-2xl p-6 border border-white/10">
               <label className="block text-[13px] font-bold text-[#D1F8EF] mb-2 uppercase tracking-wider">
                 Ciljevi učenja
@@ -734,7 +713,6 @@ export default function StudentEditPage({update}) {
                               : "bg-white/10 border-white/20 hover:bg-white/15")
                           }
                         >
-                          {/* Ime = modal */}
                           <button
                             type="button"
                             onClick={() => openInstructorModal(ins)}
@@ -743,7 +721,6 @@ export default function StudentEditPage({update}) {
                             {name}
                           </button>
 
-                          {/* Srce = favorite */}
                           <button
                             type="button"
                             onClick={(e) => {

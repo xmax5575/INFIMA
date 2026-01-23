@@ -32,9 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Ensure compatibility with Django's default UserManager.create_user
-        # which expects a username parameter. We don't require a separate
-        # username field, so use the email as the username value.
         email = validated_data.get('email') 
 
         if 'role' in validated_data and validated_data['role'] is None:
@@ -43,7 +40,6 @@ class UserSerializer(serializers.ModelSerializer):
         allowed = set(self.Meta.fields) - {'id'}
         filtered_data = {k: v for k, v in validated_data.items() if k in allowed}
 
-        # Use email as username so create_user doesn't raise missing username
         user = User.objects.create_user(username=email, **filtered_data)
         return user
     
@@ -89,16 +85,9 @@ class LessonSerializer(serializers.ModelSerializer):
             return "Nepoznati instruktor"
 
     def get_title(self, obj):
-        """
-        Naslov lekcije – trenutno jednak imenu instruktora.
-        """
         return self.get_instructor_name(obj)
 
     def get_instructor_display(self, obj):
-        """
-        Formatiran prikaz instruktora – također se vraća isto ime.
-        Može se kasnije proširiti (npr. dodati titulu, predmet i sl.).
-        """
         return self.get_instructor_name(obj)
 
     def get_avg_rating(self, obj):
